@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: evisa_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: evisa_db
+      MYSQL_USER: evisa_user
+      MYSQL_PASSWORD: evisa_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+       - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - evisa_network
+
+  backend:
+    build:
+      context: ./backend        # dossier où se trouve le Dockerfile backend
+      dockerfile: Dockerfile    # nom exact du Dockerfile
+    container_name: evisa_backend
+    restart: always
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=evisa_db
+      - DB_USER=evisa_user
+      - DB_PASSWORD=evisa_password
+    depends_on:
+      - db
+    networks:
+      - evisa_network
+
+  frontend:
+    build:
+      context: ./frontend       # dossier où se trouve le Dockerfile frontend
+      dockerfile: Dockerfile    # nom exact du Dockerfile
+    container_name: evisa_frontend
+    restart: always
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+    networks:
+      - evisa_network
+
+volumes:
+  mysql_data:
+
+networks:
+  evisa_network:
+    driver: bridge
