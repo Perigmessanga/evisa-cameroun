@@ -24,7 +24,7 @@ services:
     container_name: evisa_backend
     restart: always
     volumes:
-      - ./backend:/app
+     - ./backend:/app
     ports:
       - "8000:8000"
     environment:
