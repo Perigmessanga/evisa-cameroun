@@ -1,0 +1,176 @@
+// ─────────────────────────────────────────────
+//  components/layout/DashboardLayout.tsx
+// ─────────────────────────────────────────────
+import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import CameroonFlag from '../common/CameroonFlag';
+import { 
+  LogOut, Menu, X, Home, FileText, Settings, User, 
+  MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart 
+} from 'lucide-react';
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  // Navigation config based on role
+  const getNavItems = () => {
+    switch (user.role) {
+      case 'APPLICANT':
+        return [
+          { name: 'Tableau de bord', path: '/applicant/dashboard', icon: <Home size={20} /> },
+          { name: 'Mes demandes', path: '/applicant/tracking', icon: <FileText size={20} /> },
+          { name: 'Mon compte', path: '/applicant/profile', icon: <User size={20} /> }
+        ];
+      case 'AGENT':
+        return [
+          { name: 'Tableau de bord', path: '/agent/dashboard', icon: <Home size={20} /> },
+          { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
+        ];
+      case 'ADMIN':
+        return [
+          { name: 'Superviseur', path: '/admin/dashboard', icon: <BarChart size={20} /> },
+          { name: 'Utilisateurs', path: '/admin/users', icon: <Users size={20} /> },
+          { name: 'Types de visa', path: '/admin/visa-types', icon: <FileText size={20} /> },
+          { name: 'Logs Système', path: '/admin/logs', icon: <FileWarning size={20} /> },
+          { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
+          { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> }
+        ];
+      case 'EMBASSY':
+        return [
+          { name: 'Avis Consulaire', path: '/ambassade/dashboard', icon: <Home size={20} /> },
+          { name: 'Dossiers Requis', path: '/ambassade/dossiers', icon: <FileText size={20} /> },
+          { name: 'Messagerie', path: '/ambassade/messagerie', icon: <Mail size={20} /> }
+        ];
+      case 'BORDER':
+        return [
+          { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <MapPin size={20} /> },
+          { name: 'Scan & Vérification', path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
+          { name: 'Historique', path: '/frontiere/historique', icon: <FileText size={20} /> },
+          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const navItems = getNavItems();
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  return (
+    <div className="min-h-screen bg-cm-cream flex">
+      {/* ── MOBILE OVERLAY ── */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-cm-dark/50 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── SIDEBAR ── */}
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white border-r border-cm-border shadow-[4px_0_24px_rgba(0,0,0,0.02)]
+        transform transition-transform duration-300 ease-in-out flex flex-col
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {/* LOGO AREA */}
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-cm-border bg-cm-cream/30">
+          <CameroonFlag size={32} />
+          <div>
+            <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun</div>
+            <div className="text-[0.6rem] font-bold tracking-widest text-cm-gold">RÉPUBLIQUE DU CAMEROUN</div>
+          </div>
+          <button 
+            className="lg:hidden ml-auto p-2 text-cm-muted hover:text-cm-text"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* PROFILE AREA */}
+        <div className="p-6 border-b border-cm-border">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-linear-to-br from-cm-green-pale to-cm-green text-white flex items-center justify-center font-display font-bold text-lg shadow-inner">
+              {user.first_name[0]}{user.last_name[0]}
+            </div>
+            <div>
+              <div className="font-bold text-sm text-cm-text">{user.first_name} {user.last_name}</div>
+              <div className="text-xs text-cm-muted">{user.email}</div>
+            </div>
+          </div>
+          <div className="inline-flex items-center px-2.5 py-1 bg-cm-gold-pale/20 text-cm-gold rounded-md text-[0.65rem] font-bold tracking-wider">
+            ESPACE {user.role === 'APPLICANT' ? 'DEMANDEUR' : user.role}
+          </div>
+        </div>
+
+        {/* NAV LINKS */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          {navItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm
+                  ${isActive 
+                    ? 'bg-cm-green-pale/10 text-cm-green border-l-4 border-cm-green shadow-sm' 
+                    : 'text-cm-muted hover:bg-cm-cream hover:text-cm-text'}
+                `}
+              >
+                <div className={`${isActive ? 'text-cm-green' : 'text-cm-muted'}`}>
+                  {item.icon}
+                </div>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* LOGOUT BUTTON */}
+        <div className="p-4 border-t border-cm-border">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-cm-red rounded-xl hover:bg-cm-red/5 transition-colors"
+          >
+            <LogOut size={20} /> Se déconnecter
+          </button>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT AREA ── */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* MOBILE TOPBAR */}
+        <header className="lg:hidden h-16 bg-white border-b border-cm-border flex items-center justify-between px-4 shrink-0 shadow-sm z-30">
+          <div className="flex items-center gap-2">
+            <CameroonFlag size={24} />
+            <span className="font-display font-bold text-cm-text text-sm">e-Visa</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-cm-muted hover:text-cm-text bg-cm-cream rounded-lg transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+        </header>
+
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+          {children || <Outlet />}
+        </div>
+      </main>
+    </div>
+  );
+}
