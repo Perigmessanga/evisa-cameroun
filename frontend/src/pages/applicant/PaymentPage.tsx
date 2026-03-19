@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 //  pages/applicant/PaymentPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, CheckCircle2, ShieldCheck, ArrowRight, Loader2, FilePlus2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,14 +11,23 @@ export default function PaymentPage() {
   const [method, setMethod] = useState<'CARD' | 'MTN' | 'ORANGE'>('CARD');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  // Mock application data for display
-  const applicationData = {
+  const [applicationData, setApplicationData] = useState({
     id: 'VA-2024-9982',
     type: 'Visa Tourisme (Court Séjour)',
-    amount: 100, // EUR
-    currency: '€'
-  };
+    price: '100 000 XAF'
+  });
+
+  useEffect(() => {
+    const apps = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
+    const lastApp = apps[apps.length - 1];
+    if (lastApp) {
+      setApplicationData({
+        id: lastApp.id,
+        type: lastApp.type,
+        price: lastApp.price || '100 000 XAF'
+      });
+    }
+  }, []);
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,13 +58,13 @@ export default function PaymentPage() {
           
           <h1 className="font-display text-3xl font-bold text-cm-text mb-4">Paiement Confirmé !</h1>
           <p className="text-cm-muted text-lg mb-8 leading-relaxed">
-            Votre paiement de <strong>{applicationData.amount}{applicationData.currency}</strong> a été traité avec succès. Votre demande <strong>{applicationData.id}</strong> est maintenant transmise aux services consulaires pour traitement.
+            Votre paiement de <strong>{applicationData.price}</strong> a été traité avec succès. Votre demande <strong>{applicationData.id}</strong> est maintenant transmise aux services consulaires pour traitement.
           </p>
 
           <div className="bg-cm-cream p-6 rounded-2xl mb-8 flex justify-between items-center text-left">
             <div>
               <p className="text-sm text-cm-muted mb-1">Reçu de paiement n°</p>
-              <p className="font-mono font-bold text-cm-text">RC-CM-88472911</p>
+              <p className="font-mono font-bold text-cm-text">RC-CM-{Math.floor(Math.random() * 90000) + 10000}</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-cm-muted mb-1">Date</p>
@@ -177,7 +186,7 @@ export default function PaymentPage() {
                   {loading ? (
                     <><Loader2 size={20} className="animate-spin" /> Traitement en cours...</>
                   ) : (
-                    <>Payer {applicationData.amount}{applicationData.currency} <ArrowRight size={20} /></>
+                    <>Payer {applicationData.price} <ArrowRight size={20} /></>
                   )}
                 </button>
                 <div className="flex items-center justify-center gap-2 mt-4 text-xs text-cm-muted/80 font-semibold">
@@ -213,15 +222,15 @@ export default function PaymentPage() {
             <div className="bg-white p-4 rounded-xl border border-cm-border space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-cm-muted">Frais consulaires</span>
-                <span className="font-bold text-cm-text">{applicationData.amount} {applicationData.currency}</span>
+                <span className="font-bold text-cm-text">{applicationData.price}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-cm-muted">Frais de service (0%)</span>
-                <span className="font-bold text-cm-text">0.00 {applicationData.currency}</span>
+                <span className="font-bold text-cm-text">0 XAF</span>
               </div>
               <div className="pt-3 border-t border-cm-border flex justify-between text-lg">
                 <span className="font-bold text-cm-text">Total à payer</span>
-                <span className="font-display font-bold text-cm-green-mid">{applicationData.amount} {applicationData.currency}</span>
+                <span className="font-display font-bold text-cm-green-mid">{applicationData.price}</span>
               </div>
             </div>
 

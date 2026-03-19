@@ -62,7 +62,9 @@ export default function DownloadVisaPage() {
         {/* Visa Header */}
         <div className="flex justify-between items-start border-b-2 border-cm-border pb-6 mb-8">
           <div className="flex gap-4">
-            <CameroonFlag size={64} className="opacity-90 grayscale-20" />
+            <div className="opacity-90 grayscale-20">
+              <CameroonFlag size={64} />
+            </div>
             <div>
               <h2 className="font-display font-bold text-2xl text-cm-text uppercase tracking-wider">République du Cameroun</h2>
               <p className="font-display font-bold text-cm-gold tracking-widest text-sm uppercase">Republic of Cameroon</p>
@@ -149,7 +151,9 @@ export default function DownloadVisaPage() {
 
         {/* Watermark (Hidden on print, visible on screen) */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] print:opacity-10 z-0 overflow-hidden">
-           <CameroonFlag size={800} className="grayscale" />
+           <div className="grayscale">
+             <CameroonFlag size={800} />
+           </div>
         </div>
 
       </div>

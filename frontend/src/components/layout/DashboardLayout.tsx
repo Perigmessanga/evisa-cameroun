@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import CameroonFlag from '../common/CameroonFlag';
+import Footer from './Footer';
 import { 
   LogOut, Menu, X, Home, FileText, Settings, User, 
-  MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart 
+  MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart, BookOpen, Plus
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       case 'APPLICANT':
         return [
           { name: 'Tableau de bord', path: '/applicant/dashboard', icon: <Home size={20} /> },
+          { name: 'Nouvelle Demande', path: '/applicant/application', icon: <Plus size={20} /> },
           { name: 'Mes demandes', path: '/applicant/tracking', icon: <FileText size={20} /> },
+          { name: 'Brouillons', path: '/applicant/drafts', icon: <BookOpen size={20} /> },
           { name: 'Mon compte', path: '/applicant/profile', icon: <User size={20} /> }
         ];
       case 'AGENT':
@@ -68,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="min-h-screen bg-cm-cream flex">
+    <div className="min-h-screen bg-cm-cream flex flex-col">
       {/* ── MOBILE OVERLAY ── */}
       {sidebarOpen && (
         <div 
@@ -77,9 +80,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       )}
 
-      {/* ── SIDEBAR ── */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white border-r border-cm-border shadow-[4px_0_24px_rgba(0,0,0,0.02)]
+      {/* ── TOP SECTION: SIDEBAR + MAIN ── */}
+      <div className="flex flex-1 w-full relative">
+        {/* ── SIDEBAR ── */}
+        <aside className={`
+          fixed lg:sticky top-0 h-screen inset-y-0 left-0 z-50 w-72 bg-white border-r border-cm-border shadow-[4px_0_24px_rgba(0,0,0,0.02)]
         transform transition-transform duration-300 ease-in-out flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -150,8 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT AREA ── */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* MOBILE TOPBAR */}
         <header className="lg:hidden h-16 bg-white border-b border-cm-border flex items-center justify-between px-4 shrink-0 shadow-sm z-30">
           <div className="flex items-center gap-2">
@@ -166,11 +170,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </header>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
           {children || <Outlet />}
         </div>
-      </main>
+        </main>
+      </div>
+
+      <Footer />
     </div>
   );
 }

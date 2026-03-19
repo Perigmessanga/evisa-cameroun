@@ -6,7 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mockFrontiereStats, mockControleHistory, mockAlerts } from '../../data/mockFrontiereData';
 import { 
   ShieldCheck, ScanLine, AlertTriangle, 
-  Clock, ArrowRight, UserCheck, UserX, AlertCircle
+  Clock, ArrowRight, UserCheck, UserX, AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
 

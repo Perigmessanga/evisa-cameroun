@@ -18,7 +18,7 @@ export default function RegisterPage() {
     email: '',
     phone: '',
     password: '',
-    password2: '',
+    confirm_password: '',
   });
 
   const [showPwd, setShowPwd] = useState(false);
@@ -44,7 +44,7 @@ export default function RegisterPage() {
       setError('Le mot de passe doit contenir au moins 8 caractères.');
       return;
     }
-    if (formData.password !== formData.password2) {
+    if (formData.password !== formData.confirm_password) {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
@@ -56,7 +56,7 @@ export default function RegisterPage() {
       navigate('/auth/login');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.email?.[0] || 'Erreur lors de l\'inscription. Veuillez réessayer.';
+      const msg = err.response?.data?.detail || err.response?.data?.email?.[0] || 'Un objet Utilisateur avec ce champ Email existe déjà.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -176,6 +176,7 @@ export default function RegisterPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    autoComplete="new-password"
                     className="w-full pl-4 pr-10 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
                   />
                   <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-cm-muted hover:text-cm-text">
@@ -189,9 +190,10 @@ export default function RegisterPage() {
                 <div className="relative">
                   <input
                     type={showPwd2 ? 'text' : 'password'}
-                    name="password2"
-                    value={formData.password2}
+                    name="confirm_password"
+                    value={formData.confirm_password}
                     onChange={handleChange}
+                    autoComplete="new-password"
                     className="w-full pl-4 pr-10 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
                   />
                   <button type="button" onClick={() => setShowPwd2(!showPwd2)} className="absolute right-3 top-1/2 -translate-y-1/2 text-cm-muted hover:text-cm-text">

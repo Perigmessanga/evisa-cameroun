@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import HomePage from './pages/HomePage';
+import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -31,6 +32,24 @@ import DossiersListPage from './pages/ambassade/DossiersListPage';
 import DossierDetailPage from './pages/ambassade/DossierDetailPage';
 import MessageriePage from './pages/ambassade/MessageriePage';
 import AmbassadeProfilePage from './pages/ambassade/AmbassadeProfilePage';
+
+// newly created Applicant
+import BiometricPage from './pages/applicant/BiometricPage';
+import ApplicantSupportPage from './pages/applicant/ApplicantSupportPage';
+import DraftsPage from './pages/applicant/DraftsPage';
+import TrackingDetailPage from './pages/applicant/TrackingDetailPage';
+
+// newly created Admin
+import UserFormPage from './pages/admin/UserFormPage';
+import VisaTypeFormPage from './pages/admin/VisaTypeFormPage';
+import RoleManagementPage from './pages/admin/RoleManagementPage';
+
+// newly created Frontiere
+import FrontiereDashboardPage from './pages/frontiere/FrontiereDashboardPage';
+import VerificationVisaPage from './pages/frontiere/VerificationVisaPage';
+import HistoriqueControlesPage from './pages/frontiere/HistoriqueControlesPage';
+import AlertesSecuritePage from './pages/frontiere/AlertesSecuritePage';
+import FrontiereProfilePage from './pages/frontiere/FrontiereProfilePage';
 
 // Pages to be created in phase 3-8
 // Using a generic placeholder for now
@@ -65,6 +84,7 @@ export default function App() {
       <Routes>
         {/* ── PUBLIC ROUTES ── */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/contact" element={<ContactPage />} />
         
         {/* ── AUTH ROUTES ── */}
         <Route path="/auth">
@@ -79,10 +99,14 @@ export default function App() {
         <Route path="/applicant" element={<ProtectedRoute allowedRoles={['APPLICANT']}><DashboardLayout><Outlet/></DashboardLayout></ProtectedRoute>}>
           <Route path="dashboard" element={<ApplicantDashboard />} />
           <Route path="application" element={<ApplicationFormPage />} />
+          <Route path="biometric" element={<BiometricPage />} />
           <Route path="payment" element={<PaymentPage />} />
           <Route path="tracking" element={<TrackingPage />} />
+          <Route path="tracking/:id" element={<TrackingDetailPage />} />
           <Route path="download-visa/:id" element={<DownloadVisaPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="support" element={<ApplicantSupportPage />} />
+          <Route path="drafts" element={<DraftsPage />} />
         </Route>
 
         {/* ── AGENT ROUTES ── */}
@@ -97,7 +121,10 @@ export default function App() {
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardLayout><Outlet/></DashboardLayout></ProtectedRoute>}>
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="users/new" element={<UserFormPage />} />
           <Route path="visa-types" element={<VisaTypeManagementPage />} />
+          <Route path="visa-types/new" element={<VisaTypeFormPage />} />
+          <Route path="roles" element={<RoleManagementPage />} />
           <Route path="reports" element={<ReportsStatisticsPage />} />
           <Route path="logs" element={<SystemLogsPage />} />
           <Route path="email-templates" element={<EmailTemplatesPage />} />
@@ -115,11 +142,11 @@ export default function App() {
 
         {/* ── BORDER ROUTES ── */}
         <Route path="/frontiere" element={<ProtectedRoute allowedRoles={['BORDER']}><DashboardLayout><Outlet/></DashboardLayout></ProtectedRoute>}>
-          <Route path="dashboard" element={<PlaceholderPage title="Tableau de bord Frontière" />} />
-          <Route path="verification" element={<PlaceholderPage title="Vérification QR Code" />} />
-          <Route path="historique" element={<PlaceholderPage title="Historique Contrôles" />} />
-          <Route path="alertes" element={<PlaceholderPage title="Alertes Sécurité" />} />
-          <Route path="profile" element={<PlaceholderPage title="Mon Profil" />} />
+          <Route path="dashboard" element={<FrontiereDashboardPage />} />
+          <Route path="verification" element={<VerificationVisaPage />} />
+          <Route path="historique" element={<HistoriqueControlesPage />} />
+          <Route path="alertes" element={<AlertesSecuritePage />} />
+          <Route path="profile" element={<FrontiereProfilePage />} />
         </Route>
 
         {/* ── FALLBACK ── */}

@@ -2,6 +2,7 @@
 //  pages/applicant/DashboardPage.tsx
 // ─────────────────────────────────────────────
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
 import { mockApplications, mockNotifications } from '../../data/mockApplicantData';
@@ -12,6 +13,14 @@ import {
 
 export default function ApplicantDashboard() {
   const { user } = useAuth();
+  
+  // Merge real submitted apps from localStorage + mocks
+  const [realApps, setRealApps] = useState<typeof mockApplications>([]);
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
+    setRealApps(stored);
+  }, []);
+  const allApplications = [...realApps, ...mockApplications];
   
   // Format dates locally
   const formatDate = (dateString: string) => {
@@ -61,10 +70,10 @@ export default function ApplicantDashboard() {
       {/* ── STATS CARDS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Total Demandes', value: mockApplications.length, icon: <FileText className="text-cm-text/60" size={24} />, bg: 'bg-white' },
-          { title: 'Visa Approuvés', value: mockApplications.filter(a => a.status === 'APPROVED').length, icon: <FileCheck className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'En cours', value: mockApplications.filter(a => a.status === 'IN_PROGRESS').length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
-          { title: 'Rejetées', value: mockApplications.filter(a => a.status === 'REJECTED').length, icon: <FileWarning className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
+          { title: 'Total Demandes', value: allApplications.length, icon: <FileText className="text-cm-text/60" size={24} />, bg: 'bg-white' },
+          { title: 'Visa Approuvés', value: allApplications.filter(a => a.status === 'APPROVED').length, icon: <FileCheck className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: 'En cours', value: allApplications.filter(a => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED').length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'Rejetées', value: allApplications.filter(a => a.status === 'REJECTED').length, icon: <FileWarning className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between`}>
             <div>
@@ -91,9 +100,9 @@ export default function ApplicantDashboard() {
           </div>
 
           <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            {mockApplications.length > 0 ? (
+            {allApplications.length > 0 ? (
               <ul className="divide-y divide-cm-border">
-                {mockApplications.map(app => (
+                {allApplications.slice(0, 5).map((app, idx) => (
                   <li key={app.id} className="p-5 hover:bg-cm-cream/30 transition-colors">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       
@@ -135,6 +144,9 @@ export default function ApplicantDashboard() {
               <div className="p-12 text-center">
                 <FileText className="text-cm-border mx-auto mb-4" size={48} />
                 <p className="text-cm-muted font-medium">Vous n'avez aucune demande de visa pour le moment.</p>
+                <Link to="/applicant/application" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-cm-green text-white rounded-xl font-bold text-sm hover:bg-cm-green-mid transition-colors">
+                  <Plus size={14} /> Créer une demande
+                </Link>
               </div>
             )}
           </div>

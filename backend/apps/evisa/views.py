@@ -3,10 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
+from django.http import FileResponse
 from datetime import timedelta
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 import qrcode
 import io
 import base64
+import tempfile
 
 from apps.evisa.models import EVisa, BorderCrossing
 from apps.evisa.serializers import (
@@ -58,12 +62,44 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
                 'error': 'Vous ne pouvez pas télécharger cet e-visa.'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # TODO: Retourner le fichier PDF
-        # Pour l'instant, on retourne juste le chemin
-        return Response({
-            'pdf_url': f"/media/{evisa.pdf_file_path}",
-            'visa_number': evisa.visa_number
-        })
+        # Générer PDF
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # En-tête
+        p.setFont("Helvetica-Bold", 24)
+        p.drawString(100, height - 100, "RÉPUBLIQUE DU CAMEROUN")
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, height - 130, "VISA ÉLECTRONIQUE (e-Visa)")
+        
+        # Informations
+        p.setFont("Helvetica", 14)
+        y_pos = height - 180
+        p.drawString(100, y_pos, f"Numéro de Visa : {evisa.visa_number}")
+        p.drawString(100, y_pos - 25, f"Nom complet : {evisa.application.full_name}")
+        p.drawString(100, y_pos - 50, f"Numéro de passeport : {evisa.application.passport_number}")
+        p.drawString(100, y_pos - 75, f"Date d'émission : {evisa.issue_date.strftime('%Y-%m-%d')}")
+        p.drawString(100, y_pos - 100, f"Date d'expiration : {evisa.expiry_date.strftime('%Y-%m-%d')}")
+        p.drawString(100, y_pos - 125, f"Type de Visa : {evisa.application.visa_type.name}")
+        
+        # QR Code
+        qr_img = qrcode.make(evisa.visa_number)
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
+            qr_img.save(tmp.name)
+            p.drawImage(tmp.name, 100, y_pos - 300, width=150, height=150)
+            
+        # Mention de validité
+        p.setFont("Helvetica-Oblique", 10)
+        p.drawString(100, 50, "Ceci est un document électronique officiel. Scannez le QR code pour vérification.")
+        
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+        
+        response = FileResponse(buffer, as_attachment=True, filename=f"evisa_{evisa.visa_number}.pdf")
+        response['Content-Type'] = 'application/pdf'
+        return response
 
     @action(detail=True, methods=['post'])
     def revoke(self, request, pk=None):
@@ -238,8 +274,32 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
             },
             'total': BorderCrossing.objects.count(),
         }
-        
         return Response(stats)
+
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """
+        Historique des passages pour un visa donné.
+        GET /api/border-crossings/history/?visa_number=...
+        """
+        if not (request.user.is_border_agent or request.user.is_admin):
+            return Response({
+                'error': 'Permission refusée.'
+            }, status=status.HTTP_403_FORBIDDEN)
+            
+        visa_number = request.query_params.get('visa_number')
+        if not visa_number:
+            return Response({
+                'error': 'Le paramètre visa_number est requis.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        crossings = BorderCrossing.objects.filter(
+            evisa__visa_number=visa_number
+        ).select_related('evisa', 'border_agent').order_by('-crossing_date')
+        
+        # Ajouter le support de l'auteur
+        serializer = self.get_serializer(crossings, many=True)
+        return Response(serializer.data)
 
 
 def generate_qr_code(visa_number):

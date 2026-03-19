@@ -219,7 +219,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """
-        Statistiques des demandes (admin/agents).
+        Statistiques des demandes (admin/agents) enrichies pour le Dashboard.
         GET /api/visa-applications/stats/
         """
         user = request.user
@@ -228,6 +228,15 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': 'Permission refusée.'
             }, status=status.HTTP_403_FORBIDDEN)
+            
+        today = timezone.now().date()
+        from datetime import timedelta
+        week_ago = today - timedelta(days=7)
+        
+        # Statistiques de base
+        total = VisaApplication.objects.count()
+        today_apps = VisaApplication.objects.filter(created_at__date=today).count()
+        this_week_apps = VisaApplication.objects.filter(created_at__date__gte=week_ago).count()
         
         # Statistiques par statut
         stats_by_status = VisaApplication.objects.values('status').annotate(
@@ -239,10 +248,26 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             'visa_type__name'
         ).annotate(count=Count('id'))
         
+        # Tendance sur 7 jours (demandes créées par jour)
+        trend = VisaApplication.objects.filter(created_at__date__gte=week_ago) \
+            .values('created_at__date') \
+            .annotate(count=Count('id')) \
+            .order_by('created_at__date')
+            
+        trend_data = [{'date': str(item['created_at__date']), 'count': item['count']} for item in trend]
+        
+        # 5 demandes récentes
+        recent = VisaApplication.objects.all().order_by('-created_at')[:5]
+        recent_data = ApplicationListSerializer(recent, many=True).data
+        
         return Response({
-            'total': VisaApplication.objects.count(),
+            'total': total,
+            'today': today_apps,
+            'this_week': this_week_apps,
             'by_status': list(stats_by_status),
             'by_type': list(stats_by_type),
+            'trend': trend_data,
+            'recent_applications': recent_data,
             'pending': VisaApplication.objects.filter(
                 status__in=['SUBMITTED', 'PROCESSING', 'PENDING_DOCS', 'PENDING_REVIEW']
             ).count(),

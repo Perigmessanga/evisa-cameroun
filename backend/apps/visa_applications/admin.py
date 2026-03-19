@@ -1,3 +1,6 @@
 from django.contrib import admin
+from django.apps import apps
 
-# Register your models here.
+app_models = apps.get_app_config('visa_applications').get_models()  # nom de l'app sans le préfixe 'apps.'
+for model in app_models:
+    admin.site.register(model)

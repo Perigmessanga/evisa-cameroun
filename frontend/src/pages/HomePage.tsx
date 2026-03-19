@@ -2,11 +2,12 @@
 //  pages/HomePage.tsx
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import CameroonFlag from '../components/common/CameroonFlag';
 import {
   ShieldCheck, Clock, Globe, ArrowRight, CheckCircle2,
-  ChevronDown, FileText, Smartphone, Fingerprint, MapPin
+  ChevronDown, FileText, Smartphone, Fingerprint, MapPin, Menu, X
 } from 'lucide-react';
 
 const TRANSLATIONS = {
@@ -44,7 +45,17 @@ const TRANSLATIONS = {
       q2: 'Combien de temps faut-il pour obtenir le visa ?',
       a2: 'Le délai de traitement standard est de 3 jours ouvrables. Un service express de 24h est également disponible selon le type de visa.',
       q3: 'Quels sont les documents obligatoires ?',
-      a3: 'Vous aurez besoin d\'un passeport valide (au moins 6 mois), d\'une photo d\'identité récente, d\'un billet d\'avion aller-retour et d\'un justificatif d\'hébergement.'
+      a3: 'Vous aurez besoin d\'un passeport valide (au moins 6 mois), d\'une photo d\'identité récente, d\'un billet d\'avion aller-retour et d\'un justificatif d\'hébergement.',
+      q4: 'Puis-je modifier ma demande après le paiement ?',
+      a4: 'Non, une fois le paiement validé, aucune modification n\'est possible. Vérifiez attentivement vos informations avant la soumission.',
+      q5: 'Comment vérifier le statut de mon e-Visa ?',
+      a5: 'Utilisez la section "Suivi" avec votre numéro de dossier et votre adresse e-mail pour connaître l\'avancement en temps réel.'
+    },
+    visaTypes: {
+      title: 'Types de visa disponibles',
+      tourism: { title: 'Visa Tourisme', desc: 'Pour les visites touristiques et familiales.', price: '100 000 XAF', duration: 'Jusqu\'à 30 jours' },
+      business: { title: 'Visa Affaires', desc: 'Pour les réunions, conférences et opportunités commerciales.', price: '150 000 XAF', duration: 'Jusqu\'à 6 mois' },
+      transit: { title: 'Visa Transit', desc: 'Pour les escales de courte durée.', price: '50 000 XAF', duration: 'Jusqu\'à 5 jours' }
     },
     footer: { text: "République du Cameroun - Ministère des Relations Extérieures. Tous droits réservés." }
   },
@@ -82,17 +93,30 @@ const TRANSLATIONS = {
       q2: 'How long does it take to get the visa?',
       a2: 'The standard processing time is 3 working days. A 24h express service is also available depending on the visa type.',
       q3: 'What are the mandatory documents?',
-      a3: 'You will need a valid passport (at least 6 months), a recent identity photo, a return flight ticket and proof of accommodation.'
+      a3: 'You will need a valid passport (at least 6 months), a recent identity photo, a return flight ticket and proof of accommodation.',
+      q4: 'Can I modify my application after payment?',
+      a4: 'No, once payment is confirmed, no modifications are possible. Carefully check your information before submission.',
+      q5: 'How can I check the status of my e-Visa?',
+      a5: 'Use the "Tracking" section with your file number and email address to know the progress in real time.'
+    },
+    visaTypes: {
+      title: 'Available visa types',
+      tourism: { title: 'Tourist Visa', desc: 'For tourist and family visits.', price: '100,000 XAF', duration: 'Up to 30 days' },
+      business: { title: 'Business Visa', desc: 'For meetings, conferences, and commercial opportunities.', price: '150,000 XAF', duration: 'Up to 6 months' },
+      transit: { title: 'Transit Visa', desc: 'For short stopovers.', price: '50,000 XAF', duration: 'Up to 5 days' }
     },
     footer: { text: "Republic of Cameroon - Ministry of External Relations. All rights reserved." }
   }
 };
 
 export default function HomePage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const t = TRANSLATIONS[lang];
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -138,23 +162,73 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-8">
-            {['home', 'apply', 'tracking', 'contact'].map((item, i) => (
-              <a key={i} href={`#${item}`} className={`text-sm font-semibold transition-colors ${scrolled ? 'text-cm-muted hover:text-cm-green-mid' : 'text-white/80 hover:text-white'}`}>
-                {t.nav[item as keyof typeof t.nav]}
-              </a>
-            ))}
+          <div className="hidden lg:flex items-center gap-8">
+            {['home', 'apply', 'tracking', 'contact'].map((item, i) => {
+              let toPath = '/';
+              if (item === 'apply') toPath = user ? '/applicant/application' : '/auth/login';
+              if (item === 'tracking') toPath = user ? '/applicant/tracking' : '/auth/login';
+              if (item === 'contact') toPath = '/contact';
+              const stateObj = (!user && (item === 'apply' || item === 'tracking')) 
+                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } } 
+                : undefined;
+
+              return (
+                <Link key={i} to={toPath} state={stateObj} className={`text-sm font-semibold transition-colors ${scrolled ? 'text-cm-muted hover:text-cm-green-mid' : 'text-white/80 hover:text-white'}`}>
+                  {t.nav[item as keyof typeof t.nav]}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-4">
             <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className={`text-xs font-bold px-2 py-1 rounded border ${scrolled ? 'border-cm-border text-cm-text hover:bg-cm-green/5' : 'border-white/30 text-white hover:bg-white/10'}`}>
               {lang.toUpperCase()}
             </button>
-            <Link to="/auth/login" className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid' : 'bg-white text-cm-green hover:bg-cm-cream'} whitespace-nowrap`}>
-              {t.nav.login}
+            <Link to={user ? "/applicant/dashboard" : "/auth/login"} className={`hidden sm:flex px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid' : 'bg-white text-cm-green hover:bg-cm-cream'} whitespace-nowrap`}>
+              {user ? 'Mon Tableau de bord' : t.nav.login}
             </Link>
+            <button 
+              className={`lg:hidden p-2 rounded-lg ${scrolled ? 'text-cm-text bg-cm-cream' : 'text-white bg-white/10'}`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
+        
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-cm-border shadow-lg p-6 flex flex-col gap-4 animate-fadeUp z-50">
+            {['home', 'apply', 'tracking', 'contact'].map((item, i) => {
+              let toPath = '/';
+              if (item === 'apply') toPath = user ? '/applicant/application' : '/auth/login';
+              if (item === 'tracking') toPath = user ? '/applicant/tracking' : '/auth/login';
+              if (item === 'contact') toPath = '/contact';
+              const stateObj = (!user && (item === 'apply' || item === 'tracking')) 
+                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } } 
+                : undefined;
+
+              return (
+                <Link 
+                  key={i} 
+                  to={toPath} 
+                  state={stateObj} 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-cm-text font-bold text-lg border-b border-cm-border/50 pb-3"
+                >
+                  {t.nav[item as keyof typeof t.nav]}
+                </Link>
+              );
+            })}
+            <Link 
+              to={user ? "/applicant/dashboard" : "/auth/login"} 
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-4 px-5 py-3 rounded-xl bg-cm-green text-white text-center font-bold"
+            >
+              {user ? 'Mon Tableau de bord' : t.nav.login}
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ── */}
@@ -172,7 +246,7 @@ export default function HomePage() {
             <h1 className="font-display text-5xl lg:text-7xl font-bold text-white leading-[1.1] mb-6 drop-shadow-lg">
               {t.hero.title1}<br />
               <span className="gold-shimmer">{t.hero.title2}</span><br />
-              {t.hero.title3}
+              <span className="gold-shimmer text-4xl lg:text-6xl">{t.hero.title3}</span>
             </h1>
 
             <p className="text-white/80 text-lg lg:text-xl mb-10 leading-relaxed font-light max-w-xl">
@@ -180,10 +254,18 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
-              <Link to="/auth/register" className="group px-8 py-4 rounded-xl bg-linear-to-r from-cm-gold to-cm-gold-light text-cm-dark font-bold text-base transition-all hover:-translate-y-1 shadow-[0_12px_24px_-8px_rgba(201,149,42,0.4)] flex items-center gap-2 hover:shadow-[0_16px_32px_-8px_rgba(201,149,42,0.6)]">
+              <Link 
+                to={user ? "/applicant/application" : "/auth/login"} 
+                state={!user ? { from: { pathname: '/applicant/application' } } : undefined}
+                className="group px-8 py-4 rounded-xl bg-linear-to-r from-cm-gold to-cm-gold-light text-cm-dark font-bold text-base transition-all hover:-translate-y-1 shadow-[0_12px_24px_-8px_rgba(201,149,42,0.4)] flex items-center gap-2 hover:shadow-[0_16px_32px_-8px_rgba(201,149,42,0.6)]"
+              >
                 {t.hero.btnApply} <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link to="/applicant/tracking" className="px-8 py-4 rounded-xl bg-white/10 text-white font-bold text-base transition-all hover:bg-white/20 backdrop-blur-sm border border-white/20">
+              <Link 
+                to={user ? "/applicant/tracking" : "/auth/login"}
+                state={!user ? { from: { pathname: '/applicant/tracking' } } : undefined}
+                className="px-8 py-4 rounded-xl bg-white/10 text-white font-bold text-base transition-all hover:bg-white/20 backdrop-blur-sm border border-white/20"
+              >
                 {t.hero.btnTrack}
               </Link>
             </div>
@@ -203,10 +285,9 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                  <div className="h-4 w-3/4 bg-cm-dark/5 rounded" />
-                  <div className="h-4 w-1/2 bg-cm-dark/5 rounded" />
-                  <div className="h-4 w-5/6 bg-cm-dark/5 rounded" />
+                <div className="relative mb-8 w-full group overflow-hidden rounded-xl border border-cm-border/50 shadow-sm">
+                  <img src="/evisa_preview.png" alt="Visa Preview" className="w-full h-40 object-cover transition-transform duration-700 max-w-full hover:scale-105" />
+                  <div className="absolute inset-0 border border-black/5 rounded-xl pointer-events-none"></div>
                 </div>
 
                 <div className="flex justify-between items-end border-t border-cm-border pt-4">
@@ -265,6 +346,43 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── VISA TYPES ── */}
+      <section className="py-24 bg-cm-cream/50 overflow-hidden w-full block">
+        <div className="text-center max-w-2xl mx-auto mb-16 reveal">
+          <h2 className="font-display text-4xl lg:text-5xl font-bold text-cm-text mb-4">{t.visaTypes.title}</h2>
+          <div className="w-24 h-1.5 bg-linear-to-r from-cm-gold to-cm-green mx-auto rounded-full" />
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8 relative z-10">
+          {[
+            { tag: t.visaTypes.tourism, icon: <Globe size={32} className="text-cm-green" /> },
+            { tag: t.visaTypes.business, icon: <FileText size={32} className="text-cm-gold" /> },
+            { tag: t.visaTypes.transit, icon: <Clock size={32} className="text-cm-red" /> },
+          ].map((type, i) => (
+            <div key={i} className="bg-white p-8 rounded-4xl border border-cm-border shadow-md hover:-translate-y-2 transition-all duration-300 reveal flex flex-col group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cm-cream rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500 ease-out" />
+              <div className="relative z-10">
+                <div className="w-16 h-16 rounded-2xl bg-cm-cream/50 flex items-center justify-center mb-6 shadow-xs border border-cm-border/50">
+                  {type.icon}
+                </div>
+                <h3 className="text-2xl font-display font-bold text-cm-text mb-2">{type.tag.title}</h3>
+                <p className="text-cm-muted mb-6">{type.tag.desc}</p>
+                <div className="mt-auto space-y-3 pt-6 border-t border-cm-border/40">
+                  <div className="flex justify-between items-center text-sm font-semibold">
+                    <span className="text-cm-text/60">Frais consulaires :</span>
+                    <span className="text-cm-green font-bold text-base">{type.tag.price}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-semibold">
+                    <span className="text-cm-text/60">Validité max :</span>
+                    <span className="text-cm-text">{type.tag.duration}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── PROCESS ── */}
       <section className="py-24 bg-cm-dark text-white relative overflow-hidden w-full block">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-cm-green rounded-full blur-[100px] opacity-50 pointer-events-none" />
@@ -299,7 +417,9 @@ export default function HomePage() {
           {[
             { q: t.faq.q1, a: t.faq.a1 },
             { q: t.faq.q2, a: t.faq.a2 },
-            { q: t.faq.q3, a: t.faq.a3 }
+            { q: t.faq.q3, a: t.faq.a3 },
+            { q: t.faq.q4, a: t.faq.a4 },
+            { q: t.faq.q5, a: t.faq.a5 }
           ].map((faq, i) => (
             <div key={i} className={`border border-cm-border rounded-2xl bg-white overflow-hidden transition-shadow ${openFaq === i ? 'shadow-md border-cm-gold/50' : 'hover:border-cm-green-pale'}`}>
               <button
@@ -318,7 +438,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#08120D] pt-16 pb-8 border-t-4 border-cm-gold block text-white mt-auto truncate w-full">
+      <footer className="bg-[#08120D] pt-16 pb-8 border-t-4 border-cm-gold block text-white mt-auto w-full relative z-20">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-3 mb-4">
