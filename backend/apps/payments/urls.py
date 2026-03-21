@@ -5,7 +5,8 @@ from apps.payments.views import (
     PaymentViewSet,
     InitiatePaymentView,
     PaymentWebhookView,
-    CheckPaymentStatusView
+    CheckPaymentStatusView,
+    ConfirmPaymentMockView
 )
 
 router = DefaultRouter()
@@ -17,6 +18,9 @@ urlpatterns = [
     
     # Webhook (appelé par la passerelle)
     path('webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
+    
+    # Mock Confirmation (Pour le test)
+    path('confirm/', ConfirmPaymentMockView.as_view(), name='payment-confirm'),
     
     # Vérifier le statut
     path('<str:transaction_id>/status/', CheckPaymentStatusView.as_view(), name='payment-status'),

@@ -173,3 +173,9 @@ body {
 .faq-answer.open {
   max-height: 300px;
 }
+
+@media (max-width: 768px) {
+    .module {
+        width: 100% !important;
+    }
+}

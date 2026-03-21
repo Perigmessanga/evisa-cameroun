@@ -8,60 +8,60 @@ import type { VisaApplication, VisaType, ApplicationFormData, ApplicationComment
 const applicationService = {
   // ── Visa Types ──────────────────────────────
   async getVisaTypes(): Promise<VisaType[]> {
-    const { data } = await api.get('/visa/visa-types/');
+    const { data } = await api.get('/visa_applications/types/');
     return data.results || data.data || data;
   },
 
   // ── Applications ────────────────────────────
   async getApplications(): Promise<VisaApplication[]> {
-    const { data } = await api.get('/visa/applications/');
+    const { data } = await api.get('/visa_applications/applications/');
     return data.results || data.data || data;
   },
 
   async getApplication(id: string): Promise<VisaApplication> {
-    const { data } = await api.get(`/visa/applications/${id}/`);
+    const { data } = await api.get(`/visa_applications/applications/${id}/`);
     return data.data || data;
   },
 
   async createApplication(payload: ApplicationFormData): Promise<VisaApplication> {
-    const { data } = await api.post('/visa/applications/', payload);
+    const { data } = await api.post('/visa_applications/applications/', payload);
     return data.data || data;
   },
 
   async updateApplication(id: string, payload: Partial<ApplicationFormData>): Promise<VisaApplication> {
-    const { data } = await api.patch(`/visa/applications/${id}/`, payload);
+    const { data } = await api.patch(`/visa_applications/applications/${id}/`, payload);
     return data.data || data;
   },
 
   async submitApplication(id: string): Promise<VisaApplication> {
-    const { data } = await api.post(`/visa/applications/${id}/submit/`);
+    const { data } = await api.post(`/visa_applications/applications/${id}/submit/`);
     return data.data || data;
   },
 
   async updateStatus(id: string, status: string, rejection_reason?: string): Promise<VisaApplication> {
-    const { data } = await api.post(`/visa/applications/${id}/update_status/`, { status, rejection_reason });
+    const { data } = await api.post(`/visa_applications/applications/${id}/update_status/`, { status, rejection_reason });
     return data.data || data;
   },
 
   async getStats(): Promise<Record<string, unknown>> {
-    const { data } = await api.get('/visa/applications/stats/');
+    const { data } = await api.get('/visa_applications/applications/stats/');
     return data.data || data;
   },
 
   // ── Comments ────────────────────────────────
   async getComments(applicationId: string): Promise<ApplicationComment[]> {
-    const { data } = await api.get(`/visa/applications/${applicationId}/comments/`);
+    const { data } = await api.get(`/visa_applications/applications/${applicationId}/comments/`);
     return data.data || data;
   },
 
   async addComment(applicationId: string, content: string, is_internal: boolean): Promise<ApplicationComment> {
-    const { data } = await api.post(`/visa/applications/${applicationId}/add_comment/`, { content, is_internal });
+    const { data } = await api.post(`/visa_applications/applications/${applicationId}/add_comment/`, { content, is_internal });
     return data.data || data;
   },
 
   // ── Documents ───────────────────────────────
   async uploadDocument(applicationId: string, formData: FormData): Promise<void> {
-    await api.post(`/visa/applications/${applicationId}/documents/`, formData, {
+    await api.post(`/visa_applications/applications/${applicationId}/upload_document/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
@@ -84,14 +84,11 @@ const applicationService = {
   },
 
   // ── Biometrics ──────────────────────────────
-  async submitBiometric(payload: {
-    application_id: string;
-    face_image_base64: string;
-    liveness_verified: boolean;
-    quality_score?: number;
-    face_encoding?: Record<string, unknown>;
-  }): Promise<void> {
-    await api.post('/biometrics/capture/', payload);
+  async submitBiometric(payload: FormData): Promise<void> {
+    // We send form data because BiometricDataViewSet create() uses form data with 'face_image' file 
+    await api.post('/biometrics/', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 };
 

@@ -8,27 +8,25 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from evisa_backend.utils import api_response
-from .models import User
+from django.contrib.auth import get_user_model
 from .serializers import (
     RegisterSerializer, LoginSerializer, ChangePasswordSerializer,
     UserSerializer, UpdateProfileSerializer, get_tokens_for_user
 )
 
-from rest_framework import viewsets
-from django.contrib.auth import get_user_model
-from .serializers import UserSerializer
-from rest_framework.permissions import IsAdminUser
-
-
 User = get_user_model()
 
+
+# ─────────────────────────────────────────────────────────────────
+# ADMIN USERS VIEWSET
+# ─────────────────────────────────────────────────────────────────
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -49,12 +47,14 @@ class RegisterView(APIView):
                                 status_code=status.HTTP_400_BAD_REQUEST)
 
         user = serializer.save()
+        user.is_email_verified = False  # Toujours False à la création
+        user.save(update_fields=['is_email_verified'])
 
         # Envoyer l'email de vérification
-        self._send_verification_email(user, request)
+        verify_url = self._send_verification_email(user, request)
 
         return api_response(
-            data={'email': user.email},
+            data={'email': user.email, 'verification_url': verify_url if settings.DEBUG else None},
             message='Inscription réussie. Vérifiez votre email pour activer votre compte.',
             status_code=status.HTTP_201_CREATED
         )
@@ -63,15 +63,35 @@ class RegisterView(APIView):
         token = default_token_generator.make_token(user)
         uid   = urlsafe_base64_encode(force_bytes(user.pk))
         frontend_url = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else 'http://localhost:3000'
-        verify_url = f'{frontend_url}/auth/verify-email?uid={uid}&token={token}'
+        verify_url = f'{frontend_url}/auth/verify-email/{uid}/{token}'
 
-        send_mail(
-            subject='e-Visa Cameroun — Vérifiez votre email',
-            message=f'Bonjour {user.get_full_name()},\n\nCliquez sur ce lien pour vérifier votre email :\n{verify_url}\n\nCe lien expire dans 24h.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
+        if settings.DEBUG:
+            # En dev : affiche le lien dans la console (pas besoin de vraie boîte mail)
+            print(f"\n{'='*60}")
+            print(f"[DEV] LIEN DE VERIFICATION EMAIL")
+            print(f"Utilisateur : {user.email}")
+            print(f"URL         : {verify_url}")
+            print(f"{'='*60}\n")
+
+        try:
+            send_mail(
+                subject='e-Visa Cameroun — Vérifiez votre email',
+                message=(
+                    f'Bonjour {user.get_full_name()},\n\n'
+                    f'Cliquez sur ce lien pour vérifier votre email :\n{verify_url}\n\n'
+                    f'Ce lien expire dans 24h.'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            if settings.DEBUG:
+                # En dev, l'échec d'envoi est acceptable car le lien est dans la console
+                print(f"[DEV] Email non envoyé (SMTP error): {e}")
+            else:
+                raise  # En production, propager l'erreur
+        return verify_url
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -117,11 +137,23 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
-            return api_response(errors=serializer.errors,
-                                message='Identifiants incorrects.',
-                                status_code=status.HTTP_400_BAD_REQUEST)
+            # Extraire le message le plus pertinent (ex: email non vérifié)
+            non_field_errors = serializer.errors.get('non_field_errors', [])
+            message = str(non_field_errors[0]) if non_field_errors else 'Identifiants incorrects.'
+            return api_response(
+                errors=serializer.errors,
+                message=message,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         user = serializer.validated_data['user']
+
+        # Vérifier que l'email est validé
+        if not user.is_email_verified:
+            return api_response(
+                message='Veuillez vérifier votre email avant de vous connecter.',
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         # Mettre à jour la dernière connexion
         user.last_login = timezone.now()
@@ -136,7 +168,7 @@ class LoginView(APIView):
 
 
 # ─────────────────────────────────────────────────────────────────
-# DÉCONNEXION (blacklist du refresh token)
+# DÉCONNEXION
 # ─────────────────────────────────────────────────────────────────
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -227,7 +259,7 @@ class ForgotPasswordView(APIView):
 
     def post(self, request):
         email = request.data.get('email')
-        # On répond toujours "succès" pour éviter la fuite d'infos
+        # Répond toujours "succès" pour ne pas révéler l’existence du compte
         try:
             user = User.objects.get(email=email, is_active=True)
             token = default_token_generator.make_token(user)

@@ -128,6 +128,7 @@ export default function RegisterPage() {
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
+                  autoComplete="given-name"
                   className="w-full px-4 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
                 />
               </div>
@@ -138,6 +139,7 @@ export default function RegisterPage() {
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
+                  autoComplete="family-name"
                   className="w-full px-4 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
                 />
               </div>
@@ -150,6 +152,7 @@ export default function RegisterPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="email"
                 placeholder="votre@email.com"
                 className="w-full px-4 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
               />
@@ -162,6 +165,7 @@ export default function RegisterPage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                autoComplete="tel"
                 placeholder="+237 ..."
                 className="w-full px-4 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
               />

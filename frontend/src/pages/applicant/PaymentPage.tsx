@@ -2,49 +2,87 @@
 //  pages/applicant/PaymentPage.tsx
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CreditCard, CheckCircle2, ShieldCheck, ArrowRight, Loader2, FilePlus2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import applicationService from '../../services/applicationService';
 
 export default function PaymentPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const applicationId = location.state?.applicationId;
+
   const [method, setMethod] = useState<'CARD' | 'MTN' | 'ORANGE'>('CARD');
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [success, setSuccess] = useState(false);
+  
   const [applicationData, setApplicationData] = useState({
-    id: 'VA-2024-9982',
-    type: 'Visa Tourisme (Court Séjour)',
-    price: '100 000 XAF'
+    id: '',
+    type: '',
+    price: ''
   });
 
   useEffect(() => {
-    const apps = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
-    const lastApp = apps[apps.length - 1];
-    if (lastApp) {
-      setApplicationData({
-        id: lastApp.id,
-        type: lastApp.type,
-        price: lastApp.price || '100 000 XAF'
-      });
+    if (!applicationId) {
+      toast.error('Aucune demande en cours. Veuillez recommencer.');
+      navigate('/applicant/dashboard');
+      return;
     }
-  }, []);
 
-  const handlePayment = (e: React.FormEvent) => {
+    applicationService.getApplication(applicationId)
+      .then((res: any) => {
+        setApplicationData({
+          id: res.application_number || res.id,
+          // Handle string or object for visa_type
+          type: typeof res.visa_type === 'object' ? res.visa_type.name : 'Visa', 
+          price: typeof res.visa_type === 'object' ? `${res.visa_type.fee} XAF` : 'Mnt. non défini'
+        });
+      })
+      .catch(() => {
+        toast.error('Impossible de charger les détails de la demande.');
+        navigate('/applicant/dashboard');
+      })
+      .finally(() => setLoadingData(false));
+  }, [applicationId, navigate]);
+
+  const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // 1. Initiate Payment
+      const initRes: any = await applicationService.initiatePayment(applicationId, method);
+      const transactionId = initRes.payment.transaction_id || initRes.payment.id;
+      
+      // 2. Mock User processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // 3. Confirm Payment (Mock Endpoint)
+      await applicationService.confirmPayment(transactionId, method);
+      
+      // 4. Submit Application
+      await applicationService.submitApplication(applicationId);
+
       setSuccess(true);
       toast.success('Paiement réussi !');
       
       // Auto redirect after success display
-      setTimeout(() => {
-        navigate('/applicant/dashboard');
-      }, 4000);
-    }, 2500);
+      setTimeout(() => navigate('/applicant/dashboard'), 4000);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur lors du paiement.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 size={40} className="animate-spin text-cm-green" />
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -234,12 +272,16 @@ export default function PaymentPage() {
               </div>
             </div>
 
-            <div className="mt-8 flex items-start gap-3 p-4 bg-white/50 rounded-xl">
-              <FilePlus2 className="text-cm-gold shrink-0" size={20} />
-              <p className="text-xs text-cm-muted leading-relaxed">
-                Le traitement de votre demande débutera immédiatement après la confirmation du paiement par nos services financiers.
-              </p>
-            </div>
+
+            
+            {!success && (
+              <div className="mt-8 flex items-start gap-3 p-4 bg-white/50 rounded-xl">
+                <FilePlus2 className="text-cm-gold shrink-0" size={20} />
+                <p className="text-xs text-cm-muted leading-relaxed">
+                  Le traitement de votre demande débutera immédiatement après la confirmation du paiement par nos services financiers.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

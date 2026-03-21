@@ -1,18 +1,28 @@
 // ─────────────────────────────────────────────
 //  pages/applicant/TrackingPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
-import { mockApplications } from '../../data/mockApplicantData';
+import applicationService from '../../services/applicationService';
 import { 
   FileText, Search, ChevronRight, FileCheck, Clock, 
-  FileWarning, Download, Eye, Calendar, MapPin
+  FileWarning, Download, Eye, Calendar, MapPin, Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function TrackingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    applicationService.getApplications()
+      .then(res => setApplications(res))
+      .catch(err => toast.error('Erreur lors du chargement de vos demandes.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -39,9 +49,11 @@ export default function TrackingPage() {
     });
   };
 
-  const filteredApps = mockApplications.filter(app => {
-    const matchesSearch = app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.type.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredApps = applications.filter(app => {
+    const term = searchTerm.toLowerCase();
+    const appNumber = (app.application_number || app.id || '').toString().toLowerCase();
+    const appType = (app.visa_type_name || '').toLowerCase();
+    const matchesSearch = appNumber.includes(term) || appType.includes(term);
     const matchesFilter = filter === 'ALL' || app.status === filter;
     return matchesSearch && matchesFilter;
   });
@@ -94,7 +106,12 @@ export default function TrackingPage() {
 
       {/* ── APPLICATIONS LIST ── */}
       <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-        {filteredApps.length > 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-16">
+            <Loader2 size={32} className="animate-spin text-cm-green-mid mb-4" />
+            <p className="text-cm-muted font-medium">Chargement de vos demandes...</p>
+          </div>
+        ) : filteredApps.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -116,10 +133,10 @@ export default function TrackingPage() {
                           {getStatusIcon(app.status)}
                         </div>
                         <div>
-                          <div className="font-bold text-cm-text">{app.id}</div>
-                          <div className="text-xs font-semibold text-cm-muted mt-0.5">{app.type}</div>
+                          <div className="font-bold text-cm-text">{app.application_number || app.id}</div>
+                          <div className="text-xs font-semibold text-cm-muted mt-0.5">{app.visa_type_name}</div>
                           <div className="text-[10px] text-cm-muted/70 mt-1 sm:hidden">
-                            Soumis le {formatDate(app.submissionDate)}
+                            Soumis le {formatDate(app.submitted_at || app.created_at)}
                           </div>
                         </div>
                       </div>
@@ -129,16 +146,11 @@ export default function TrackingPage() {
                     <td className="p-4 hidden sm:table-cell align-top">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-xs text-cm-muted">
-                          <Calendar size={12} /> <span className="font-medium text-cm-text">Soumis:</span> {formatDate(app.submissionDate)}
+                          <Calendar size={12} /> <span className="font-medium text-cm-text">Soumis:</span> {formatDate(app.submitted_at || app.created_at)}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-cm-muted">
-                          <MapPin size={12} /> <span className="font-medium text-cm-text">Pays:</span> {app.country}
+                          <MapPin size={12} /> <span className="font-medium text-cm-text">Nationalité:</span> {app.nationality}
                         </div>
-                        {app.validUntil && (
-                          <div className="flex items-center gap-2 text-xs text-cm-muted">
-                            <Clock size={12} /> <span className="font-medium text-cm-text">Validité:</span> {formatDate(app.validUntil)}
-                          </div>
-                        )}
                       </div>
                     </td>
 
@@ -147,7 +159,7 @@ export default function TrackingPage() {
                       <div className="flex flex-col items-start gap-1">
                         {getStatusBadge(app.status)}
                         <span className="text-[10px] text-cm-muted font-medium mt-1">
-                          Maj. {formatDate(app.lastUpdate)}
+                          Maj. {formatDate(app.updated_at || app.created_at)}
                         </span>
                       </div>
                     </td>

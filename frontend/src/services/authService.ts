@@ -30,17 +30,17 @@ const authService = {
     await api.post('/users/auth/reset-password/', { uid, token, new_password });
   },
 
-  async changePassword(current_password: string, new_password: string): Promise<void> {
-    await api.post('/users/auth/change-password/', { current_password, new_password });
+  async changePassword(old_password: string, new_password: string, confirm_password: string): Promise<void> {
+    await api.post('/users/change-password/', { old_password, new_password, confirm_password });
   },
 
   async getProfile(): Promise<User> {
-    const { data } = await api.get('/users/auth/profile/');
+    const { data } = await api.get('/users/profile/');
     return data.data || data;
   },
 
   async updateProfile(payload: Partial<User>): Promise<User> {
-    const { data } = await api.patch('/users/auth/profile/', payload);
+    const { data } = await api.patch('/users/profile/', payload);
     return data.data || data;
   },
 

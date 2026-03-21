@@ -7,7 +7,9 @@ from apps.users.views import (
     MyProfileView,
     ChangePasswordView,
     UserViewSet,
-    VerifyEmailView,  # <-- ajouté
+    VerifyEmailView,
+    ForgotPasswordView,
+    ResetPasswordView,
 )
 
 router = DefaultRouter()
@@ -18,7 +20,9 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
      path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),  # <-- ajouté
+    path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 
     # Profil utilisateur
     path('profile/', MyProfileView.as_view(), name='profile'),

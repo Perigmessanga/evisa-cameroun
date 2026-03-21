@@ -11,4 +11,5 @@ router.register(r'applications', VisaApplicationViewSet, basename='visa-applicat
 
 urlpatterns = [
     path('', include(router.urls)),
+    
 ]

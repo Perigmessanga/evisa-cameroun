@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import authService from '../../services/authService';
 import { User, Mail, Lock, CheckCircle2, Loader2, Save, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,27 +28,46 @@ export default function ProfilePage() {
     confirmPassword: ''
   });
 
-  const handleInfoSubmit = (e: React.FormEvent) => {
+  const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authService.updateProfile({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+      });
+      // Optionally we should call refreshUser or context can just update locally
       toast.success('Informations du profil mises à jour.');
-    }, 1500);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Erreur lors de la mise à jour du profil.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSecuritySubmit = (e: React.FormEvent) => {
+  const handleSecuritySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (securityData.newPassword !== securityData.confirmPassword) {
       toast.error('Les nouveaux mots de passe ne correspondent pas.');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authService.changePassword(
+        securityData.currentPassword,
+        securityData.newPassword,
+        securityData.confirmPassword
+      );
       setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast.success('Mot de passe modifié avec succès.');
-    }, 1500);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || err.response?.data?.old_password?.[0] || 'Erreur lors de la modification.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

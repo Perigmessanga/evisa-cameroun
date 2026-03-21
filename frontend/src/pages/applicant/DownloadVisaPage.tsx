@@ -1,16 +1,44 @@
 // ─────────────────────────────────────────────
 //  pages/applicant/DownloadVisaPage.tsx
 // ─────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Download, Printer, ArrowLeft, CheckCircle2, QrCode } from 'lucide-react';
+import { Download, Printer, ArrowLeft, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
 import CameroonFlag from '../../components/common/CameroonFlag';
-import { mockApplications } from '../../data/mockApplicantData';
+import applicationService from '../../services/applicationService';
+import toast from 'react-hot-toast';
 
 export default function DownloadVisaPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   
-  // Find the specific application or use a fallback
-  const app = mockApplications.find(a => a.id === id) || mockApplications[0];
+  const [app, setApp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    applicationService.getApplication(id)
+      .then(res => setApp(res))
+      .catch(() => toast.error('Impossible de charger le visa.'))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 size={40} className="animate-spin text-cm-green-mid mb-4" />
+        <p className="text-cm-muted font-medium">Création de votre e-Visa...</p>
+      </div>
+    );
+  }
+
+  if (!app) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-cm-muted">Visa introuvable.</p>
+        <Link to="/applicant/tracking" className="text-cm-green mt-4 inline-block">Retour</Link>
+      </div>
+    );
+  }
 
   const handlePrint = () => {
     window.print();
@@ -73,7 +101,7 @@ export default function DownloadVisaPage() {
           </div>
           <div className="text-right">
             <h3 className="font-black text-3xl tracking-widest text-cm-text/20 uppercase mb-1">E-VISA</h3>
-            <p className="text-xs font-bold text-cm-muted">No: <span className="text-cm-text">{app.id}</span></p>
+            <p className="text-xs font-bold text-cm-muted">No: <span className="text-cm-text">{app.application_number || app.id}</span></p>
           </div>
         </div>
 
@@ -86,19 +114,19 @@ export default function DownloadVisaPage() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Nom / Surname</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">DUPONT</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">{app.full_name?.split(' ').pop() || 'DUPONT'}</p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Prénoms / Given Names</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base">Jean-Baptiste</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base">{app.full_name?.split(' ').slice(0, -1).join(' ') || 'Jean-Baptiste'}</p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Passeport / Passport N°</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base">14XY89221</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base">{app.passport_number || '14XY89221'}</p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Nationalité / Nationality</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base">FRANCE (FRA)</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base">{app.nationality || 'FRANCE'}</p>
               </div>
             </div>
 
@@ -108,7 +136,7 @@ export default function DownloadVisaPage() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Type de Visa / Visa Type</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">{app.type}</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">{app.visa_type?.name || app.type}</p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Entrées / Entries</p>
@@ -138,7 +166,7 @@ export default function DownloadVisaPage() {
             {/* Simulated QR Code */}
             <div className="bg-white p-2 border border-cm-border shadow-sm rounded-lg flex flex-col items-center">
               <QrCode size={80} className="text-cm-text" strokeWidth={1.5} />
-              <span className="text-[8px] font-mono text-cm-muted mt-1 uppercase tracking-widest">{app.id.split('-').join('')}</span>
+              <span className="text-[8px] font-mono text-cm-muted mt-1 uppercase tracking-widest">{String(app.application_number || app.id).split('-')[0]}</span>
             </div>
           </div>
           

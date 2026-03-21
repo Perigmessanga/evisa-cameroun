@@ -1,10 +1,11 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Count
 from django.utils import timezone
 import qrcode
+from apps.visa_applications.serializers import DocumentSerializer
 
 from apps.visa_applications.models import VisaType, VisaApplication, ApplicationComment
 from apps.visa_applications.serializers import (
@@ -31,7 +32,7 @@ class VisaTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = VisaType.objects.filter(is_active=True)
     serializer_class = VisaTypeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class VisaApplicationViewSet(viewsets.ModelViewSet):
@@ -94,6 +95,47 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         return super().update(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'], parser_classes=[parsers.MultiPartParser, parsers.FormParser])
+    def upload_document(self, request, pk=None):
+        """
+        Upload un document pour la demande actuelle.
+        POST /api/visa-applications/{id}/upload_document/
+        """
+        application = self.get_object()
+        
+        if getattr(application, 'applicant', None) != request.user:
+            return Response({'error': 'Vous ne pouvez pas modifier cette demande.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        if not getattr(application, 'is_editable', True) and application.status != 'DRAFT':
+            return Response({'error': 'Cette demande ne peut plus être modifiée.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = DocumentSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(application=application)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path=r'delete_document/(?P<doc_id>[^/.]+)')
+    def delete_document(self, request, pk=None, doc_id=None):
+        """
+        Supprime un document d'une demande.
+        DELETE /api/visa-applications/{id}/delete_document/{doc_id}/
+        """
+        application = self.get_object()
+        
+        if getattr(application, 'applicant', None) != request.user:
+            return Response({'error': 'Vous ne pouvez pas modifier cette demande.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        if not getattr(application, 'is_editable', True) and application.status != 'DRAFT':
+            return Response({'error': 'Cette demande ne peut plus être modifiée.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = application.documents.filter(id=doc_id).first()
+        if not doc:
+            return Response({'error': 'Document introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        doc.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
@@ -272,3 +314,6 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
                 status__in=['SUBMITTED', 'PROCESSING', 'PENDING_DOCS', 'PENDING_REVIEW']
             ).count(),
         })
+
+
+#

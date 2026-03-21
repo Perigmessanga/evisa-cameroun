@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,6 +21,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 # ─────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'grappelli',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -32,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
+    'sslserver',
 
     # Applications locales
     'apps.users',
@@ -47,10 +50,10 @@ INSTALLED_APPS = [
 # MIDDLEWARE
 # ─────────────────────────────────────────
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -188,27 +191,31 @@ SIMPLE_JWT = {
 # CORS
 # ─────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = [
-    config('FRONTEND_URL', default='http://localhost:3000'),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
+
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-    'accept', 'accept-encoding', 'authorization',
-    'content-type', 'dnt', 'origin',
-    'user-agent', 'x-csrftoken', 'x-requested-with',
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-csrftoken',
 ]
 
 # ─────────────────────────────────────────
 # EMAIL
 # ─────────────────────────────────────────
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
-    ANYMAIL = {
-        'SENDGRID_API_KEY': config('SENDGRID_API_KEY', default=''),
-    }
+# EMAIL
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@evisa.cm')
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+
+
 
 # ─────────────────────────────────────────
 # SMS (Twilio)
@@ -229,3 +236,7 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+    AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # par défaut
+]

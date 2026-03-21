@@ -3,23 +3,32 @@
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, FileWarning, Search, Calendar, MapPin, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, FileWarning, Search, Calendar, MapPin, Download, Loader2 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
+import applicationService from '../../services/applicationService';
+import toast from 'react-hot-toast';
 
 export default function TrackingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [application, setApplication] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Merge real submitted apps + mocks if needed, here we just read from localStorage
-    const savedApps = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
-    // We can also check mock data, but let's just combine for demo
-    import('../../data/mockApplicantData').then(({ mockApplications }) => {
-      const all = [...savedApps, ...mockApplications];
-      const found = all.find(a => a.id === id);
-      setApplication(found);
-    });
+    if (!id) return;
+    applicationService.getApplication(id)
+      .then(res => setApplication(res))
+      .catch(() => toast.error('Erreur de chargement des détails.'))
+      .finally(() => setLoading(false));
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 size={40} className="animate-spin text-cm-green-mid mb-4" />
+        <p className="text-cm-muted font-medium">Chargement des informations...</p>
+      </div>
+    );
+  }
 
   if (!application) {
     return (
@@ -67,10 +76,10 @@ export default function TrackingDetailPage() {
         </div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold text-cm-text flex items-center gap-3">
-              Demande {application.id}
+              <h1 className="font-display text-3xl font-bold text-cm-text flex items-center gap-3">
+              Demande {application.application_number || application.id}
             </h1>
-            <p className="text-cm-muted mt-1">{application.type}</p>
+            <p className="text-cm-muted mt-1">{application.visa_type?.name || application.type}</p>
           </div>
           <div className="flex items-center gap-3">
             {getStatusBadge(application.status)}
@@ -95,17 +104,17 @@ export default function TrackingDetailPage() {
             <div className="grid sm:grid-cols-2 gap-y-6 gap-x-4">
               <div>
                 <div className="text-xs font-bold text-cm-muted mb-1 flex items-center gap-1"><Calendar size={14} /> DATE DE SOUMISSION</div>
-                <div className="font-semibold text-cm-text">{formatDate(application.submissionDate)}</div>
+                <div className="font-semibold text-cm-text">{application.submitted_at || application.created_at ? formatDate(application.submitted_at || application.created_at) : 'En attente'}</div>
               </div>
-              {application.validUntil && (
+              {application.passport_expiry_date && (
                 <div>
-                  <div className="text-xs font-bold text-cm-muted mb-1 flex items-center gap-1"><Clock size={14} /> VALIDE JUSQU'AU</div>
-                  <div className="font-semibold text-cm-text">{formatDate(application.validUntil)}</div>
+                  <div className="text-xs font-bold text-cm-muted mb-1 flex items-center gap-1"><Clock size={14} /> EXPIRATION PASSEPORT</div>
+                  <div className="font-semibold text-cm-text">{formatDate(application.passport_expiry_date)}</div>
                 </div>
               )}
               <div>
-                <div className="text-xs font-bold text-cm-muted mb-1 flex items-center gap-1"><MapPin size={14} /> PAYS DE RÉSIDENCE</div>
-                <div className="font-semibold text-cm-text">{application.country || 'Non spécifié'}</div>
+                <div className="text-xs font-bold text-cm-muted mb-1 flex items-center gap-1"><MapPin size={14} /> NATIONALITÉ</div>
+                <div className="font-semibold text-cm-text">{application.nationality || application.country || 'Non spécifié'}</div>
               </div>
             </div>
           </div>
@@ -113,18 +122,18 @@ export default function TrackingDetailPage() {
           <div className="bg-white rounded-2xl border border-cm-border p-6 shadow-sm">
             <h2 className="text-xl font-bold text-cm-text mb-6">Documents soumis</h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border border-cm-border/50 rounded-xl bg-cm-cream/30">
-                <span className="text-sm font-semibold text-cm-text">Passeport</span>
-                <CheckCircle2 size={16} className="text-cm-green-mid" />
-              </div>
-              <div className="flex items-center justify-between p-3 border border-cm-border/50 rounded-xl bg-cm-cream/30">
-                <span className="text-sm font-semibold text-cm-text">Billet d'avion</span>
-                <CheckCircle2 size={16} className="text-cm-green-mid" />
-              </div>
-              <div className="flex items-center justify-between p-3 border border-cm-border/50 rounded-xl bg-cm-cream/30">
-                <span className="text-sm font-semibold text-cm-text">Photo d'identité</span>
-                <CheckCircle2 size={16} className="text-cm-green-mid" />
-              </div>
+              {application.documents && application.documents.length > 0 ? (
+                application.documents.map((doc: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 border border-cm-border/50 rounded-xl bg-cm-cream/30">
+                    <span className="text-sm font-semibold text-cm-text">
+                      {doc.document_type || doc.file_name || `Document ${index + 1}`}
+                    </span>
+                    <CheckCircle2 size={16} className="text-cm-green-mid" />
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-cm-muted italic">Aucun document rattaché.</div>
+              )}
             </div>
           </div>
         </div>

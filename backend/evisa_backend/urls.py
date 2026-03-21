@@ -19,6 +19,7 @@ def home(request):
 urlpatterns = [
     # Admin Django
      path('', home),
+     path('grappelli/', include('grappelli.urls')),
     path('admin/', admin.site.urls),
     
     # JWT Token endpoints
@@ -26,13 +27,13 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # API endpoints par app
-    path('api/users/', include('apps.users.urls')),
-    path('api/visa/', include('apps.visa_applications.urls')),
-    path('api/payments/', include('apps.payments.urls')),
-    path('api/biometrics/', include('apps.biometrics.urls')),
+    path('api/v1/users/', include('apps.users.urls')),
+    path('api/v1/visa_applications/', include('apps.visa_applications.urls')),
+    path('api/v1/payments/', include('apps.payments.urls')),
+    path('api/v1/biometrics/', include('apps.biometrics.urls')),
     path('api/', include('apps.evisa.urls')),
-    path('api/notifications/', include('apps.notifications.urls')),
-    path('api/audit-logs/', include('apps.audit.urls')),
+    path('api/v1/notifications/', include('apps.notifications.urls')),
+    path('api/v1/audit-logs/', include('apps.audit.urls')),
 ]
 
 # Servir les fichiers media en développement

@@ -155,6 +155,29 @@ class PaymentWebhookView(generics.GenericAPIView):
         return Response({'message': 'Webhook reçu'}, status=status.HTTP_200_OK)
 
 
+class ConfirmPaymentMockView(generics.GenericAPIView):
+    """
+    Mock endpoint pour confirmer un paiement (test uniquement).
+    POST /api/payments/confirm/
+    Body: { "transaction_id": "..." }
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        transaction_id = request.data.get('transaction_id')
+        if not transaction_id:
+            return Response({'error': 'transaction_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            payment = Payment.objects.get(transaction_id=transaction_id, application__applicant=request.user)
+            payment.status = 'COMPLETED'
+            payment.paid_at = timezone.now()
+            payment.save()
+            return Response({'message': 'Paiement confirmé (mock)', 'payment': PaymentSerializer(payment).data})
+        except Payment.DoesNotExist:
+            return Response({'error': 'Paiement introuvable'}, status=status.HTTP_404_NOT_FOUND)
+
+
 class CheckPaymentStatusView(generics.RetrieveAPIView):
     """
     Vérifier le statut d'un paiement.

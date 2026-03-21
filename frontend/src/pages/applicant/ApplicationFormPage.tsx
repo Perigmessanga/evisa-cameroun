@@ -1,40 +1,12 @@
 // ─────────────────────────────────────────────
 //  pages/applicant/ApplicationFormPage.tsx
 // ─────────────────────────────────────────────
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2, Save, FileText, User as UserIcon, MapPin, UploadCloud, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-// ─── VISA TYPES ──────────────────────────────
-const VISA_TYPES = [
-  { value: 'TOURISM_SHORT', label: 'Visa Tourisme', stayType: 'Court Séjour', maxStay: '30 jours', price: '100 000 XAF' },
-  { value: 'TOURISM_LONG', label: 'Visa Tourisme', stayType: 'Long Séjour', maxStay: '3 mois', price: '150 000 XAF' },
-  { value: 'BUSINESS_SHORT', label: 'Visa Affaires', stayType: 'Court Séjour', maxStay: '30 jours', price: '150 000 XAF' },
-  { value: 'BUSINESS_LONG', label: 'Visa Affaires', stayType: 'Long Séjour', maxStay: '6 mois', price: '200 000 XAF' },
-  { value: 'STUDENT', label: 'Visa Étudiant', stayType: 'Long Séjour', maxStay: '1 an renouvelable', price: '100 000 XAF' },
-  { value: 'TRANSIT', label: 'Visa Transit', stayType: 'Transit', maxStay: '5 jours', price: '50 000 XAF' },
-  { value: 'DIPLOMATIC', label: 'Visa Diplomatique', stayType: 'Variable', maxStay: 'Selon accréditation', price: 'Exonéré' },
-  { value: 'HUMANITARIAN', label: 'Visa Humanitaire / ONG', stayType: 'Court / Long Séjour', maxStay: '90 jours', price: '75 000 XAF' },
-  { value: 'CONFERENCE', label: 'Visa Conférence / Événement', stayType: 'Court Séjour', maxStay: '15 jours', price: '100 000 XAF' },
-  { value: 'JOURNALIST', label: 'Visa Journaliste / Presse', stayType: 'Court Séjour', maxStay: '30 jours', price: '100 000 XAF' },
-  { value: 'FAMILY', label: 'Visa Regroupement Familial', stayType: 'Long Séjour', maxStay: '1 an renouvelable', price: '120 000 XAF' },
-];
-
-// Required documents per visa type
-const DOCUMENTS_BY_TYPE: Record<string, string[]> = {
-  TOURISM_SHORT: ['Page bio-data du passeport', 'Billet d\'avion aller-retour', 'Réservation d\'hôtel ou attestation d\'hébergement', 'Photo d\'identité récente (fond blanc)'],
-  TOURISM_LONG: ['Page bio-data du passeport', 'Billet d\'avion aller-retour', 'Réservation d\'hôtel ou attestation d\'hébergement', 'Photo d\'identité récente (fond blanc)', 'Justificatif de ressources financières'],
-  BUSINESS_SHORT: ['Page bio-data du passeport', 'Lettre d\'invitation de la société camerounaise', 'Carte de visite / justificatif de fonction', 'Photo d\'identité récente (fond blanc)'],
-  BUSINESS_LONG: ['Page bio-data du passeport', 'Lettre d\'invitation de la société camerounaise', 'Carte de visite / justificatif de fonction', 'Photo d\'identité récente (fond blanc)', 'Justificatif de ressources financières', 'Contrat ou accord commercial'],
-  STUDENT: ['Page bio-data du passeport', 'Lettre d\'acceptation de l\'établissement', 'Preuves de ressources financières', 'Photo d\'identité récente (fond blanc)', 'Relevé de notes / diplôme'],
-  TRANSIT: ['Page bio-data du passeport', 'Billet d\'avion de correspondance', 'Visa destination finale si requis'],
-  DIPLOMATIC: ['Page bio-data du passeport diplomatique', 'Note verbale du Ministère des Affaires Étrangères'],
-  HUMANITARIAN: ['Page bio-data du passeport', 'Lettre de mission de l\'ONG / organisme', 'Accréditation de l\'organisme humanitaire', 'Photo d\'identité récente (fond blanc)'],
-  CONFERENCE: ['Page bio-data du passeport', 'Lettre d\'invitation à l\'événement', 'Programme de la conférence', 'Photo d\'identité récente (fond blanc)'],
-  JOURNALIST: ['Page bio-data du passeport', 'Carte de presse officielle', 'Lettre de mission de la rédaction', 'Photo d\'identité récente (fond blanc)'],
-  FAMILY: ['Page bio-data du passeport', 'Acte de mariage ou certificat de famille', 'Preuve de résidence du membre de famille au Cameroun', 'Photo d\'identité récente (fond blanc)'],
-};
+import applicationService from '../../services/applicationService';
+import type { VisaType } from '../../types';
 
 // ─── WORLD COUNTRIES ─────────────────────────
 const COUNTRIES = [
@@ -80,6 +52,15 @@ export default function ApplicationFormPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [visaTypes, setVisaTypes] = useState<VisaType[]>([]);
+  const [loadingVisaTypes, setLoadingVisaTypes] = useState(true);
+
+  useEffect(() => {
+    applicationService.getVisaTypes()
+      .then(res => setVisaTypes(res))
+      .catch(() => toast.error('Erreur de chargement des types de visa'))
+      .finally(() => setLoadingVisaTypes(false));
+  }, []);
 
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
@@ -183,37 +164,58 @@ export default function ApplicationFormPage() {
     if (!termsAccepted) {
       toast.error('Veuillez accepter la déclaration sur l\'honneur.'); return;
     }
-    const requiredDocs = DOCUMENTS_BY_TYPE[formData.visaType] || [];
+    const requiredDocs = selectedVisaType?.required_documents || [];
     const missingDocs = requiredDocs.filter(d => !uploadedFiles[d]);
     if (missingDocs.length > 0) {
       toast.error(`Veuillez téléverser : ${missingDocs[0]}`); return;
     }
     setLoading(true);
     try {
-      // Save the application in local storage and clear draft
-      const selectedVisa = VISA_TYPES.find(v => v.value === formData.visaType);
-      const newApp = {
-        id: `VA-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`,
-        type: selectedVisa?.label || formData.visaType,
-        price: selectedVisa?.price || '0 XAF',
-        submissionDate: new Date().toISOString(),
-        lastUpdate: new Date().toISOString(),
-        status: 'SUBMITTED',
-        country: formData.nationality,
+      // Create Application matching backend fields
+      const payload: any = {
+        visa_type: formData.visaType, // Send ID
+        full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`,
+        date_of_birth: formData.birthDate,
+        place_of_birth: formData.birthCountry,
+        nationality: formData.nationality,
+        gender: formData.gender,
+        passport_number: formData.passportNumber,
+        passport_issue_date: formData.passportIssueDate || null,
+        passport_expiry_date: formData.passportExpiryDate,
+        passport_country: formData.passportIssuingCountry,
+        purpose_of_visit: formData.purpose || 'Non spécifié',
+        arrival_date: formData.arrivalDate,
+        departure_date: formData.departureDate || null,
+        address_in_cameroon: formData.addressInCameroon,
       };
-      const apps: unknown[] = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
-      apps.push(newApp);
-      localStorage.setItem('evisa_applications', JSON.stringify(apps));
+
+      const newApp = await applicationService.createApplication(payload);
+
+      // Upload files
+      toast.success('Demande enregistrée. Téléversement des documents...');
+      const uploadPromises = Object.entries(uploadedFiles).map(async ([docName, file]) => {
+        if (!file) return;
+        const formDataPayload = new FormData();
+        formDataPayload.append('document_type', docName.includes('extra') ? 'AUTRES' : 'JUSTIFICATIF');
+        formDataPayload.append('file', file);
+        return applicationService.uploadDocument(newApp.id, formDataPayload);
+      });
+
+      await Promise.all(uploadPromises);
+
       localStorage.removeItem(DRAFT_KEY);
-      toast.success('Documents vérifiés. Redirection vers le paiement...');
-      setTimeout(() => navigate('/applicant/payment'), 1500);
+      toast.success('Documents téléversés avec succès. Redirection vers la capture biométrique...');
+      setTimeout(() => navigate('/applicant/biometric', { state: { applicationId: newApp.id } }), 1500);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Erreur lors de la création de la demande.';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedVisaType = VISA_TYPES.find(v => v.value === formData.visaType);
-  const requiredDocs = DOCUMENTS_BY_TYPE[formData.visaType] || [];
+  const selectedVisaType = visaTypes.find(v => v.id.toString() === formData.visaType);
+  const requiredDocs = selectedVisaType?.required_documents || [];
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -226,13 +228,15 @@ export default function ApplicationFormPage() {
             <div>
               <label className="block text-sm font-semibold text-cm-text mb-3">Type de visa demandé <span className="text-cm-red">*</span></label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {VISA_TYPES.map(v => (
-                  <label key={v.value} className={`relative flex flex-col p-4 border-2 rounded-2xl cursor-pointer transition-all ${formData.visaType === v.value ? 'border-cm-green-mid bg-cm-green-pale/10 shadow-md' : 'border-cm-border bg-white hover:border-cm-green-pale hover:bg-cm-cream/30'}`}>
-                    <input type="radio" name="visaType" value={v.value} checked={formData.visaType === v.value} onChange={handleChange} className="sr-only" />
-                    <div className="font-bold text-cm-text text-sm leading-tight">{v.label}</div>
-                    <div className="text-xs text-cm-muted mt-1">{v.stayType} — max {v.maxStay}</div>
-                    <div className="text-xs font-bold text-cm-green-mid mt-2">{v.price}</div>
-                    {formData.visaType === v.value && (
+                {loadingVisaTypes ? (
+                  <div className="col-span-full flex justify-center py-8"><Loader2 size={24} className="text-cm-green-mid animate-spin" /></div>
+                ) : visaTypes.map(v => (
+                  <label key={v.id} className={`relative flex flex-col p-4 border-2 rounded-2xl cursor-pointer transition-all ${formData.visaType === v.id.toString() ? 'border-cm-green-mid bg-cm-green-pale/10 shadow-md' : 'border-cm-border bg-white hover:border-cm-green-pale hover:bg-cm-cream/30'}`}>
+                    <input type="radio" name="visaType" value={v.id.toString()} checked={formData.visaType === v.id.toString()} onChange={handleChange} className="sr-only" />
+                    <div className="font-bold text-cm-text text-sm leading-tight">{v.name}</div>
+                    <div className="text-xs text-cm-muted mt-1">{v.description} — max {v.max_stay_days} j.</div>
+                    <div className="text-xs font-bold text-cm-green-mid mt-2">{v.fee} XAF</div>
+                    {formData.visaType === v.id.toString() && (
                       <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cm-green-mid flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                       </div>
@@ -248,8 +252,8 @@ export default function ApplicationFormPage() {
                   <FileText size={20} className="text-cm-green-mid" />
                 </div>
                 <div>
-                  <div className="font-bold text-cm-text text-sm">{selectedVisaType.label} — {selectedVisaType.stayType}</div>
-                  <div className="text-xs text-cm-muted mt-1">Durée max : <strong>{selectedVisaType.maxStay}</strong> • Frais : <strong>{selectedVisaType.price}</strong></div>
+                  <div className="font-bold text-cm-text text-sm">{selectedVisaType.name} — {selectedVisaType.code}</div>
+                  <div className="text-xs text-cm-muted mt-1">Durée max : <strong>{selectedVisaType.max_stay_days} jours</strong> • Frais : <strong>{selectedVisaType.fee} XAF</strong></div>
                 </div>
               </div>
             )}
@@ -373,7 +377,7 @@ export default function ApplicationFormPage() {
               {selectedVisaType && (
                 <div className="text-right shrink-0">
                   <div className="text-xs font-bold text-cm-muted uppercase">Visa sélectionné</div>
-                  <div className="text-sm font-bold text-cm-green-mid">{selectedVisaType.label}</div>
+                  <div className="text-sm font-bold text-cm-green-mid">{selectedVisaType.name}</div>
                 </div>
               )}
             </div>

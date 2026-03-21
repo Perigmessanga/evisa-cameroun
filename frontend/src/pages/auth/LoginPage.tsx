@@ -43,7 +43,10 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.message || 'Email ou mot de passe incorrect.';
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.non_field_errors?.[0] ||
+        'Email ou mot de passe incorrect.';
       
       // Handle 2FA redirect logic when the backend supports it
       if (msg.includes('OTP') || msg.includes('2FA')) {
