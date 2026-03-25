@@ -140,12 +140,12 @@ export default function ApplicationFormPage() {
       toast.error('Veuillez sélectionner un type de visa.'); return;
     }
     if (currentStep === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.birthDate || !formData.nationality || !formData.gender) {
+      if (!formData.firstName || !formData.lastName || !formData.birthDate || !formData.nationality || !formData.birthCountry || !formData.gender) {
         toast.error('Veuillez remplir tous les champs obligatoires.'); return;
       }
     }
     if (currentStep === 2) {
-      if (!formData.passportNumber || !formData.passportExpiryDate || !formData.arrivalDate) {
+      if (!formData.passportNumber || !formData.passportIssueDate || !formData.passportExpiryDate || !formData.passportIssuingCountry || !formData.arrivalDate || !formData.departureDate || !formData.addressInCameroon) {
         toast.error('Veuillez remplir tous les champs obligatoires.'); return;
       }
     }
@@ -180,12 +180,12 @@ export default function ApplicationFormPage() {
         nationality: formData.nationality,
         gender: formData.gender,
         passport_number: formData.passportNumber,
-        passport_issue_date: formData.passportIssueDate || null,
+        passport_issue_date: formData.passportIssueDate,
         passport_expiry_date: formData.passportExpiryDate,
         passport_country: formData.passportIssuingCountry,
         purpose_of_visit: formData.purpose || 'Non spécifié',
         arrival_date: formData.arrivalDate,
-        departure_date: formData.departureDate || null,
+        departure_date: formData.departureDate,
         address_in_cameroon: formData.addressInCameroon,
       };
 
@@ -196,7 +196,18 @@ export default function ApplicationFormPage() {
       const uploadPromises = Object.entries(uploadedFiles).map(async ([docName, file]) => {
         if (!file) return;
         const formDataPayload = new FormData();
-        formDataPayload.append('document_type', docName.includes('extra') ? 'AUTRES' : 'JUSTIFICATIF');
+        
+        // Map common French document names to backend enums
+        let docType = 'OTHER';
+        const nameLower = docName.toLowerCase();
+        if (nameLower.includes('passeport') || nameLower.includes('passport')) docType = 'PASSPORT';
+        else if (nameLower.includes('photo')) docType = 'PHOTO';
+        else if (nameLower.includes('itinéraire') || nameLower.includes('vol') || nameLower.includes('billet')) docType = 'TRAVEL_ITINERARY';
+        else if (nameLower.includes('hébergement') || nameLower.includes('hotel') || nameLower.includes('hôtel')) docType = 'ACCOMMODATION_PROOF';
+        else if (nameLower.includes('financier') || nameLower.includes('banque') || nameLower.includes('revenus')) docType = 'FINANCIAL_PROOF';
+        else if (nameLower.includes('invitation')) docType = 'INVITATION_LETTER';
+        
+        formDataPayload.append('document_type', docType);
         formDataPayload.append('file', file);
         return applicationService.uploadDocument(newApp.id, formDataPayload);
       });
@@ -207,8 +218,27 @@ export default function ApplicationFormPage() {
       toast.success('Documents téléversés avec succès. Redirection vers la capture biométrique...');
       setTimeout(() => navigate('/applicant/biometric', { state: { applicationId: newApp.id } }), 1500);
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Erreur lors de la création de la demande.';
+      const errData = err.response?.data;
+      let msg = 'Erreur lors de la création de la demande.';
+      if (errData) {
+        if (errData.errors) {
+          try {
+            msg = 'Erreurs de validation: ' + JSON.stringify(errData.errors);
+          } catch(e) {
+            msg = 'Erreurs: ' + String(errData.errors);
+          }
+        } else if (typeof errData === 'string') {
+          msg = errData;
+        } else if (errData.detail) {
+          msg = errData.detail;
+        } else if (errData.non_field_errors) {
+          msg = errData.non_field_errors[0];
+        } else {
+          msg = 'Erreurs: ' + JSON.stringify(errData);
+        }
+      }
       toast.error(msg);
+      console.error("DRF Error Data:", errData);
     } finally {
       setLoading(false);
     }
@@ -293,8 +323,8 @@ export default function ApplicationFormPage() {
                 <label className="block text-sm font-semibold text-cm-text mb-2">Sexe <span className="text-cm-red">*</span></label>
                 <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
                   <option value="">Sélectionner</option>
-                  <option value="M">Masculin</option>
-                  <option value="F">Féminin</option>
+                  <option value="MALE">Masculin</option>
+                  <option value="FEMALE">Féminin</option>
                 </select>
               </div>
 
@@ -321,7 +351,7 @@ export default function ApplicationFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-cm-text mb-2">Pays de naissance</label>
+                <label className="block text-sm font-semibold text-cm-text mb-2">Pays de naissance <span className="text-cm-red">*</span></label>
                 <select name="birthCountry" value={formData.birthCountry} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -348,16 +378,16 @@ export default function ApplicationFormPage() {
                 <Field label="Numéro de passeport" name="passportNumber" value={formData.passportNumber} onChange={handleChange} required placeholder="Ex: AB1234567" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-cm-text mb-2">Pays délivrant le passeport</label>
+                <label className="block text-sm font-semibold text-cm-text mb-2">Pays délivrant le passeport <span className="text-cm-red">*</span></label>
                 <select name="passportIssuingCountry" value={formData.passportIssuingCountry} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <Field label="Date de délivrance" name="passportIssueDate" type="date" value={formData.passportIssueDate} onChange={handleChange} />
+              <Field label="Date de délivrance" name="passportIssueDate" type="date" value={formData.passportIssueDate} onChange={handleChange} required />
               <Field label="Date d'expiration" name="passportExpiryDate" type="date" value={formData.passportExpiryDate} onChange={handleChange} required />
               <Field label="Date prévue d'arrivée au Cameroun" name="arrivalDate" type="date" value={formData.arrivalDate} onChange={handleChange} required />
-              <Field label="Date prévue de départ" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} />
+              <Field label="Date prévue de départ" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} required />
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-cm-text mb-2">Adresse de séjour au Cameroun (Hôtel ou Hôte) <span className="text-cm-red">*</span></label>
                 <textarea name="addressInCameroon" value={formData.addressInCameroon} onChange={handleChange} rows={3} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none resize-none" placeholder="Nom de l'hôtel, ville, quartier..." />

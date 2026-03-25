@@ -152,3 +152,95 @@ class BorderCrossing(models.Model):
 
     def __str__(self):
         return f"{self.crossing_type} - {self.evisa.visa_number} - {self.location}"
+
+
+class SystemSetting(models.Model):
+    """
+    Paramètres globaux du système configurables par les administrateurs.
+    """
+    
+    CATEGORY_CHOICES = [
+        ('GENERAL', 'Général'),
+        ('EMAIL', 'Serveur Email'),
+        ('PAYMENT', 'Paiement'),
+        ('SECURITY', 'Sécurité'),
+    ]
+
+    key = models.CharField(
+        max_length=100, 
+        primary_key=True, 
+        verbose_name="Clé de configuration"
+    )
+    value = models.TextField(
+        blank=True, 
+        verbose_name="Valeur"
+    )
+    category = models.CharField(
+        max_length=50, 
+        choices=CATEGORY_CHOICES, 
+        default='GENERAL', 
+        verbose_name="Catégorie"
+    )
+    description = models.CharField(
+        max_length=255, 
+        blank=True, 
+        verbose_name="Description"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'system_setting'
+        verbose_name = 'Paramètre Système'
+        verbose_name_plural = 'Paramètres Système'
+        ordering = ['category', 'key']
+
+    def __str__(self):
+        return f"[{self.category}] {self.key} = {self.value}"
+
+
+class ContactMessage(models.Model):
+    """
+    Message de contact envoyé depuis le header public par un utilisateur lambda.
+    Permet à l'Administrateur de lire et répondre.
+    """
+    STATUS_CHOICES = [
+        ('UNREAD', 'Non lu'),
+        ('READ', 'Lu'),
+        ('REPLIED', 'Répondu'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=100, verbose_name="Prénom")
+    last_name = models.CharField(max_length=100, verbose_name="Nom")
+    email = models.EmailField(verbose_name="Email de contact")
+    subject = models.CharField(max_length=255, verbose_name="Sujet")
+    message = models.TextField(verbose_name="Message")
+
+    status = models.CharField(
+        max_length=10, 
+        choices=STATUS_CHOICES, 
+        default='UNREAD', 
+        verbose_name="Statut"
+    )
+    
+    replied_by = models.ForeignKey(
+        'users.User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="replied_messages",
+        verbose_name="Répondu par"
+    )
+    reply_message = models.TextField(blank=True, null=True, verbose_name="Message de réponse")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date d'envoi")
+    replied_at = models.DateTimeField(null=True, blank=True, verbose_name="Date de réponse")
+
+    class Meta:
+        db_table = 'contact_message'
+        verbose_name = 'Message de Contact'
+        verbose_name_plural = 'Messages de Contact'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.subject} par {self.email} ({self.status})"

@@ -1,15 +1,17 @@
 // ─────────────────────────────────────────────
 //  pages/admin/SystemSettingsPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Settings, Server, Mail, Shield, 
   CreditCard, Globe, Save, Loader2 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import adminService from '../../services/adminService';
 
 export default function SystemSettingsPage() {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'EMAIL' | 'PAYMENT' | 'SECURITY'>('GENERAL');
 
   const [formData, setFormData] = useState({
@@ -30,14 +32,57 @@ export default function SystemSettingsPage() {
     require2FA: true
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const settingsList = await adminService.getSystemSettings();
+      if (settingsList && settingsList.length > 0) {
+        // Convert [{key: '...', value: '...'}, ...] to { key: value, ... }
+        const settingsDict = settingsList.reduce((acc: any, item: any) => {
+          // Parse booleans correctly
+          if (item.value === 'true') acc[item.key] = true;
+          else if (item.value === 'false') acc[item.key] = false;
+          else acc[item.key] = item.value;
+          return acc;
+        }, {});
+        
+        setFormData(prev => ({
+          ...prev,
+          ...settingsDict
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erreur lors du chargement des paramètres.');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await adminService.updateSystemSettings(formData);
       toast.success('Paramètres sauvegardés avec succès.');
-    }, 1500);
+    } catch (error) {
+       console.error(error);
+       toast.error('Erreur lors de la sauvegarde.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="animate-spin text-cm-green-mid" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-5xl mx-auto pb-12">

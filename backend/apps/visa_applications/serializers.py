@@ -158,6 +158,7 @@ class CreateApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model  = VisaApplication
         fields = [
+            'id',
             'visa_type',
             # Personal
             'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 'gender',
@@ -166,6 +167,7 @@ class CreateApplicationSerializer(serializers.ModelSerializer):
             # Travel
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
         ]
+        read_only_fields = ['id']
 
     def validate(self, attrs):
         today = timezone.now().date()
@@ -219,7 +221,7 @@ class RequestDocumentsSerializer(serializers.Serializer):
     # Serializer principal pour GET (détail) et PUT complet
 class VisaApplicationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # inclut les infos utilisateur
-    visa_type = serializers.StringRelatedField()  # ou PrimaryKeyRelatedField si tu veux juste l'id
+    visa_type = VisaTypeSerializer(read_only=True)
     documents = serializers.StringRelatedField(many=True, read_only=True)  # ou DocumentSerializer si tu veux détaillé
 
     class Meta:

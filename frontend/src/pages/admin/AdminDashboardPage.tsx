@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────
 //  pages/admin/AdminDashboardPage.tsx
 // ─────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockAdminStats, mockSystemLogs } from '../../data/mockAdminData';
+import adminService from '../../services/adminService';
 import { 
   Users, Activity, ShieldCheck, ChevronRight, 
   Settings, FolderKanban, Server, Banknote, AlertTriangle, FileText
@@ -12,6 +13,29 @@ import Badge from '../../components/common/Badge';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    activeUsers: 0,
+    totalUsers: 0,
+    totalApplications: 0,
+    revenueAfc: '0 FCFA',
+    systemHealth: '100%'
+  });
+  const [logs, setLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const dashboardStats = await adminService.getDashboardStats();
+        setStats(dashboardStats);
+        
+        const auditLogs = await adminService.getAuditLogs();
+        setLogs(auditLogs.slice(0, 5));
+      } catch (error) {
+        console.error('Erreur stats dashboard:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const getLogStatusBadge = (status: string) => {
     switch (status) {
@@ -59,10 +83,10 @@ export default function AdminDashboardPage() {
       {/* ── STATS GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Utilisateurs Actifs', value: mockAdminStats.activeUsers.toLocaleString('fr-FR'), desc: `Sur ${mockAdminStats.totalUsers} inscrits`, icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: 'Visas Traités (Total)', value: mockAdminStats.totalApplications.toLocaleString('fr-FR'), desc: 'Depuis le lancement', icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'Recettes Est. (FCFA)', value: mockAdminStats.revenueAfc, desc: 'Année en cours', icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
-          { title: 'Santé du Système', value: mockAdminStats.systemHealth, desc: 'Toutes les APIs OK', icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
+          { title: 'Utilisateurs Actifs', value: stats.activeUsers.toLocaleString('fr-FR'), desc: `Sur ${stats.totalUsers} inscrits`, icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
+          { title: 'Visas Traités (Total)', value: stats.totalApplications.toLocaleString('fr-FR'), desc: 'Depuis le lancement', icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: 'Recettes Est. (FCFA)', value: stats.revenueAfc, desc: 'Année en cours', icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'Santé du Système', value: stats.systemHealth, desc: 'Toutes les APIs OK', icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between`}>
             <div className="flex justify-between items-start mb-4">
@@ -142,26 +166,28 @@ export default function AdminDashboardPage() {
 
           <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
              <div className="divide-y divide-cm-border/50">
-               {mockSystemLogs.slice(0, 4).map(log => (
+               {logs.length > 0 ? logs.map(log => (
                  <div key={log.id} className="p-4 hover:bg-cm-cream/20 transition-colors flex items-start gap-3">
                    <div className="mt-1">
-                      {getLogIcon(log.status)}
+                      {getLogIcon(log.status || 'INFO')}
                    </div>
                    <div className="flex-1">
                       <div className="flex justify-between items-start">
                          <p className={`text-sm font-bold ${log.status === 'WARNING' || log.status === 'ERROR' ? 'text-cm-red' : 'text-cm-text'}`}>
-                            {log.module}
+                            {log.module || log.action_type || 'Système'}
                          </p>
-                         {getLogStatusBadge(log.status)}
+                         {getLogStatusBadge(log.status || 'INFO')}
                       </div>
-                      <p className="text-xs text-cm-muted mt-1 mb-2 leading-relaxed">{log.action}</p>
+                      <p className="text-xs text-cm-muted mt-1 mb-2 leading-relaxed">{log.action || log.description}</p>
                       <div className="flex justify-between items-center text-[10px] text-cm-muted font-medium uppercase tracking-wide">
-                         <span>{log.user}</span>
-                         <span>{formatDate(log.time)}</span>
+                         <span>{log.user_email || log.user || 'Système'}</span>
+                         <span>{formatDate(log.created_at || log.time)}</span>
                       </div>
                    </div>
                  </div>
-               ))}
+               )) : (
+                 <div className="p-4 text-center text-sm text-cm-muted">Aucun journal récent.</div>
+               )}
              </div>
           </div>
         </div>

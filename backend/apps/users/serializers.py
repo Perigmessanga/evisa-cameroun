@@ -113,14 +113,22 @@ class ChangePasswordSerializer(serializers.Serializer):
 # GESTION ADMIN DES UTILISATEURS
 # ─────────────────────────────────────────────────────────────────
 class AdminUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     class Meta:
         model  = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'phone',
             'role', 'is_active', 'is_email_verified',
-            'two_factor_enabled', 'created_at', 'last_login',
+            'two_factor_enabled', 'created_at', 'last_login', 'password'
         ]
         read_only_fields = ['id', 'created_at', 'last_login']
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
 
 
 class CreateUserByAdminSerializer(serializers.ModelSerializer):
@@ -131,7 +139,14 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
         fields = ['email', 'first_name', 'last_name', 'phone', 'role', 'password']
 
     def create(self, validated_data):
+        validated_data['is_email_verified'] = True
         return User.objects.create_user(**validated_data)
+
+
+class RoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['role']
 
 
 # ─────────────────────────────────────────────────────────────────

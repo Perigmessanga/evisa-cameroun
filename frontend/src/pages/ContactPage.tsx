@@ -1,19 +1,40 @@
-// ─────────────────────────────────────────────
-//  pages/ContactPage.tsx
-// ─────────────────────────────────────────────
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CameroonFlag from '../components/common/CameroonFlag';
 import Footer from '../components/layout/Footer';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
-    setTimeout(() => setSent(false), 5000);
+    setLoading(true);
+    try {
+      await api.post('/../contact-messages/', formData);
+      setSent(true);
+      setTimeout(() => setSent(false), 5000);
+      setFormData({first_name: '', last_name: '', email: '', subject: '', message: ''});
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur lors de l'envoi du message. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,18 +99,19 @@ export default function ContactPage() {
                     <Mail size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-cm-text text-lg">Support e-Visa</h4>
-                    <p className="text-cm-muted mt-1 leading-relaxed">support@evisa.diplomatie.cm</p>
+                    <h3 className="font-bold text-lg text-cm-text">Email Officiel</h3>
+                    <p className="text-cm-muted mt-1 leading-relaxed">messangaperig3@gmail.com</p>
+                    <p className="text-sm font-bold text-cm-green-mid mt-1">Réponse en 24h ouvrées</p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4 items-start">
-                  <div className="w-12 h-12 rounded-xl bg-cm-green/10 text-cm-green flex items-center justify-center shrink-0">
+                  <div className="p-4 bg-cm-cream/50 rounded-xl text-cm-green">
                     <Phone size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-cm-text text-lg">Assistance Téléphonique</h4>
-                    <p className="text-cm-muted mt-1 leading-relaxed">+237 222 22 22 22</p>
+                    <h3 className="font-bold text-lg text-cm-text">Téléphone (WhatsApp & Appels)</h3>
+                    <p className="text-cm-muted mt-1 leading-relaxed">+237 690 99 22 59</p>
                   </div>
                 </div>
 
@@ -133,37 +155,37 @@ export default function ContactPage() {
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-bold text-cm-text mb-2">Prénom</label>
-                      <input type="text" required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Jean" />
+                      <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Jean" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-cm-text mb-2">Nom</label>
-                      <input type="text" required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Dupont" />
+                      <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Dupont" />
                     </div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-bold text-cm-text mb-2">Adresse Email</label>
-                    <input type="email" required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="jean.dupont@email.com" />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="jean.dupont@email.com" />
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-cm-text mb-2">Sujet de la demande</label>
-                    <select required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all text-cm-text">
+                    <select name="subject" value={formData.subject} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all text-cm-text">
                       <option value="">Sélectionnez un sujet</option>
-                      <option value="status">Statut de ma demande de visa</option>
-                      <option value="payment">Problème de paiement</option>
-                      <option value="document">Assistance pour les documents</option>
-                      <option value="other">Autre demande</option>
+                      <option value="Statut de ma demande de visa">Statut de ma demande de visa</option>
+                      <option value="Problème de paiement">Problème de paiement</option>
+                      <option value="Assistance pour les documents">Assistance pour les documents</option>
+                      <option value="Autre demande">Autre demande</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-cm-text mb-2">Votre message</label>
-                    <textarea required rows={5} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all resize-none" placeholder="Décrivez votre problème en détail..."></textarea>
+                    <textarea name="message" value={formData.message} onChange={handleChange} required rows={5} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all resize-none" placeholder="Décrivez votre problème en détail..."></textarea>
                   </div>
 
-                  <button type="submit" className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all">
-                    Envoyer <Send size={18} />
+                  <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-70">
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>Envoyer <Send size={18} /></>}
                   </button>
                 </form>
               )}

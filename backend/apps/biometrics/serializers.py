@@ -6,22 +6,22 @@ class BiometricDataSerializer(serializers.ModelSerializer):
     """
     Serializer pour afficher les données biométriques.
     """
-    quality_label = serializers.CharField(read_only=True)
     application_number = serializers.CharField(
         source='application.application_number',
         read_only=True
     )
+    face_image_url = serializers.ImageField(source='face_image', read_only=True)
 
     class Meta:
         model = BiometricData
         fields = [
             'id', 'application', 'application_number',
-            'face_image_path', 'quality_score', 'quality_label',
+            'face_image_url', 'quality_score',
             'liveness_verified', 'is_verified',
             'captured_at', 'verified_at'
         ]
         read_only_fields = [
-            'id', 'quality_score', 'quality_label',
+            'id', 'quality_score',
             'is_verified', 'captured_at', 'verified_at'
         ]
 
@@ -46,17 +46,9 @@ class BiometricDataCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Créer les données biométriques.
-        Le traitement de l'image (encodage facial, détection de vivacité)
-        sera fait dans la vue.
+        Créer les données biométriques sans pop face_image!
         """
-        face_image = validated_data.pop('face_image')
-        
-        # Sauvegarder l'image (à implémenter selon votre stockage : local ou S3)
-        # Pour l'instant, on simule juste le chemin
-        validated_data['face_image_path'] = f"biometrics/{face_image.name}"
-        validated_data['face_encoding'] = {}  # À remplir avec face-api.js
-        
+        validated_data['face_encoding'] = {}
         return super().create(validated_data)
 
 

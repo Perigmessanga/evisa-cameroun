@@ -27,7 +27,10 @@ import SystemSettingsPage from './pages/admin/SystemSettingsPage';
 import ReportsStatisticsPage from './pages/admin/ReportsStatisticsPage';
 import SystemLogsPage from './pages/admin/SystemLogsPage';
 import EmailTemplatesPage from './pages/admin/EmailTemplatesPage';
+import EmailTemplateFormPage from './pages/admin/EmailTemplateFormPage';
+import MessagesManagementPage from './pages/admin/MessagesManagementPage';
 import AmbassadeDashboardPage from './pages/ambassade/AmbassadeDashboardPage';
+
 import DossiersListPage from './pages/ambassade/DossiersListPage';
 import DossierDetailPage from './pages/ambassade/DossierDetailPage';
 import MessageriePage from './pages/ambassade/MessageriePage';
@@ -122,12 +125,17 @@ export default function App() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="users/new" element={<UserFormPage />} />
+          <Route path="users/edit/:id" element={<UserFormPage />} />
           <Route path="visa-types" element={<VisaTypeManagementPage />} />
           <Route path="visa-types/new" element={<VisaTypeFormPage />} />
+          <Route path="visa-types/edit/:id" element={<VisaTypeFormPage />} />
           <Route path="roles" element={<RoleManagementPage />} />
           <Route path="reports" element={<ReportsStatisticsPage />} />
           <Route path="logs" element={<SystemLogsPage />} />
           <Route path="email-templates" element={<EmailTemplatesPage />} />
+          <Route path="email-templates/new" element={<EmailTemplateFormPage />} />
+          <Route path="email-templates/edit/:id" element={<EmailTemplateFormPage />} />
+          <Route path="messages" element={<MessagesManagementPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
         </Route>
 

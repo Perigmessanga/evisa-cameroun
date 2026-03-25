@@ -5,12 +5,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.utils import timezone
 
-from apps.notifications.models import Notification, AuditLog
+from apps.notifications.models import Notification, EmailTemplate
+from apps.audit.models import AuditLog
 from apps.notifications.serializers import (
     NotificationSerializer,
-    NotificationMarkReadSerializer,
-    AuditLogSerializer
+    EmailTemplateSerializer,
 )
+from apps.audit.serializers import AuditLogSerializer
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -129,3 +130,23 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             'top_actions': list(stats_by_action),
         })
 # Create your views here.
+
+
+class EmailTemplateViewSet(viewsets.ModelViewSet):
+    """
+    CRUD pour les modèles d'emails (admin uniquement).
+    GET/POST  /api/v1/notifications/templates/
+    GET/PATCH/DELETE /api/v1/notifications/templates/{id}/
+    """
+    queryset = EmailTemplate.objects.all().order_by('type', 'name')
+    serializer_class = EmailTemplateSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Optional filtering by type
+        t = self.request.query_params.get('type')
+        if t:
+            qs = qs.filter(type=t)
+        return qs
+

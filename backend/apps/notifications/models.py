@@ -48,58 +48,99 @@ class Notification(models.Model):
 
 
 # ─── SERVICE ──────────────────────────────────────────────────────
+from django.template import Context, Template as DjangoTemplate
+
 class NotificationService:
-    """Service centralisé pour l'envoi de toutes les notifications."""
+    """Service centralisé pour l'envoi de toutes les notifications, utilisant les Modèles d'Email (EmailTemplate) si existants."""
+
+    @classmethod
+    def _render_template(cls, email_template, context_dict):
+        """Rend le sujet et le corps avec le dictionnaire de contexte."""
+        subject_template = DjangoTemplate(email_template.subject)
+        body_template = DjangoTemplate(email_template.body_text)
+        context = Context(context_dict)
+        return subject_template.render(context), body_template.render(context)
+
+    @classmethod
+    def _get_template_and_render(cls, template_code, context_dict, fallback_subject, fallback_message):
+        """Cherche un EmailTemplate actif par code. S'il n'existe pas, utilise le fallback."""
+        from apps.notifications.models import EmailTemplate
+        try:
+            template = EmailTemplate.objects.get(code=template_code, is_active=True)
+            return cls._render_template(template, context_dict)
+        except EmailTemplate.DoesNotExist:
+            return fallback_subject, fallback_message
 
     @classmethod
     def send_application_submitted(cls, application):
-        user    = application.applicant
-        subject = f'Demande {application.application_number} — Soumise avec succès'
-        message = (
-            f'Bonjour {user.get_full_name()},\n\n'
-            f'Votre demande de visa n° {application.application_number} a été soumise avec succès.\n'
-            f'Vous serez notifié(e) de l\'avancement de votre dossier.\n\n'
-            f'Cordialement,\nL\'équipe e-Visa Cameroun'
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+        }
+        subject, message = cls._get_template_and_render(
+            'APP_SUBMIT', context,
+            f'Demande {application.application_number} — Soumise avec succès',
+            f'Bonjour {user.get_full_name()},\n\nVotre demande de visa n° {application.application_number} a été soumise avec succès.\nVous serez notifié(e) de l\'avancement de votre dossier.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
         )
         cls._send(user, subject, message, application)
 
     @classmethod
     def send_application_approved(cls, application):
-        user    = application.applicant
-        subject = f'Demande {application.application_number} — APPROUVÉE ✅'
-        message = (
-            f'Bonjour {user.get_full_name()},\n\n'
-            f'Félicitations ! Votre demande de visa n° {application.application_number} a été approuvée.\n'
-            f'Votre e-visa est disponible en téléchargement sur la plateforme.\n\n'
-            f'Bon voyage au Cameroun !\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+        }
+        subject, message = cls._get_template_and_render(
+            'APP_APPROVE', context,
+            f'Demande {application.application_number} — APPROUVÉE ✅',
+            f'Bonjour {user.get_full_name()},\n\nFélicitations ! Votre demande de visa n° {application.application_number} a été approuvée.\nVotre e-visa est disponible en téléchargement sur la plateforme.\n\nBon voyage au Cameroun !\n\nCordialement,\nL\'équipe e-Visa Cameroun'
         )
         cls._send(user, subject, message, application)
 
     @classmethod
     def send_application_rejected(cls, application):
-        user    = application.applicant
-        subject = f'Demande {application.application_number} — Refusée'
-        message = (
-            f'Bonjour {user.get_full_name()},\n\n'
-            f'Nous avons le regret de vous informer que votre demande de visa '
-            f'n° {application.application_number} a été refusée.\n\n'
-            f'Motif : {application.rejection_reason}\n\n'
-            f'Pour toute question, contactez-nous.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'rejection_reason': getattr(application, 'rejection_reason', 'Non spécifié'),
+        }
+        subject, message = cls._get_template_and_render(
+            'APP_REJECT', context,
+            f'Demande {application.application_number} — Refusée',
+            f'Bonjour {user.get_full_name()},\n\nNous avons le regret de vous informer que votre demande de visa n° {application.application_number} a été refusée.\n\nMotif : {context["rejection_reason"]}\n\nPour toute question, contactez-nous.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
         )
         cls._send(user, subject, message, application)
 
     @classmethod
     def send_documents_requested(cls, application, agent_message):
-        user    = application.applicant
-        subject = f'Demande {application.application_number} — Documents complémentaires requis'
-        message = (
-            f'Bonjour {user.get_full_name()},\n\n'
-            f'Des documents complémentaires sont nécessaires pour votre demande '
-            f'n° {application.application_number}.\n\n'
-            f'Message de l\'agent : {agent_message}\n\n'
-            f'Connectez-vous à la plateforme pour les fournir.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'agent_message': agent_message,
+        }
+        subject, message = cls._get_template_and_render(
+            'DOC_REQUEST', context,
+            f'Demande {application.application_number} — Documents complémentaires requis',
+            f'Bonjour {user.get_full_name()},\n\nDes documents complémentaires sont nécessaires pour votre demande n° {application.application_number}.\n\nMessage de l\'agent : {agent_message}\n\nConnectez-vous à la plateforme pour les fournir.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
         )
         cls._send(user, subject, message, application)
+
+    @classmethod
+    def send_account_created(cls, user, verification_link=""):
+        context = {
+            'user_name': user.get_full_name(),
+            'verification_link': verification_link,
+        }
+        subject, message = cls._get_template_and_render(
+            'AUTH_WELCOME', context,
+            'Bienvenue sur e-Visa Cameroun',
+            f'Bonjour {user.get_full_name()},\n\nVotre compte a été créé avec succès.\n{verification_link}\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+        )
+        cls._send(user, subject, message)
 
     @classmethod
     def _send(cls, user, subject, message, application=None):
@@ -168,3 +209,40 @@ class MarkNotificationReadView(APIView):
             return api_response(message='Notification marquée comme lue.')
         except Notification.DoesNotExist:
             return api_response(message='Notification introuvable.', status_code=404)
+
+
+# ─────────────────────────────────────────────────────────────────
+# MODÈLES D'EMAILS
+# ─────────────────────────────────────────────────────────────────
+class EmailTemplate(models.Model):
+    """
+    Modèles d'emails éditables par l'administrateur.
+    Chaque template correspond à un type d'email envoyé par le système.
+    """
+    class TemplateType(models.TextChoices):
+        AUTH        = 'AUTH',        'Authentification'
+        APPLICATION = 'APPLICATION', 'Dossier Visa'
+        SECURITY    = 'SECURITY',    'Sécurité'
+        PAYMENT     = 'PAYMENT',     'Paiement'
+        SYSTEM      = 'SYSTEM',      'Système'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name        = models.CharField(max_length=200, verbose_name="Nom du modèle")
+    code        = models.SlugField(max_length=100, unique=True, verbose_name="Code unique")
+    type        = models.CharField(max_length=20, choices=TemplateType.choices, default=TemplateType.SYSTEM)
+    subject     = models.CharField(max_length=255, verbose_name="Sujet de l'email")
+    body_text   = models.TextField(verbose_name="Corps de l'email (texte brut)")
+    body_html   = models.TextField(blank=True, verbose_name="Corps de l'email (HTML)")
+    language    = models.CharField(max_length=10, default='FR', verbose_name="Langue")
+    is_active   = models.BooleanField(default=True, verbose_name="Actif")
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'email_template'
+        verbose_name = "Modèle d'email"
+        verbose_name_plural = "Modèles d'emails"
+        ordering = ['type', 'name']
+
+    def __str__(self):
+        return f"[{self.type}] {self.name}"

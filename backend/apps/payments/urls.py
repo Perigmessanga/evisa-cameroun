@@ -16,6 +16,7 @@ urlpatterns = [
     # Initier un paiement
     path('initiate/', InitiatePaymentView.as_view(), name='payment-initiate'),
     
+    
     # Webhook (appelé par la passerelle)
     path('webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
     

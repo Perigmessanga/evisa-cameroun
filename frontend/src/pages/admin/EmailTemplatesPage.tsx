@@ -1,24 +1,50 @@
 // ─────────────────────────────────────────────
 //  pages/admin/EmailTemplatesPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Badge from '../../components/common/Badge';
 import { 
   Mail, Search, Plus, Edit2, 
-  Send, AlertCircle, Eye, CheckCircle2
+  Send, AlertCircle, Eye, CheckCircle2, Loader2
 } from 'lucide-react';
-
-const mockTemplates = [
-  { id: 'TPL-001', name: 'Confirmation de Création de Compte', type: 'AUTH', language: 'FR/EN', status: 'ACTIVE', lastUpdated: '2024-01-10T10:00:00Z' },
-  { id: 'TPL-002', name: 'Soumission de Demande de Visa', type: 'APPLICATION', language: 'FR/EN', status: 'ACTIVE', lastUpdated: '2024-02-15T14:30:00Z' },
-  { id: 'TPL-003', name: 'Visa Approuvé (E-Visa Join)', type: 'APPLICATION', language: 'FR', status: 'ACTIVE', lastUpdated: '2024-03-01T09:15:00Z' },
-  { id: 'TPL-004', name: 'Demande de Documents Supplémentaires', type: 'APPLICATION', language: 'FR', status: 'ACTIVE', lastUpdated: '2023-11-20T16:45:00Z' },
-  { id: 'TPL-005', name: 'Alerte de Sécurité (Connexion Suspecte)', type: 'SECURITY', language: 'FR/EN', status: 'INACTIVE', lastUpdated: '2023-09-05T11:20:00Z' },
-];
+import adminService from '../../services/adminService';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function EmailTemplatesPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.getEmailTemplates();
+      setTemplates(data);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des modèles d\'email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Voulez-vous vraiment supprimer le modèle "${name}" ?`)) return;
+    try {
+      setLoading(true);
+      await adminService.deleteEmailTemplate(id);
+      toast.success('Modèle d\'email supprimé avec succès');
+      fetchTemplates();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression du modèle');
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     return status === 'ACTIVE' 
@@ -35,9 +61,9 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const filteredTemplates = mockTemplates.filter(tpl => 
+  const filteredTemplates = templates.filter((tpl: any) => 
     tpl.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    tpl.id.toLowerCase().includes(searchTerm.toLowerCase())
+    tpl.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -52,7 +78,7 @@ export default function EmailTemplatesPage() {
           <p className="text-cm-muted mt-1">Gérez le contenu des emails automatiques envoyés par le système E-Visa.</p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => navigate('/admin/email-templates/new')}
           className="flex items-center gap-2 px-5 py-2.5 bg-cm-green-mid text-white rounded-xl font-bold text-sm hover:bg-cm-green shadow-md transition-colors"
         >
           <Plus size={18} /> Nouveau Modèle
@@ -74,59 +100,54 @@ export default function EmailTemplatesPage() {
       </div>
 
       {/* ── TEMPLATES LIST ── */}
-      <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredTemplates.map(tpl => (
-          <div key={tpl.id} className="bg-white border border-cm-border rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-lg hover:border-cm-green-pale transition-all group flex flex-col justify-between">
-            
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-2">
-                   {getLogTypeBadge(tpl.type)}
-                   <span className="text-[10px] font-bold text-cm-muted uppercase px-2 py-0.5 bg-cm-cream border border-cm-border rounded">{tpl.language}</span>
+      {loading ? (
+        <div className="flex justify-center items-center py-24">
+          <Loader2 className="animate-spin text-cm-green-mid" size={32} />
+        </div>
+      ) : filteredTemplates.length > 0 ? (
+        <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredTemplates.map((tpl: any) => (
+            <div key={tpl.id} className="bg-white border border-cm-border rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-lg hover:border-cm-green-pale transition-all group flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2">
+                     {getLogTypeBadge(tpl.type)}
+                     <span className="text-[10px] font-bold text-cm-muted uppercase px-2 py-0.5 bg-cm-cream border border-cm-border rounded">{tpl.language || 'FR'}</span>
+                  </div>
+                  {getStatusBadge(tpl.is_active ? 'ACTIVE' : 'INACTIVE')}
                 </div>
-                {getStatusBadge(tpl.status)}
+
+                <h3 className="font-display font-bold text-lg text-cm-text mb-2 group-hover:text-cm-green-mid transition-colors line-clamp-2">{tpl.name}</h3>
+                <p className="text-[10px] text-cm-muted font-mono mb-6">Code: {tpl.code} • Maj: {tpl.updated_at ? new Date(tpl.updated_at).toLocaleDateString('fr-FR') : 'N/A'}</p>
               </div>
 
-              <h3 className="font-display font-bold text-lg text-cm-text mb-2 group-hover:text-cm-green-mid transition-colors line-clamp-2">{tpl.name}</h3>
-              <p className="text-[10px] text-cm-muted font-mono mb-6">ID: {tpl.id} • Maj: {new Date(tpl.lastUpdated).toLocaleDateString('fr-FR')}</p>
+              <div className="flex gap-2 pt-4 border-t border-cm-border">
+                 <button 
+                   onClick={() => navigate(`/admin/email-templates/edit/${tpl.id}`)}
+                   className="flex-1 py-2 bg-cm-cream text-cm-text font-bold text-xs rounded-xl border border-cm-border hover:bg-cm-border/50 transition-colors flex items-center justify-center gap-2"
+                 >
+                    <Edit2 size={14} /> Éditer
+                 </button>
+                 <button 
+                   onClick={() => handleDelete(tpl.id, tpl.name)}
+                   className="flex-1 py-2 bg-white text-cm-red font-bold text-xs rounded-xl border border-cm-red/20 hover:bg-cm-red/5 transition-colors flex items-center justify-center gap-2"
+                 >
+                    <AlertCircle size={14} /> Supprimer
+                 </button>
+                 <button className="px-3 py-2 bg-white text-cm-muted border border-cm-border rounded-xl hover:text-cm-text hover:bg-cm-cream transition-colors flex items-center justify-center" title="Test d'envoi">
+                    <Send size={14} />
+                 </button>
+              </div>
             </div>
-
-            <div className="flex gap-2 pt-4 border-t border-cm-border">
-               <button className="flex-1 py-2 bg-cm-cream text-cm-text font-bold text-xs rounded-xl border border-cm-border hover:bg-cm-border/50 transition-colors flex items-center justify-center gap-2">
-                  <Edit2 size={14} /> Éditer
-               </button>
-               <button className="flex-1 py-2 bg-white text-cm-text font-bold text-xs rounded-xl border border-cm-border hover:bg-cm-cream transition-colors flex items-center justify-center gap-2">
-                  <Eye size={14} /> Aperçu
-               </button>
-               <button className="px-3 py-2 bg-white text-cm-muted border border-cm-border rounded-xl hover:text-cm-text hover:bg-cm-cream transition-colors flex items-center justify-center" title="Test d'envoi">
-                  <Send size={14} />
-               </button>
-            </div>
-
-          </div>
-        ))}
-      </div>
-
-      {/* ── CREATE/EDIT MODAL (Placeholder) ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-cm-border bg-cm-cream/30">
-                 <h2 className="font-display text-xl font-bold text-cm-text">Nouveau Modèle d'Email</h2>
-              </div>
-              <div className="p-6">
-                 <div className="flex flex-col items-center justify-center p-8 bg-cm-cream rounded-2xl border border-cm-border text-center">
-                    <AlertCircle size={32} className="text-cm-gold mb-4" />
-                    <p className="text-sm font-semibold text-cm-text">L'éditeur de Template riche (WYSIWYG) avec variables dynamiques sera disponible dans la Phase 6b.</p>
-                 </div>
-                 <div className="flex justify-end mt-8">
-                    <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl font-bold text-sm bg-cm-green-mid text-white hover:bg-cm-green transition-colors">Fermer</button>
-                 </div>
-              </div>
-           </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-16 text-center bg-white rounded-2xl border border-cm-border">
+          <Mail className="mx-auto text-cm-muted mb-4" size={32} />
+          <h3 className="font-display font-bold text-lg text-cm-text mb-1">Aucun modèle</h3>
+          <p className="text-sm text-cm-muted">Aucun modèle d'email correspondant à votre recherche.</p>
         </div>
       )}
-
     </div>
   );
 }

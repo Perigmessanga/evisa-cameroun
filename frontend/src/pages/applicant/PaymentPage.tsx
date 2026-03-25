@@ -12,7 +12,7 @@ export default function PaymentPage() {
   const location = useLocation();
   const applicationId = location.state?.applicationId;
 
-  const [method, setMethod] = useState<'CARD' | 'MTN' | 'ORANGE'>('CARD');
+  const [method, setMethod] = useState<'CARD' | 'MOBILE_MONEY_MTN' | 'MOBILE_MONEY_ORANGE'>('CARD');
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -143,13 +143,13 @@ export default function PaymentPage() {
             <div className="grid grid-cols-3 gap-4">
               {[
                 { id: 'CARD', label: 'Carte Bancaire', color: 'border-cm-green-mid bg-cm-green-pale/10' },
-                { id: 'MTN', label: 'MTN Mobile Money', color: 'border-yellow-500 bg-yellow-50' },
-                { id: 'ORANGE', label: 'Orange Money', color: 'border-orange-500 bg-orange-50' }
+                { id: 'MOBILE_MONEY_MTN', label: 'MTN Mobile Money', color: 'border-yellow-500 bg-yellow-50' },
+                { id: 'MOBILE_MONEY_ORANGE', label: 'Orange Money', color: 'border-orange-500 bg-orange-50' }
               ].map(opt => (
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setMethod(opt.id as 'CARD'|'MTN'|'ORANGE')}
+                  onClick={() => setMethod(opt.id as 'CARD'|'MOBILE_MONEY_MTN'|'MOBILE_MONEY_ORANGE')}
                   className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2
                     ${method === opt.id ? opt.color : 'border-cm-border hover:border-cm-green-pale bg-white'}
                   `}
@@ -197,14 +197,14 @@ export default function PaymentPage() {
                 </div>
               )}
 
-              {(method === 'MTN' || method === 'ORANGE') && (
+              {(method === 'MOBILE_MONEY_MTN' || method === 'MOBILE_MONEY_ORANGE') && (
                 <div className="space-y-5 animate-fadeIn">
                   <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl text-orange-800 text-sm mb-6 flex items-start gap-3">
                     <span className="mt-0.5">ℹ️</span>
                     <div>Entrez votre numéro de téléphone. Un prompt de validation s'affichera sur votre écran mobile pour confirmer la transaction.</div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-cm-text mb-2">Numéro de téléphone ({method})</label>
+                    <label className="block text-sm font-semibold text-cm-text mb-2">Numéro de téléphone ({method.replace('MOBILE_MONEY_', '')})</label>
                     <div className="flex">
                       <div className="px-4 py-3 bg-cm-cream border border-cm-border border-r-0 rounded-l-xl text-cm-muted font-bold text-sm">
                         +237

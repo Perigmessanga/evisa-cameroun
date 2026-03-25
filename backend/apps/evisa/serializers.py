@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from apps.evisa.models import EVisa, BorderCrossing
-
+from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage
 
 class EVisaSerializer(serializers.ModelSerializer):
     """
@@ -22,6 +21,19 @@ class EVisaSerializer(serializers.ModelSerializer):
             'is_valid', 'days_until_expiry', 'created_at'
         ]
         read_only_fields = fields
+
+
+class SystemSettingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemSetting
+        fields = ['key', 'value', 'category', 'description', 'updated_at']
+
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = '__all__'
+        read_only_fields = ['id', 'status', 'replied_by', 'reply_message', 'created_at', 'replied_at']
 
 
 class EVisaRevokeSerializer(serializers.Serializer):

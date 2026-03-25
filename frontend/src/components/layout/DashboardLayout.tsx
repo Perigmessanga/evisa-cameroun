@@ -44,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { name: 'Types de visa', path: '/admin/visa-types', icon: <FileText size={20} /> },
           { name: 'Logs Système', path: '/admin/logs', icon: <FileWarning size={20} /> },
           { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
+          { name: 'Messages', path: '/admin/messages', icon: <Mail size={20} /> },
           { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> }
         ];
       case 'EMBASSY':

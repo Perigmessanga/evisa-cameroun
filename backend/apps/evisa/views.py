@@ -12,14 +12,116 @@ import io
 import base64
 import tempfile
 
-from apps.evisa.models import EVisa, BorderCrossing
+from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage
 from apps.evisa.serializers import (
     EVisaSerializer,
     EVisaRevokeSerializer,
     BorderCrossingSerializer,
     BorderCrossingCreateSerializer,
-    EVisaVerifySerializer
+    EVisaVerifySerializer,
+    SystemSettingSerializer,
+    ContactMessageSerializer
 )
+from django.core.mail import send_mail
+
+
+class ContactMessageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la gestion des messages de contact.
+    """
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if self.action != 'create' and not getattr(request.user, 'is_admin', False):
+            self.permission_denied(
+                request,
+                message="Seuls les administrateurs peuvent accéder aux messages."
+            )
+
+    def perform_create(self, serializer):
+        # Sauvegarder le message de contact
+        message = serializer.save()
+        
+        # Envoyer un email de notification à l'admin
+        # messangaperig3@gmail.com
+        send_mail(
+            subject=f"Nouveau Message e-Visa: {message.subject}",
+            message=f"De: {message.first_name} {message.last_name} ({message.email})\n\n{message.message}",
+            from_email='no-reply@evisa.cm',
+            recipient_list=['messangaperig3@gmail.com'],
+            fail_silently=True,
+        )
+
+    @action(detail=True, methods=['post'])
+    def reply(self, request, pk=None):
+        """
+        Répondre à un message de contact.
+        Body: { "reply_message": "..." }
+        """
+        message = self.get_object()
+        reply_text = request.data.get('reply_message')
+        
+        if not reply_text:
+            return Response({'error': 'Message de réponse requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        message.reply_message = reply_text
+        message.status = 'REPLIED'
+        message.replied_by = request.user
+        message.replied_at = timezone.now()
+        message.save()
+        
+        # Envoi de l'email à l'utilisateur
+        send_mail(
+            subject=f"Réponse: {message.subject}",
+            message=f"Bonjour {message.first_name},\n\nSuite à votre message :\n\"{message.message}\"\n\nVoici notre réponse :\n{reply_text}\n\nCordialement,\nSupport e-Visa Cameroun",
+            from_email='no-reply@evisa.cm',
+            recipient_list=[message.email],
+            fail_silently=True,
+        )
+        
+        return Response({'status': 'Message répondu avec succès.'})
+
+
+class SystemSettingViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la gestion des paramètres système par les administrateurs.
+    """
+    queryset = SystemSetting.objects.all()
+    serializer_class = SystemSettingSerializer
+    # Seuls les admins peuvent modifier les configurations système
+    # (Ou on peut faire un permission personnalisée, ici on check le rôle de l'utilisateur)
+    permission_classes = [IsAuthenticated]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if not getattr(request.user, 'is_admin', False):
+            self.permission_denied(
+                request,
+                message="Seuls les administrateurs peuvent modifier les paramètres."
+            )
+
+    @action(detail=False, methods=['post'])
+    def bulk_update(self, request):
+        """
+        Mettre à jour plusieurs paramètres en une seule requête.
+        Body: { "smtpHost": "...", "maintenanceMode": "1" }
+        """
+        data = request.data
+        updates = []
+        for key, value in data.items():
+            setting, created = SystemSetting.objects.get_or_create(key=key)
+            setting.value = str(value)
+            setting.save()
+            updates.append(setting)
+        
+        return Response({'status': 'success', 'updated': len(updates)})
 
 
 class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -132,6 +234,34 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         
         return Response({
             'message': 'e-Visa révoqué.',
+            'evisa': EVisaSerializer(evisa).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def flag_fraud(self, request, pk=None):
+        """
+        Signaler une anomalie ou fraude sur un e-visa (agents frontières).
+        POST /api/evisas/{id}/flag_fraud/
+        Body: { "notes": "Le passeport semble falsifié..." }
+        """
+        if not request.user.is_border_agent:
+            return Response({
+                'error': 'Seuls les agents frontières peuvent signaler une fraude.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        evisa = self.get_object()
+        notes = request.data.get('notes', 'Aucun détail fourni.')
+        
+        # Enregistrer une alerte/révoquer temporairement
+        evisa.is_revoked = True
+        evisa.revocation_date = timezone.now()
+        evisa.revocation_reason = f"ALERTE FRAUDE (Signalé par {request.user.get_full_name()}) : {notes}"
+        evisa.save()
+        
+        # TODO: Alerter administrateurs / Immigration par email ou notification
+        
+        return Response({
+            'message': 'Fraude signalée avec succès. L\'e-Visa a été révoqué par sécurité.',
             'evisa': EVisaSerializer(evisa).data
         })
 

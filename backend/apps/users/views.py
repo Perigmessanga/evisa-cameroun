@@ -9,6 +9,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -29,8 +30,62 @@ User = get_user_model()
 # ─────────────────────────────────────────────────────────────────
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            from .serializers import CreateUserByAdminSerializer
+            return CreateUserByAdminSerializer
+        from .serializers import AdminUserSerializer
+        return AdminUserSerializer
+
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        user = self.get_object()
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        return api_response(message='Utilisateur suspendu avec succès.', data=UserSerializer(user).data)
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        user = self.get_object()
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        return api_response(message='Utilisateur activé avec succès.', data=UserSerializer(user).data)
+
+    @action(detail=True, methods=['post'])
+    def update_role(self, request, pk=None):
+        user = self.get_object()
+        from .serializers import RoleUpdateSerializer
+        serializer = RoleUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(message='Rôle mis à jour avec succès.', data=UserSerializer(user).data)
+        return api_response(errors=serializer.errors, message='Données invalides.', status_code=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def dashboard_stats(self, request):
+        from django.db.models import Sum
+        from apps.visa_applications.models import VisaApplication
+        from apps.evisa.models import EVisa
+        
+        users_count = User.objects.count()
+        applications_count = VisaApplication.objects.count()
+        evisas_count = EVisa.objects.count()
+        
+        # Revenus (somme des frais des visas approuvés)
+        revenue = VisaApplication.objects.filter(status='APPROVED').aggregate(
+            total=Sum('visa_type__fee')
+        )['total'] or 0
+
+        return api_response(data={
+            'total_users': users_count,
+            'total_applications': applications_count,
+            'total_evisas': evisas_count,
+            'total_revenue': revenue,
+            'recent_users': UserSerializer(User.objects.order_by('-created_at')[:5], many=True).data
+        })
+
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -74,20 +129,12 @@ class RegisterView(APIView):
             print(f"{'='*60}\n")
 
         try:
-            send_mail(
-                subject='e-Visa Cameroun — Vérifiez votre email',
-                message=(
-                    f'Bonjour {user.get_full_name()},\n\n'
-                    f'Cliquez sur ce lien pour vérifier votre email :\n{verify_url}\n\n'
-                    f'Ce lien expire dans 24h.'
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+            from apps.notifications.models import NotificationService
+            NotificationService.send_account_created(user, verify_url)
         except Exception as e:
             if settings.DEBUG:
                 # En dev, l'échec d'envoi est acceptable car le lien est dans la console
+                print(f"Erreur d'envoi email (autorisée en DEV) : {e}")
                 print(f"[DEV] Email non envoyé (SMTP error): {e}")
             else:
                 raise  # En production, propager l'erreur

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Camera, CheckCircle, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
 import applicationService from '../../services/applicationService';
 import toast from 'react-hot-toast';
 
@@ -98,8 +97,7 @@ const BiometricPage: React.FC = () => {
   }, []);
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto pb-12 animate-fadeIn space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-cm-green mb-2">Capture Biométrique</h1>
           <p className="text-gray-600">
@@ -202,8 +200,7 @@ const BiometricPage: React.FC = () => {
 
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 };
 

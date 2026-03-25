@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.notifications.models import Notification, AuditLog
+from apps.notifications.models import Notification, EmailTemplate
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -18,30 +18,18 @@ class NotificationSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class NotificationMarkReadSerializer(serializers.Serializer):
-    """
-    Serializer pour marquer une notification comme lue.
-    """
-    pass  # Pas de champs nécessaires, l'action suffit
-
-
-class AuditLogSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour afficher les logs d'audit.
-    """
-    user_email = serializers.EmailField(source='user.email', read_only=True)
-    application_number = serializers.CharField(
-        source='application.application_number',
-        read_only=True,
-        allow_null=True
-    )
-
-    class Meta:
-        model = AuditLog
-        fields = [
-            'id', 'user', 'user_email', 'application',
-            'application_number', 'action', 'description',
-            'data_before', 'data_after', 'ip_address',
-            'created_at'
-        ]
         read_only_fields = fields
+
+
+class EmailTemplateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for email templates (CRUD by admin).
+    """
+    class Meta:
+        model = EmailTemplate
+        fields = [
+            'id', 'name', 'code', 'type', 'subject',
+            'body_text', 'body_html', 'language',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

@@ -1,17 +1,36 @@
 // ─────────────────────────────────────────────
 //  pages/admin/SystemLogsPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
-import { mockSystemLogs } from '../../data/mockAdminData';
+import { useState, useEffect } from 'react';
 import Badge from '../../components/common/Badge';
 import { 
   Server, Search, Filter, Download, 
-  AlertTriangle, Activity, Database, CheckCircle2
+  AlertTriangle, Activity, Database, CheckCircle2, Loader2
 } from 'lucide-react';
+import adminService from '../../services/adminService';
+import toast from 'react-hot-toast';
 
 export default function SystemLogsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterModule, setFilterModule] = useState('ALL');
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.getAuditLogs();
+      setLogs(data);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des journaux d\'audit.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
 
   const getLogStatusBadge = (status: string) => {
     switch (status) {
@@ -40,11 +59,14 @@ export default function SystemLogsPage() {
     });
   };
 
-  const filteredLogs = mockSystemLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          log.user.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = filterModule === 'ALL' || log.module === filterModule;
-    return matchesSearch && matchesModule;
+  const filteredLogs = logs.filter(log => {
+    const searchString = searchTerm.toLowerCase();
+    const actionMatch = log.action?.toLowerCase().includes(searchString);
+    const userMatch = log.user_email?.toLowerCase().includes(searchString) || log.user?.toString().includes(searchString);
+    
+    // Fallback module filtering (using URL path in action or checking module string)
+    const matchesModule = filterModule === 'ALL' || (log.module && log.module === filterModule);
+    return (actionMatch || userMatch) && matchesModule;
   });
 
   return (
@@ -97,14 +119,18 @@ export default function SystemLogsPage() {
 
       {/* ── LOGS TABLE ── */}
       <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-        {filteredLogs.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="animate-spin text-cm-green-mid" size={32} />
+          </div>
+        ) : filteredLogs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-cm-cream/50 border-b border-cm-border text-[10px] uppercase tracking-wider text-cm-muted font-bold">
                   <th className="p-4 w-12"></th>
                   <th className="p-4">Action & Message</th>
-                  <th className="p-4">Module</th>
+                  <th className="p-4">Détails</th>
                   <th className="p-4">Utilisateur / IP</th>
                   <th className="p-4 text-right">Horodatage</th>
                 </tr>
@@ -114,29 +140,32 @@ export default function SystemLogsPage() {
                   <tr key={log.id} className="hover:bg-cm-cream/20 transition-colors">
                     
                     <td className="p-4 text-center">
-                       {getLogIcon(log.status)}
+                       {getLogIcon(log.status || 'SUCCESS')}
                     </td>
 
                     <td className="p-4">
-                       <div className="font-bold text-sm text-cm-text">{log.action}</div>
-                       <div className="text-[10px] text-cm-muted font-mono mt-1">LOG_ID: {log.id}</div>
+                       <div className="font-bold text-sm text-cm-text">{log.action || 'Action Système'}</div>
+                       <div className="text-[10px] text-cm-muted font-mono mt-1 w-64 truncate" title={log.description}>{log.description || `LOG_ID: ${log.id}`}</div>
                     </td>
 
                     <td className="p-4">
                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cm-cream text-cm-muted uppercase tracking-wider border border-cm-border">
-                          {log.module}
+                          {log.module || 'SYSTEM'}
                        </span>
                     </td>
 
                     <td className="p-4">
                        <div className="font-bold text-cm-text text-sm flex items-center gap-2">
-                          {log.user}
+                          {log.user_email || `User #${log.user}`}
+                       </div>
+                       <div className="text-xs text-cm-muted flex items-center gap-1 mt-0.5">
+                          {log.ip_address || ''}
                        </div>
                     </td>
 
                     <td className="p-4 text-right">
-                       <div className="text-sm font-bold text-cm-text font-mono">{formatDate(log.time).split(' ')[1]}</div>
-                       <div className="text-xs text-cm-muted">{formatDate(log.time).split(' ')[0]}</div>
+                       <div className="text-sm font-bold text-cm-text font-mono">{formatDate(log.created_at).split(' ')[1]}</div>
+                       <div className="text-xs text-cm-muted">{formatDate(log.created_at).split(' ')[0]}</div>
                     </td>
 
                   </tr>
