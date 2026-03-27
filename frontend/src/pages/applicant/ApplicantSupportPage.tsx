@@ -1,6 +1,6 @@
 import React from 'react';
 import { HelpCircle, Mail, Phone, MessageSquare, Book, ExternalLink } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
+
 
 const ApplicantSupportPage: React.FC = () => {
   const faqs = [
@@ -19,8 +19,7 @@ const ApplicantSupportPage: React.FC = () => {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold border-l-4 border-cm-gold pl-4 text-cm-green">
             Centre de Support et d'Assistance
@@ -85,7 +84,6 @@ const ApplicantSupportPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 };
 

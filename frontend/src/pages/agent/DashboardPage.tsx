@@ -1,40 +1,66 @@
-// ─────────────────────────────────────────────
-//  pages/agent/DashboardPage.tsx
-// ─────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockAgentStats, mockAgentApplications, mockRecentActivity } from '../../data/mockAgentData';
+import visaService from '../../services/visaService';
 import Badge from '../../components/common/Badge';
 import { 
   Users, CheckCircle2, XCircle, Clock, 
   ChevronRight, AlertCircle, FileSearch, ShieldCheck
 } from 'lucide-react';
+import { VisaApplication } from '../../types';
 
 export default function AgentDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    pending: 0,
+    processing: 0,
+    approved: 0,
+    rejected: 0,
+    processedToday: 0
+  });
+  const [recentApps, setRecentApps] = useState<VisaApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statsData, appsData] = await Promise.all([
+          visaService.getImmigrationStats(),
+          visaService.getImmigrationApplications({ limit: 5 })
+        ]);
+        setStats(statsData);
+        setRecentApps(appsData);
+      } catch (error) {
+        console.error('Erreur chargement dashboard agent:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'PENDING': return <Badge variant="info">Nouveau</Badge>;
-      case 'IN_PROGRESS': return <Badge variant="warning">En cours</Badge>;
+      case 'SUBMITTED': return <Badge variant="info">Nouveau</Badge>;
+      case 'PROCESSING': return <Badge variant="warning">En cours</Badge>;
       case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
+      case 'PENDING_DOCS': return <Badge variant="warning">Documents requis</Badge>;
+      case 'PENDING_REVIEW': return <Badge variant="info">Avis consulaire</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'HIGH': return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cm-red/10 text-cm-red border border-cm-red/20 uppercase">Urgent</span>;
-      default: return null;
-    }
-  };
-
   const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
   };
+
+  if (loading) {
+    return <div className="p-8 text-center text-cm-muted">Chargement du tableau de bord...</div>;
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -54,12 +80,12 @@ export default function AgentDashboard() {
         </div>
         <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
           <div className="flex-1 md:flex-none text-center px-4 py-2 bg-cm-cream rounded-xl border border-cm-border">
-            <p className="text-xs text-cm-muted font-bold uppercase mb-1">Traitées (Auj.)</p>
-            <p className="text-lg font-bold text-cm-text">{mockAgentStats.processedToday}</p>
+            <p className="text-xs text-cm-muted font-bold uppercase mb-1">En cours</p>
+            <p className="text-lg font-bold text-cm-text">{stats.processing}</p>
           </div>
           <div className="flex-1 md:flex-none text-center px-4 py-2 bg-cm-cream rounded-xl border border-cm-border">
-            <p className="text-xs text-cm-muted font-bold uppercase mb-1">Temps Moyen</p>
-            <p className="text-lg font-bold text-cm-text">{mockAgentStats.averageProcessingTime}</p>
+            <p className="text-xs text-cm-muted font-bold uppercase mb-1">Aujourd'hui</p>
+            <p className="text-lg font-bold text-cm-text">{stats.processedToday || 0}</p>
           </div>
         </div>
       </div>
@@ -67,15 +93,15 @@ export default function AgentDashboard() {
       {/* ── STATS GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'À Traiter (Total)', value: mockAgentStats.pendingApplications, icon: <Clock className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: 'Approuvées (Auj.)', value: mockAgentStats.approvedToday, icon: <CheckCircle2 className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'Rejetées (Auj.)', value: mockAgentStats.rejectedToday, icon: <XCircle className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
-          { title: 'Taux Satisfaction', value: mockAgentStats.satisfactionRate, icon: <Users className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'À Traiter (Total)', value: stats.pending, icon: <Clock className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
+          { title: 'En Traitement', value: stats.processing, icon: <FileSearch className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'Approuvées', value: stats.approved, icon: <CheckCircle2 className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: 'Rejetées', value: stats.rejected, icon: <XCircle className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between`}>
             <div>
               <p className="text-sm font-semibold text-cm-muted mb-1">{stat.title}</p>
-              <h3 className="font-display text-2xl font-bold text-cm-text">{stat.value}</h3>
+              <h3 className="font-display text-2xl font-bold text-cm-text">{(stat.value || 0).toLocaleString('fr-FR')}</h3>
             </div>
             <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white border border-cm-border/50 shadow-sm`}>
               {stat.icon}
@@ -111,19 +137,18 @@ export default function AgentDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cm-border/50">
-                  {mockAgentApplications.slice(0, 5).map(app => (
+                  {recentApps.length > 0 ? recentApps.map(app => (
                     <tr key={app.id} className="hover:bg-cm-cream/20 transition-colors">
                       <td className="p-4">
-                        <div className="font-bold text-sm text-cm-text">{app.id}</div>
-                        <div className="mt-1">{getPriorityBadge(app.priority)}</div>
+                        <div className="font-bold text-sm text-cm-text">{app.application_number}</div>
                       </td>
                       <td className="p-4">
-                        <div className="font-bold text-sm text-cm-text">{app.applicantName}</div>
+                        <div className="font-bold text-sm text-cm-text">{app.full_name}</div>
                         <div className="text-xs text-cm-muted">{app.nationality}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm font-medium text-cm-text">{app.type}</div>
-                        <div className="text-xs text-cm-muted">{formatDate(app.submissionDate)}</div>
+                        <div className="text-sm font-medium text-cm-text">{app.visa_type?.name}</div>
+                        <div className="text-xs text-cm-muted">{formatDate(app.created_at)}</div>
                       </td>
                       <td className="p-4">
                         {getStatusBadge(app.status)}
@@ -137,13 +162,18 @@ export default function AgentDashboard() {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-cm-muted text-sm italic">
+                        Aucune demande récente à afficher.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
-
         {/* RECENT ACTIVITY & ALERTS WIDGET */}
         <div className="space-y-8">
           
@@ -152,22 +182,9 @@ export default function AgentDashboard() {
               <h2 className="font-display text-xl font-bold text-cm-text">Activité Récente</h2>
             </div>
             <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-5">
-              <ul className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-linear-to-b before:from-transparent before:via-cm-border before:to-transparent">
-                {mockRecentActivity.map((activity, i) => (
-                  <li key={activity.id} className="relative flex items-start gap-4 z-10">
-                    <div className="w-10 h-10 rounded-full bg-cm-cream border border-cm-border shadow-sm flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-bold text-cm-muted">{i+1}</span>
-                    </div>
-                    <div className="pt-1">
-                      <p className="text-sm text-cm-text">
-                        <span className="font-medium text-cm-muted">{activity.action}</span> <br/>
-                        <Link to={`/agent/applications/${activity.target}`} className="font-bold hover:text-cm-green-mid transition-colors">{activity.target}</Link>
-                      </p>
-                      <span className="text-[10px] text-cm-muted/70 font-semibold uppercase">{activity.time}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="text-center py-4 text-cm-muted text-sm italic">
+                Bientôt disponible : Historique en temps réel.
+              </div>
             </div>
           </div>
 

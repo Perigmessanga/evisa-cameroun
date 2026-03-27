@@ -174,6 +174,10 @@ class VerifyBiometricView(APIView):
         biometric.verified_at = timezone.now()
         biometric.save(update_fields=['is_verified', 'verified_by', 'verified_at'])
 
+        # Mettre à jour la demande de visa
+        application.has_biometrics = True
+        application.save(update_fields=['has_biometrics'])
+
         return api_response(
             data=BiometricDataSerializer(biometric).data,
             message='Biométrie validée.'

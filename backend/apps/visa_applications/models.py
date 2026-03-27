@@ -19,7 +19,18 @@ class ApplicationStatus(models.TextChoices):
     REJECTED        = 'REJECTED',        'Rejetée'
     CANCELLED       = 'CANCELLED',       'Annulée'
 
+class EmbassyOpinion(models.TextChoices):
+    NONE         = 'NONE',         'Aucun avis'
+    FAVORABLE    = 'FAVORABLE',    'Favorable'
+    UNFAVORABLE  = 'UNFAVORABLE',  'Défavorable'
+
+class BorderCheckStatus(models.TextChoices):
+    NOT_CHECKED = 'NOT_CHECKED', 'Non vérifié'
+    ENTERED     = 'ENTERED',     'Entrée enregistrée'
+    EXITED      = 'EXITED',      'Sortie enregistrée'
+
 class DocumentType(models.TextChoices):
+# ... (same as before)
     PASSPORT             = 'PASSPORT',             'Passeport'
     PHOTO                = 'PHOTO',                'Photo d\'identité'
     TRAVEL_ITINERARY     = 'TRAVEL_ITINERARY',     'Itinéraire de voyage'
@@ -29,6 +40,7 @@ class DocumentType(models.TextChoices):
     OTHER                = 'OTHER',                'Autre'
 
 class Gender(models.TextChoices):
+# ... (same as before)
     MALE   = 'MALE',   'Masculin'
     FEMALE = 'FEMALE', 'Féminin'
     OTHER  = 'OTHER',  'Autre'
@@ -80,6 +92,11 @@ class VisaApplication(models.Model):
         null=True, blank=True, related_name='assigned_applications',
         verbose_name='Agent assigné'
     )
+    processed_by       = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='processed_applications',
+        verbose_name='Traité par'
+    )
     status             = models.CharField(
         max_length=20, choices=ApplicationStatus.choices,
         default=ApplicationStatus.DRAFT, verbose_name='Statut'
@@ -90,6 +107,7 @@ class VisaApplication(models.Model):
     date_of_birth    = models.DateField(verbose_name='Date de naissance')
     place_of_birth   = models.CharField(max_length=100, verbose_name='Lieu de naissance')
     nationality      = models.CharField(max_length=100, verbose_name='Nationalité')
+    residence_country = models.CharField(max_length=100, verbose_name='Pays de résidence', default='Autre')
     gender           = models.CharField(max_length=10, choices=Gender.choices, verbose_name='Genre')
 
     # ── Informations passeport ─────────────────────────────────
@@ -104,7 +122,27 @@ class VisaApplication(models.Model):
     departure_date      = models.DateField(verbose_name='Date de départ prévue')
     address_in_cameroon = models.TextField(verbose_name='Adresse au Cameroun')
 
+    # ── Avis Ambassade ─────────────────────────────────────────
+    embassy_opinion = models.CharField(
+        max_length=20, choices=EmbassyOpinion.choices,
+        default=EmbassyOpinion.NONE, verbose_name='Avis ambassade'
+    )
+    embassy_comment = models.TextField(blank=True, verbose_name='Commentaire ambassade')
+
+    # ── Contrôle Frontière ─────────────────────────────────────
+    border_check_status = models.CharField(
+        max_length=20, choices=BorderCheckStatus.choices,
+        default=BorderCheckStatus.NOT_CHECKED, verbose_name='Statut frontière'
+    )
+    border_agent        = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='border_checks',
+        verbose_name='Agent frontière'
+    )
+    border_checked_at   = models.DateTimeField(null=True, blank=True, verbose_name='Date vérification frontière')
+
     # ── Traitement ─────────────────────────────────────────────
+    has_biometrics   = models.BooleanField(default=False, verbose_name='Biométrie vérifiée')
     submitted_at     = models.DateTimeField(null=True, blank=True, verbose_name='Soumis le')
     processed_at     = models.DateTimeField(null=True, blank=True, verbose_name='Traité le')
     rejection_reason = models.TextField(blank=True, verbose_name='Motif de rejet')
@@ -121,13 +159,13 @@ class VisaApplication(models.Model):
             models.Index(fields=['applicant', 'status']),
             models.Index(fields=['application_number']),
             models.Index(fields=['status', 'submitted_at']),
+            models.Index(fields=['residence_country']),
         ]
 
     def __str__(self):
         return f'{self.application_number} — {self.full_name} ({self.status})'
 
     def save(self, *args, **kwargs):
-        # Générer le numéro de demande automatiquement
         if not self.application_number:
             import random
             import string
@@ -173,9 +211,43 @@ class Document(models.Model):
 
 
 # ─────────────────────────────────────────────────────────────────
-# E-VISA
+# E-VISA (Le document final)
 # ─────────────────────────────────────────────────────────────────
-#
+class EVisa(models.Model):
+    id                 = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application        = models.OneToOneField(VisaApplication, on_delete=models.CASCADE, related_name='e_visa')
+    visa_number        = models.CharField(max_length=50, unique=True)
+    issue_date         = models.DateField()
+    expiry_date        = models.DateField()
+    qr_code_data       = models.TextField()
+    pdf_file           = models.FileField(upload_to='e_visas/', null=True, blank=True)
+    
+    created_at         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'evisa_issued'
+        verbose_name = 'E-Visa émis'
+
+    def __str__(self):
+        return f'E-Visa {self.visa_number} ({self.application.full_name})'
+
+
+# ─────────────────────────────────────────────────────────────────
+# HISTORIQUE DES ACTIONS
+# ─────────────────────────────────────────────────────────────────
+class VisaHistory(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application = models.ForeignKey(VisaApplication, on_delete=models.CASCADE, related_name='history')
+    user        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    action      = models.CharField(max_length=100)
+    details     = models.TextField(blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'evisa_history'
+        verbose_name = 'Historique'
+        ordering = ['-created_at']
+
 
 # ─────────────────────────────────────────────────────────────────
 # COMMENTAIRE SUR LA DEMANDE
@@ -202,10 +274,4 @@ class ApplicationComment(models.Model):
         ordering     = ['created_at']
 
     def __str__(self):
-        return f'Commentaire de {self.author.get_full_name()} sur {self.application.application_number}'
-
-
-# ─────────────────────────────────────────────────────────────────
-# PASSAGE FRONTIÈRE
-# ─────────────────────────────────────────────────────────────────
-#
+        return f'Commentaire de {self.author.get_full_name()} sur {self.application.application_number}'

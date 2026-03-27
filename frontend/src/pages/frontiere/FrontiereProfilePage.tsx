@@ -1,11 +1,10 @@
 import React from 'react';
 import { User, Shield, MapPin, Edit3 } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
+
 
 const FrontiereProfilePage: React.FC = () => {
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-cm-green mb-6">Mon Profil Agent</h1>
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -85,7 +84,6 @@ const FrontiereProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 };
 

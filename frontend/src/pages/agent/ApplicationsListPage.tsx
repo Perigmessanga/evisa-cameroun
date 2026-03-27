@@ -1,49 +1,56 @@
-// ─────────────────────────────────────────────
-//  pages/agent/ApplicationsListPage.tsx
-// ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
-import { mockAgentApplications } from '../../data/mockAgentData';
+import visaService from '../../services/visaService';
+import { VisaApplication } from '../../types';
 import { 
   Search, Filter, ChevronRight, FileSearch, 
-  MapPin, Clock, Calendar
+  MapPin, Calendar, Loader2
 } from 'lucide-react';
 
 export default function ApplicationsListPage() {
+  const [apps, setApps] = useState<VisaApplication[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filterPriority, setFilterPriority] = useState('ALL');
+
+  useEffect(() => {
+    const fetchApps = async () => {
+      setLoading(true);
+      try {
+        const data = await visaService.getImmigrationApplications();
+        setApps(data);
+      } catch (error) {
+        console.error('Erreur chargement applications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApps();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'PENDING': return <Badge variant="info">Nouveau</Badge>;
-      case 'IN_PROGRESS': return <Badge variant="warning">En cours</Badge>;
+      case 'PENDING_REVIEW': return <Badge variant="info">Nouvel examen</Badge>;
+      case 'DRAFT': return <Badge variant="default">Brouillon</Badge>;
       case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'HIGH': return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cm-red/10 text-cm-red border border-cm-red/20 uppercase">Urgent</span>;
-      default: return null;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '---';
     return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      day: 'numeric', month: 'short', year: 'numeric'
     });
   };
 
-  const filteredApps = mockAgentApplications.filter(app => {
-    const matchesSearch = app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.applicantName.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredApps = apps.filter(app => {
+    const matchesSearch = (app.application_number?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                          (app.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'ALL' || app.status === filterStatus;
-    const matchesPriority = filterPriority === 'ALL' || app.priority === filterPriority;
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -82,29 +89,21 @@ export default function ApplicationsListPage() {
               className="pl-3 pr-8 py-2 bg-cm-cream/50 border border-cm-border rounded-xl text-sm font-semibold outline-none focus:border-cm-green-mid"
             >
               <option value="ALL">Tous les statuts</option>
-              <option value="PENDING">Nouveaux</option>
-              <option value="IN_PROGRESS">En cours</option>
+              <option value="PENDING_REVIEW">À examiner</option>
               <option value="APPROVED">Approuvés</option>
               <option value="REJECTED">Rejetés</option>
             </select>
           </div>
-
-          <select 
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="pl-3 pr-8 py-2 bg-cm-cream/50 border border-cm-border rounded-xl text-sm font-semibold outline-none focus:border-cm-green-mid"
-          >
-            <option value="ALL">Toutes urgences</option>
-            <option value="HIGH">Urgent</option>
-            <option value="NORMAL">Normal</option>
-            <option value="LOW">Basse</option>
-          </select>
         </div>
       </div>
 
       {/* ── APPLICATIONS TABLE ── */}
       <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-        {filteredApps.length > 0 ? (
+        {loading ? (
+          <div className="p-20 text-center text-cm-muted">
+            <Loader2 className="animate-spin mx-auto mb-4" /> Chargement des dossiers...
+          </div>
+        ) : filteredApps.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
@@ -122,20 +121,16 @@ export default function ApplicationsListPage() {
                     
                     {/* ID & DATE */}
                     <td className="p-4">
-                      <div className="font-bold text-cm-text">{app.id}</div>
+                      <div className="font-bold text-cm-text">{app.application_number}</div>
                       <div className="flex items-center gap-1 text-xs text-cm-muted mt-1">
-                        <Calendar size={12} /> {formatDate(app.submissionDate).split(' ')[0]}
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-cm-muted/70 mt-0.5">
-                        <Clock size={10} /> {formatDate(app.submissionDate).split(' ')[1]}
+                        <Calendar size={12} /> {formatDate(app.submitted_at || app.created_at)}
                       </div>
                     </td>
 
                     {/* APPLICANT */}
                     <td className="p-4">
                       <div className="font-bold text-cm-text flex items-center gap-2">
-                        {app.applicantName}
-                        {getPriorityBadge(app.priority)}
+                        {app.full_name}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-cm-muted mt-1">
                         <MapPin size={12} /> {app.nationality}
@@ -144,13 +139,12 @@ export default function ApplicationsListPage() {
 
                     {/* VISA TYPE */}
                     <td className="p-4">
-                      <div className="text-sm font-medium text-cm-text">{app.type}</div>
+                      <div className="text-sm font-medium text-cm-text">{app.visa_type?.name}</div>
                     </td>
 
                     {/* STATUS */}
                     <td className="p-4">
                       {getStatusBadge(app.status)}
-                      <div className="text-[10px] text-cm-muted mt-1 font-medium">Assigné: {app.assignedTo || 'Non assigné'}</div>
                     </td>
 
                     {/* ACTIONS */}
@@ -176,7 +170,7 @@ export default function ApplicationsListPage() {
             <h3 className="font-display font-bold text-lg text-cm-text mb-1">Aucun résultat</h3>
             <p className="text-sm text-cm-muted mb-6">Aucun dossier ne correspond à vos filtres actuels.</p>
             <button 
-              onClick={() => { setSearchTerm(''); setFilterStatus('ALL'); setFilterPriority('ALL'); }}
+              onClick={() => { setSearchTerm(''); setFilterStatus('ALL'); }}
               className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors"
             >
               Effacer tous les filtres

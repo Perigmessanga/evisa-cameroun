@@ -1,46 +1,53 @@
-// ─────────────────────────────────────────────
-//  pages/ambassade/DossiersListPage.tsx
-// ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockDossiers } from '../../data/mockAmbassadeData';
+import visaService from '../../services/visaService';
 import Badge from '../../components/common/Badge';
+import { VisaApplication } from '../../types';
 import { 
   Building2, Search, Filter, 
-  ChevronRight, ArrowUpDown, FileText
+  ChevronRight, ArrowUpDown, FileText, Loader2
 } from 'lucide-react';
 
 export default function DossiersListPage() {
+  const [apps, setApps] = useState<VisaApplication[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return <Badge variant="danger">Urgent</Badge>;
-      case 'HIGH': return <Badge variant="warning">Élevée</Badge>;
-      case 'NORMAL': return <Badge variant="default">Normale</Badge>;
-      default: return <Badge>{priority}</Badge>;
-    }
-  };
+  useEffect(() => {
+    const fetchApps = async () => {
+      setLoading(true);
+      try {
+        const data = await visaService.getEmbassyApplications();
+        setApps(data);
+      } catch (error) {
+        console.error('Erreur chargement dossiers consulaires:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApps();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'WAITING_EMBASSY': return <Badge variant="warning">Avis Requis</Badge>;
-      case 'EMBASSY_APPROVED': return <Badge variant="success">Favorable</Badge>;
-      case 'EMBASSY_REJECTED': return <Badge variant="danger">Défavorable</Badge>;
+      case 'PENDING_REVIEW': return <Badge variant="warning">Avis Requis</Badge>;
+      case 'APPROVED': return <Badge variant="success">Favorable</Badge>;
+      case 'REJECTED': return <Badge variant="danger">Défavorable</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '---';
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'short', year: 'numeric'
     });
   };
 
-  const filteredDossiers = mockDossiers.filter(dossier => {
-    const matchesSearch = dossier.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          dossier.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredDossiers = apps.filter(dossier => {
+    const matchesSearch = (dossier.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                          (dossier.application_number?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'ALL' || dossier.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -82,16 +89,20 @@ export default function DossiersListPage() {
              className="w-full md:w-auto pl-3 pr-8 py-2.5 bg-cm-cream/50 border border-cm-border rounded-xl text-sm font-semibold outline-none focus:border-cm-green-mid"
           >
              <option value="ALL">Tous les statuts</option>
-             <option value="WAITING_EMBASSY">Avis Requis (En attente)</option>
-             <option value="EMBASSY_APPROVED">Favorable (Traité)</option>
-             <option value="EMBASSY_REJECTED">Défavorable (Traité)</option>
+             <option value="PENDING_REVIEW">Avis Requis (En attente)</option>
+             <option value="APPROVED">Favorable (Traité)</option>
+             <option value="REJECTED">Défavorable (Traité)</option>
           </select>
         </div>
       </div>
 
       {/* ── TABLE ── */}
       <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-        {filteredDossiers.length > 0 ? (
+        {loading ? (
+          <div className="p-20 text-center text-cm-muted">
+            <Loader2 className="animate-spin mx-auto mb-4" /> Chargement des dossiers...
+          </div>
+        ) : filteredDossiers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
@@ -100,7 +111,6 @@ export default function DossiersListPage() {
                      <span className="flex items-center gap-1">Numéro Dossier <ArrowUpDown size={12}/></span>
                   </th>
                   <th className="p-4">Demandeur & Info</th>
-                  <th className="p-4">Priorité</th>
                   <th className="p-4">Date de demande</th>
                   <th className="p-4">Statut</th>
                   <th className="p-4 text-right">Action</th>
@@ -112,24 +122,20 @@ export default function DossiersListPage() {
                     
                     <td className="p-4">
                        <Link to={`/ambassade/dossiers/${dossier.id}`} className="font-mono text-sm font-bold text-cm-green-mid hover:text-cm-green hover:underline">
-                          {dossier.id}
+                          {dossier.application_number}
                        </Link>
                     </td>
 
                     <td className="p-4">
-                       <div className="font-bold text-sm text-cm-text">{dossier.applicantName}</div>
+                       <div className="font-bold text-sm text-cm-text">{dossier.full_name}</div>
                        <div className="text-xs text-cm-muted flex items-center gap-2 mt-0.5">
                           <span>Nat: {dossier.nationality}</span>
-                          <span>• Type: {dossier.type}</span>
+                          <span>• Type: {dossier.visa_type?.name}</span>
                        </div>
                     </td>
 
-                    <td className="p-4">
-                       {getPriorityBadge(dossier.priority)}
-                    </td>
-
                     <td className="p-4 text-sm text-cm-muted font-medium">
-                       {formatDate(dossier.submissionDate)}
+                       {formatDate(dossier.submitted_at || dossier.created_at)}
                     </td>
 
                     <td className="p-4">

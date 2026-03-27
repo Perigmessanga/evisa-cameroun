@@ -62,12 +62,12 @@ const adminService = {
 
   // ── Types de Visa ──
   getDashboardStats: async () => {
-    const response = await api.get('/visa_applications/dashboard_stats/');
+    const response = await api.get('/visa_applications/applications/dashboard_stats/');
     return response.data;
   },
 
   downloadDashboardReportPDF: async () => {
-    const response = await api.get('/visa_applications/export_pdf_report/', { responseType: 'blob' });
+    const response = await api.get('/visa_applications/applications/export_pdf_report/', { responseType: 'blob' });
     return response.data;
   },
 
@@ -131,12 +131,13 @@ const adminService = {
 
   // ── Contact Messages ──
   getContactMessages: async () => {
-    const response = await api.get('/contact-messages/');
+    // contact-messages est enregistré sous /api/ (pas /api/v1/)
+    const response = await api.get('/../contact-messages/');
     return extractList(response.data);
   },
 
   replyContactMessage: async (id: string, data: { reply_message: string }) => {
-    const response = await api.post(`/contact-messages/${id}/reply/`, data);
+    const response = await api.post(`/../contact-messages/${id}/reply/`, data);
     return response.data.data || response.data;
   },
 

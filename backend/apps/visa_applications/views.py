@@ -57,6 +57,15 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ApplicationListSerializer
+        if self.action == 'retrieve':
+            return ApplicationDetailSerializer
+        if self.action == 'create':
+            return CreateApplicationSerializer
+        return VisaApplicationSerializer
+
     def get_queryset(self):
         user = self.request.user
         
@@ -64,22 +73,20 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if user.is_applicant:
             return VisaApplication.objects.filter(applicant=user)
         
-        # Les agents voient les demandes assignées + non assignées
+        # Les agents voient toutes les demandes soumises
         elif user.is_agent:
-            return VisaApplication.objects.filter(
-                Q(assigned_agent=user) | Q(assigned_agent__isnull=True)
-            ).exclude(status='DRAFT')
+            return VisaApplication.objects.exclude(status='DRAFT')
         
         # Les admins voient tout
         elif user.is_admin:
             return VisaApplication.objects.all()
         
-        # Les ambassades voient les demandes de leur zone (à implémenter selon la logique)
+        # Les ambassades voient les demandes de leur pays de résidence
         elif user.is_embassy:
-            queryset = VisaApplication.objects.filter(status='PENDING_REVIEW')
-            country = self.request.query_params.get('country')
+            country = getattr(user, 'embassy_country', None)
+            queryset = VisaApplication.objects.all()
             if country:
-                queryset = queryset.filter(passport_country__icontains=country)
+                queryset = queryset.filter(residence_country=country)
             return queryset
         
         return VisaApplication.objects.none()
@@ -90,11 +97,13 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         Retourne les statistiques réelles pour le dashboard Admin/Superviseur.
         """
         from apps.payments.models import Payment, PaymentStatus
+        from django.contrib.auth import get_user_model
         if not getattr(request.user, 'is_admin', False) and not getattr(request.user, 'is_agent', False):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Vous n'avez pas accès aux statistiques.")
         
         from django.db.models import Sum, Count
+        User = get_user_model()
         
         total = VisaApplication.objects.count()
         approved = VisaApplication.objects.filter(status='APPROVED').count()
@@ -103,6 +112,9 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         
         revenue_aggr = Payment.objects.filter(status=PaymentStatus.COMPLETED).aggregate(total_revenue=Sum('amount'))
         revenue = revenue_aggr['total_revenue'] or 0
+        
+        total_users = User.objects.count()
+        active_users = User.objects.filter(is_active=True).count()
 
         # Stats by visa type
         distribution = VisaApplication.objects.values('visa_type__name').annotate(count=Count('id'))
@@ -115,6 +127,8 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             'rejected': rejected,
             'pending': pending,
             'revenue': revenue,
+            'total_users': total_users,
+            'active_users': active_users,
             'distribution': list(distribution),
             'origins': list(origins)
         })

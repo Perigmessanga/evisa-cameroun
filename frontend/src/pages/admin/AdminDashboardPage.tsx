@@ -26,7 +26,13 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       try {
         const dashboardStats = await adminService.getDashboardStats();
-        setStats(dashboardStats);
+        setStats({
+          activeUsers: dashboardStats.active_users || 0,
+          totalUsers: dashboardStats.total_users || 0,
+          totalApplications: dashboardStats.total || 0,
+          revenueAfc: `${(dashboardStats.revenue || 0).toLocaleString('fr-FR')} FCFA`,
+          systemHealth: '100%'
+        });
         
         const auditLogs = await adminService.getAuditLogs();
         setLogs(auditLogs.slice(0, 5));
@@ -83,10 +89,10 @@ export default function AdminDashboardPage() {
       {/* ── STATS GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Utilisateurs Actifs', value: stats.activeUsers.toLocaleString('fr-FR'), desc: `Sur ${stats.totalUsers} inscrits`, icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: 'Visas Traités (Total)', value: stats.totalApplications.toLocaleString('fr-FR'), desc: 'Depuis le lancement', icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'Recettes Est. (FCFA)', value: stats.revenueAfc, desc: 'Année en cours', icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
-          { title: 'Santé du Système', value: stats.systemHealth, desc: 'Toutes les APIs OK', icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
+          { title: 'Utilisateurs Actifs', value: (stats?.activeUsers || 0).toLocaleString('fr-FR'), desc: `Sur ${stats?.totalUsers || 0} inscrits`, icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
+          { title: 'Visas Traités (Total)', value: (stats?.totalApplications || 0).toLocaleString('fr-FR'), desc: 'Depuis le lancement', icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: 'Recettes Est. (FCFA)', value: stats?.revenueAfc || '0 FCFA', desc: 'Année en cours', icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'Santé du Système', value: stats?.systemHealth || '100%', desc: 'Toutes les APIs OK', icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between`}>
             <div className="flex justify-between items-start mb-4">

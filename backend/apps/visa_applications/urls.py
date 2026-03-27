@@ -4,6 +4,15 @@ from apps.visa_applications.views import (
     VisaTypeViewSet,
     VisaApplicationViewSet
 )
+from apps.visa_applications.views_dynamic import (
+    ImmigrationStatsView,
+    ImmigrationListView,
+    ImmigrationDecisionView,
+    EmbassyListView,
+    EmbassyOpinionView,
+    BorderVerificationView,
+    BorderCheckInView
+)
 
 router = DefaultRouter()
 router.register(r'types', VisaTypeViewSet, basename='visa-type')
@@ -12,4 +21,16 @@ router.register(r'applications', VisaApplicationViewSet, basename='visa-applicat
 urlpatterns = [
     path('', include(router.urls)),
     
+    # Immigration
+    path('immigration/stats/', ImmigrationStatsView.as_view(), name='immigration-stats'),
+    path('immigration/applications/', ImmigrationListView.as_view(), name='immigration-list'),
+    path('immigration/applications/<uuid:pk>/decision/', ImmigrationDecisionView.as_view(), name='immigration-decision'),
+    
+    # Embassy
+    path('embassy/applications/', EmbassyListView.as_view(), name='embassy-list'),
+    path('embassy/applications/<uuid:pk>/opinion/', EmbassyOpinionView.as_view(), name='embassy-opinion'),
+    
+    # Border Control
+    path('border/verify/', BorderVerificationView.as_view(), name='border-verify'),
+    path('border/applications/<uuid:pk>/check-in/', BorderCheckInView.as_view(), name='border-check-in'),
 ]

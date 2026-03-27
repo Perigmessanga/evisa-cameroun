@@ -46,6 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name            = models.CharField(max_length=100, verbose_name='Nom')
     phone                = models.CharField(max_length=20, blank=True, null=True, verbose_name='Téléphone')
     role                 = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.APPLICANT, verbose_name='Rôle')
+    embassy_country      = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays de l\'ambassade')
 
     # Statuts
     is_active            = models.BooleanField(default=True, verbose_name='Actif')

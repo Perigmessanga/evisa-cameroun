@@ -74,6 +74,7 @@ export interface VisaApplication {
   date_of_birth: string;
   place_of_birth: string;
   nationality: string;
+  residence_country: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   passport_number: string;
   passport_issue_date: string;
@@ -83,11 +84,27 @@ export interface VisaApplication {
   arrival_date: string;
   departure_date: string;
   address_in_cameroon: string;
+  
+  // Avis / Traitement
+  embassy_opinion: 'NONE' | 'FAVORABLE' | 'UNFAVORABLE';
+  embassy_comment: string;
+  border_check_status: 'PENDING' | 'AUTHORIZED' | 'DENIED';
+  border_check_at?: string;
+  has_biometrics?: boolean;
+  border_agent: string | null;
+  border_checked_at: string | null;
+  processed_by: string | null;
+
   submitted_at: string | null;
   processed_at: string | null;
   rejection_reason: string;
   created_at: string;
   updated_at: string;
+
+  // Relations complémentaires
+  documents?: ApplicationDocument[];
+  payment?: Payment;
+  payment_status?: string | null;
 }
 
 export interface ApplicationFormData {
@@ -126,6 +143,8 @@ export interface ApplicationDocument {
   mime_type: string;
   is_verified: boolean;
   uploaded_at: string;
+  file_url?: string;
+  file?: File | string;
 }
 
 // ── BIOMETRIC ────────────────────────────────

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircle, AlertOctagon, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
+
 
 const AlertesSecuritePage: React.FC = () => {
   const alerts = [
@@ -37,8 +37,7 @@ const AlertesSecuritePage: React.FC = () => {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-cm-red flex items-center gap-2">
@@ -102,7 +101,6 @@ const AlertesSecuritePage: React.FC = () => {
         </div>
         
       </div>
-    </DashboardLayout>
   );
 };
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, ShieldAlert, Key, Plus, Lock } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
+
 
 const RoleManagementPage: React.FC = () => {
   const roles = [
@@ -39,8 +39,7 @@ const RoleManagementPage: React.FC = () => {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-cm-green">Gestion des Rôles et Permissions</h1>
@@ -122,9 +121,7 @@ const RoleManagementPage: React.FC = () => {
             </table>
           </div>
         </div>
-
       </div>
-    </DashboardLayout>
   );
 };
 
