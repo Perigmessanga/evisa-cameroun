@@ -41,11 +41,26 @@ const visaService = {
     return response.data.data;
   },
 
-  submitBorderCheckIn: async (id: string, action: 'ENTRY' | 'EXIT') => {
+  submitBorderCheckIn: async (id: string, action: 'ENTRY' | 'EXIT' | 'DENIED') => {
     const response = await api.post(`/visa_applications/border/applications/${id}/check-in/`, {
       action
     });
     return response.data;
+  },
+
+  getBorderStats: async () => {
+    const response = await api.get('/visa_applications/border/stats/');
+    return response.data.data;
+  },
+
+  getBorderHistory: async () => {
+    const response = await api.get('/visa_applications/border/history/');
+    return response.data.data;
+  },
+
+  getBorderAlerts: async () => {
+    const response = await api.get('/visa_applications/border/alerts/');
+    return response.data.data;
   },
 
   // ── GENERAL ──
@@ -68,9 +83,6 @@ const visaService = {
   },
 
   downloadEVisa: async (id: string) => {
-    // Note: This calls the evisa app endpoint which is under /api/ not /api/v1/
-    // But our axios instance 'api' might be prefixed with /api/v1/
-    // Let's use the absolute path if needed or fix the axios instance
     const response = await api.get(`/../../api/evisas/${id}/download/`, {
       responseType: 'blob'
     });

@@ -3,9 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.db.models import Count, Q
 from django.utils import timezone
-from .models import VisaApplication, ApplicationStatus, VisaHistory, EmbassyOpinion, BorderCheckStatus, EVisa
-from .serializers import VisaApplicationSerializer
+from .models import (
+    VisaApplication, ApplicationStatus, VisaHistory, EmbassyOpinion, 
+    BorderCheckStatus, EVisa, SecurityAlert
+)
+from .serializers import VisaApplicationSerializer, SecurityAlertSerializer
 from .services import EVisa_service
+from apps.notifications.models import NotificationService
 from evisa_backend.utils import api_response
 
 class ImmigrationStatsView(APIView):
@@ -74,9 +78,10 @@ class ImmigrationDecisionView(APIView):
                 EVisa_service.generate_evisa(application)
             except Exception as e:
                 print(f"Erreur génération e-visa: {e}")
-                # On continue quand même ? Ou on lève une erreur ?
-                # Pour l'instant on continue mais on logue
             
+            # Notification Email
+            NotificationService.send_application_approved(application)
+
             VisaHistory.objects.create(
                 application=application,
                 user=request.user,
@@ -95,6 +100,9 @@ class ImmigrationDecisionView(APIView):
             application.processed_at = timezone.now()
             application.save()
             
+            # Notification Email
+            NotificationService.send_application_rejected(application)
+
             VisaHistory.objects.create(
                 application=application,
                 user=request.user,
@@ -195,12 +203,25 @@ class BorderCheckInView(APIView):
         except VisaApplication.DoesNotExist:
             return api_response(message="Demande introuvable", status_code=status.HTTP_404_NOT_FOUND)
             
-        action = request.data.get('action') # 'ENTRY' or 'EXIT'
+        action = request.data.get('action') # 'ENTRY', 'EXIT', or 'DENIED'
         
         if action == 'ENTRY':
             application.border_check_status = BorderCheckStatus.ENTERED
+            msg = "Entrée enregistrée avec succès"
         elif action == 'EXIT':
             application.border_check_status = BorderCheckStatus.EXITED
+            msg = "Sortie enregistrée avec succès"
+        elif action == 'DENIED':
+            application.border_check_status = BorderCheckStatus.DENIED
+            msg = "Refus de l'entrée enregistré avec succès"
+            # Auto-générer une alerte de sécurité
+            SecurityAlert.objects.create(
+                application=application,
+                type='HIGH',
+                title=f"Refus d'entrée : {application.full_name}",
+                description=f"L'agent {request.user.get_full_name()} a refusé l'entrée au territoire pour le passeport {application.passport_number}.",
+                location="Poste Frontière (Localisation Agent)"
+            )
         else:
             return api_response(message="Action invalide", status_code=status.HTTP_400_BAD_REQUEST)
             
@@ -212,7 +233,68 @@ class BorderCheckInView(APIView):
             application=application,
             user=request.user,
             action=f"Frontière: {action}",
-            details="Passage enregistré"
+            details=f"Action: {action}. Statut mis à jour."
         )
         
-        return api_response(message=f"{action} enregistrée avec succès")
+        return api_response(message=msg)
+
+class BorderStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'BORDER':
+            return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
+        
+        today = timezone.now().date()
+        
+        stats = {
+            'controleToday': VisaApplication.objects.filter(
+                border_checked_at__date=today,
+                border_agent=request.user
+            ).count(),
+            'visasInvalides': VisaApplication.objects.filter(
+                border_check_status=BorderCheckStatus.DENIED,
+                border_checked_at__date=today
+            ).count(),
+            'alertesDeclenchees': SecurityAlert.objects.filter(
+                created_at__date=today
+            ).count(),
+            'averageScanTime': '12s' # Placeholder
+        }
+        
+        # Recent activity
+        recent = VisaApplication.objects.filter(
+            border_checked_at__isnull=False
+        ).order_by('-border_checked_at')[:5]
+        
+        recent_data = VisaApplicationSerializer(recent, many=True).data
+        
+        return api_response(data={
+            'stats': stats,
+            'recent_controls': recent_data
+        })
+
+class BorderHistoryListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'BORDER':
+            return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
+        
+        queryset = VisaApplication.objects.filter(
+            border_checked_at__isnull=False
+        ).order_by('-border_checked_at')
+        
+        serializer = VisaApplicationSerializer(queryset, many=True)
+        return api_response(data=serializer.data)
+
+class SecurityAlertListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'BORDER':
+            return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
+            
+        alerts = SecurityAlert.objects.all().order_by('-created_at')
+        serializer = SecurityAlertSerializer(alerts, many=True)
+        return api_response(data=serializer.data)

@@ -11,7 +11,7 @@ import {
   MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart, BookOpen, Plus
 } from 'lucide-react';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -58,7 +58,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <MapPin size={20} /> },
           { name: 'Scan & Vérification', path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
           { name: 'Historique', path: '/frontiere/historique', icon: <FileText size={20} /> },
-          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> }
+          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> },
+          { name: 'Mon profil', path: '/frontiere/profile', icon: <User size={20} /> }
         ];
       default:
         return [];

@@ -6,7 +6,10 @@ from rest_framework import serializers
 
 
 from apps.users.serializers import UserSerializer
-from .models import VisaType, VisaApplication, Document, ApplicationComment
+from .models import (
+    VisaType, VisaApplication, Document, ApplicationComment, 
+    SecurityAlert
+)
 from apps.evisa.serializers import EVisaSerializer 
 
 # ─────────────────────────────────────────────────────────────────
@@ -116,7 +119,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'id', 'application_number', 'applicant', 'visa_type',
             'assigned_agent', 'status',
             # Personal
-            'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 'gender',
+            'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 
+            'residence_country', 'gender',
             # Passport
             'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
             # Travel
@@ -216,9 +220,21 @@ class RejectApplicationSerializer(serializers.Serializer):
 class RequestDocumentsSerializer(serializers.Serializer):
     message = serializers.CharField(required=True,
                                     error_messages={'required': 'Le message est obligatoire.'})
-    
-    
-    # Serializer principal pour GET (détail) et PUT complet
+
+
+class ApplicationCommentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApplicationComment
+        fields = ['content', 'is_internal']
+
+
+class SecurityAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SecurityAlert
+        fields = '__all__'
+
+
+# Serializer principal pour GET (détail) et PUT complet
 class VisaApplicationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # inclut les infos utilisateur
     visa_type = VisaTypeSerializer(read_only=True)

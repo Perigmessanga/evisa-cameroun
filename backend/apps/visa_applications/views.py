@@ -19,6 +19,8 @@ from apps.visa_applications.serializers import (
     RequestDocumentsSerializer,
     VisaApplicationUpdateSerializer,
     VisaApplicationSerializer,
+    ApplicationCommentCreateSerializer,
+    CommentSerializer as ApplicationCommentSerializer,
     
     
 )
@@ -288,15 +290,21 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
         
         # Vérifier le statut
-        if application.status != 'DRAFT':
+        if application.status not in ['DRAFT', 'PENDING_DOCS']:
             return Response({
                 'error': 'Cette demande a déjà été soumise.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Vérifier que le paiement est complété
-        if not hasattr(application, 'payment') or not application.payment.is_completed:
+        try:
+            payment = application.payment
+            if payment.status != 'COMPLETED':
+                return Response({
+                    'error': 'Le paiement doit être complété avant de soumettre.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
             return Response({
-                'error': 'Le paiement doit être complété avant de soumettre.'
+                'error': 'Aucun paiement trouvé pour cette demande.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Soumettre la demande
@@ -304,9 +312,13 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         application.submitted_at = timezone.now()
         application.save()
         
-        # Envoi d'email
-        from apps.notifications.models import NotificationService
-        NotificationService.send_application_submitted(application)
+        # Envoi d'email de confirmation de soumission
+        try:
+            from apps.notifications.models import NotificationService
+            NotificationService.send_application_submitted(application)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'Email soumission échoué: {e}')
         
         return Response({
             'message': 'Demande soumise avec succès.',
@@ -456,6 +468,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             content=f"Demande de documents : {serializer.validated_data['message']}",
             is_internal=False
         )
+        
+        # Envoi de notification
+        from apps.notifications.models import NotificationService
+        NotificationService.send_documents_requested(application, serializer.validated_data['message'])
         
         return Response({'message': 'Demande de documents envoyée.'})
 

@@ -28,6 +28,7 @@ class BorderCheckStatus(models.TextChoices):
     NOT_CHECKED = 'NOT_CHECKED', 'Non vérifié'
     ENTERED     = 'ENTERED',     'Entrée enregistrée'
     EXITED      = 'EXITED',      'Sortie enregistrée'
+    DENIED      = 'DENIED',      'Entrée refusée'
 
 class DocumentType(models.TextChoices):
 # ... (same as before)
@@ -247,6 +248,34 @@ class VisaHistory(models.Model):
         db_table = 'evisa_history'
         verbose_name = 'Historique'
         ordering = ['-created_at']
+
+
+# ─────────────────────────────────────────────────────────────────
+# ALERTE DE SÉCURITÉ
+# ─────────────────────────────────────────────────────────────────
+class SecurityAlert(models.Model):
+    class AlertType(models.TextChoices):
+        HIGH   = 'HIGH',   'Haute'
+        MEDIUM = 'MEDIUM', 'Moyenne'
+        LOW    = 'LOW',    'Basse'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application = models.ForeignKey(VisaApplication, on_delete=models.CASCADE, related_name='security_alerts', null=True, blank=True)
+    type        = models.CharField(max_length=20, choices=AlertType.choices, default=AlertType.MEDIUM)
+    title       = models.CharField(max_length=200)
+    description = models.TextField()
+    location    = models.CharField(max_length=200)
+    is_resolved = models.BooleanField(default=False)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'evisa_security_alert'
+        verbose_name = 'Alerte de sécurité'
+        verbose_name_plural = 'Alertes de sécurité'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'[{self.type}] {self.title} - {self.location}'
 
 
 # ─────────────────────────────────────────────────────────────────

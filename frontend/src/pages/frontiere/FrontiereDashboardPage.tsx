@@ -5,7 +5,7 @@ import visaService from '../../services/visaService';
 import { 
   ShieldCheck, ScanLine, AlertTriangle, 
   Clock, ArrowRight, UserCheck, UserX, AlertCircle,
-  CheckCircle2
+  CheckCircle2, Loader2
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
 import { VisaApplication } from '../../types';
@@ -22,16 +22,25 @@ export default function FrontiereDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Note: Since we don't have a specific frontier stats endpoint, 
-    // we use placeholders or derived data if possible.
-    // For now, let's just show the page as dynamic but with limited real stats.
-    setLoading(false);
+    const fetchDashboardData = async () => {
+      try {
+        const data = await visaService.getBorderStats();
+        setStats(data.stats);
+        setRecentControls(data.recent_controls);
+      } catch (error) {
+        console.error('Erreur chargement dashboard frontière:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
   }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ENTERED': return <Badge variant="success">Entré</Badge>;
       case 'EXITED': return <Badge variant="info">Sorti</Badge>;
+      case 'DENIED': return <Badge variant="danger">Refusé</Badge>;
       default: return <Badge variant="default">Non contrôlé</Badge>;
     }
   };
@@ -42,6 +51,15 @@ export default function FrontiereDashboardPage() {
       hour: '2-digit', minute: '2-digit'
     });
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-cm-muted">
+        <Loader2 className="animate-spin mb-4" size={40} />
+        <p>Chargement du poste frontière...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -105,7 +123,7 @@ export default function FrontiereDashboardPage() {
       {/* ── MAIN CONTENT GRID ── */}
       <div className="grid lg:grid-cols-3 gap-8">
         
-        {/* RECENT CONTROLS (Placeholder) */}
+        {/* RECENT CONTROLS */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-display text-xl font-bold text-cm-text">Activité en direct</h2>
@@ -114,10 +132,42 @@ export default function FrontiereDashboardPage() {
             </Link>
           </div>
 
-          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 text-center">
-             <div className="text-cm-muted text-sm italic">
-                Utilisez le scanner pour commencer les contrôles à ce poste.
-             </div>
+          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
+            {recentControls && recentControls.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-cm-cream/50 text-[10px] uppercase tracking-wider font-bold text-cm-muted border-b border-cm-border">
+                    <tr>
+                      <th className="px-6 py-4">Voyageur</th>
+                      <th className="px-6 py-4">Heure</th>
+                      <th className="px-6 py-4">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cm-border/50">
+                    {recentControls.map((app) => (
+                      <tr key={app.id} className="hover:bg-cm-cream/20 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-cm-text">{app.full_name}</p>
+                          <p className="text-[10px] text-cm-muted font-mono">{app.passport_number}</p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-cm-muted">
+                          {formatDate(app.border_checked_at as string)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(app.border_check_status || '')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-cm-muted text-sm italic">
+                  Aucun contrôle récent à ce poste.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -125,16 +175,25 @@ export default function FrontiereDashboardPage() {
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-display text-xl font-bold text-cm-text flex items-center gap-2">
-               <AlertTriangle className="text-orange-500" size={20} /> Alertes
+               <AlertTriangle className="text-orange-500" size={20} /> Alertes (Auj.)
             </h2>
+            <Link to="/frontiere/alertes" className="text-xs font-bold text-cm-green-mid">Voir tout</Link>
           </div>
 
           <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div className="p-6 text-center text-cm-muted border-t border-cm-border">
-               <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
-               <p className="font-bold text-sm">Système sécurisé</p>
-               <p className="text-xs mt-1">Aucune alerte critique détectée.</p>
-            </div>
+            {stats.alertesDeclenchees > 0 ? (
+              <div className="p-6 text-center text-cm-red">
+                <AlertTriangle size={32} className="mx-auto mb-2" />
+                <p className="font-bold text-sm">{stats.alertesDeclenchees} incidents détectés</p>
+                <p className="text-xs mt-1">Veuillez consulter l'onglet alertes.</p>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-cm-muted border-t border-cm-border">
+                <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
+                <p className="font-bold text-sm">Système sécurisé</p>
+                <p className="text-xs mt-1">Aucune alerte critique détectée.</p>
+              </div>
+            )}
           </div>
         </div>
 
