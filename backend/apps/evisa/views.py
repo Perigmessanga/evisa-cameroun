@@ -214,16 +214,31 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             import os
             if os.path.exists(photo_path):
                 try:
-                    p.drawImage(photo_path, *photo_rect[:2], width=photo_rect[2], height=photo_rect[3])
+                    p.drawImage(photo_path, *photo_rect[:2], width=photo_rect[2], height=photo_rect[3], preserveAspectRatio=True)
                 except Exception as e:
                     print(f"Erreur ReportLab drawImage: {e}")
                     p.rect(*photo_rect)
                     p.setFont("Helvetica", 6)
                     p.drawCentredString(width - 120, y_pos - 145, "PHOTO LOAD ERROR")
             else:
-                p.rect(*photo_rect)
-                p.setFont("Helvetica", 8)
-                p.drawCentredString(width - 120, y_pos - 65, "FILE NOT FOUND")
+                # Tentative via storage (plus robuste) si le chemin direct échoue ou n'est pas le bon
+                try:
+                    target_file = None
+                    if hasattr(evisa.application, 'biometric_data'):
+                        bio = evisa.application.biometric_data
+                        target_file = bio.face_image if bio.face_image else bio.passport_photo
+                    
+                    if target_file:
+                        from reportlab.lib.utils import ImageReader
+                        img_reader = ImageReader(target_file)
+                        p.drawImage(img_reader, *photo_rect[:2], width=photo_rect[2], height=photo_rect[3], preserveAspectRatio=True)
+                    else:
+                        raise ValueError("No file in biometric_data")
+                except Exception as e:
+                    print(f"Erreur fallback ImageReader: {e}")
+                    p.rect(*photo_rect)
+                    p.setFont("Helvetica", 8)
+                    p.drawCentredString(width - 120, y_pos - 65, "FILE NOT ACCESSIBLE")
         else:
             p.rect(*photo_rect)
             p.setFont("Helvetica", 8)
@@ -256,9 +271,10 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white")
         
-        with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
-            qr_img.save(tmp.name)
-            p.drawImage(tmp.name, width/2 - 75, height - 600, width=150, height=150)
+        qr_buffer = io.BytesIO()
+        qr_img.save(qr_buffer, format="PNG")
+        qr_buffer.seek(0)
+        p.drawImage(qr_buffer, width/2 - 75, height - 600, width=150, height=150)
             
         # Mention de validité
         p.setFont("Helvetica-BoldOblique", 11)
