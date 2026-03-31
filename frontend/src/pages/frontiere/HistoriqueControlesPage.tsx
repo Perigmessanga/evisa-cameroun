@@ -124,7 +124,7 @@ export default function HistoriqueControlesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                     <span className="text-xs font-bold text-cm-muted italic">Agent #{item.border_agent?.id?.split('-')[0] || 'N/A'}</span>
+                     <span className="text-xs font-bold text-cm-text italic">{item.processed_by_name || 'En attente'}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button 

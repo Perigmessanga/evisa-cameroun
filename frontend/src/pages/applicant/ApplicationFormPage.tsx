@@ -2,7 +2,7 @@
 //  pages/applicant/ApplicationFormPage.tsx
 // ─────────────────────────────────────────────
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2, Save, FileText, User as UserIcon, MapPin, UploadCloud, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import applicationService from '../../services/applicationService';
@@ -55,12 +55,47 @@ export default function ApplicationFormPage() {
   const [visaTypes, setVisaTypes] = useState<VisaType[]>([]);
   const [loadingVisaTypes, setLoadingVisaTypes] = useState(true);
 
+  const location = useLocation();
+  const editId = location.state?.editId;
+
   useEffect(() => {
     applicationService.getVisaTypes()
       .then(res => setVisaTypes(res))
       .catch(() => toast.error('Erreur de chargement des types de visa'))
       .finally(() => setLoadingVisaTypes(false));
-  }, []);
+
+    // Si on est en mode édition, charger les données
+    if (editId) {
+      setLoading(true);
+      applicationService.getApplication(editId)
+        .then((app: any) => {
+          setFormData({
+            visaType: app.visa_type?.id?.toString() || app.visa_type?.toString() || '',
+            entryType: app.entry_type || 'SINGLE',
+            purpose: app.purpose_of_visit || '',
+            firstName: app.full_name?.split(' ').slice(1).join(' ') || '',
+            lastName: app.full_name?.split(' ')[0] || '',
+            birthDate: app.date_of_birth || '',
+            gender: app.gender || '',
+            profession: app.profession || '',
+            nationality: app.nationality || '',
+            birthCountry: app.place_of_birth || '',
+            passportNumber: app.passport_number || '',
+            passportIssueDate: app.passport_issue_date || '',
+            passportExpiryDate: app.passport_expiry_date || '',
+            passportIssuingCountry: app.passport_country || '',
+            arrivalDate: app.arrival_date || '',
+            departureDate: app.departure_date || '',
+            addressInCameroon: app.address_in_cameroon || '',
+            emergencyName: app.emergency_contact_name || '',
+            emergencyPhone: app.emergency_contact_phone || '',
+            editId: app.id
+          });
+        })
+        .catch(() => toast.error('Erreur lors du chargement de la demande.'))
+        .finally(() => setLoading(false));
+    }
+  }, [editId]);
 
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
@@ -84,6 +119,7 @@ export default function ApplicationFormPage() {
       arrivalDate: '',
       departureDate: '',
       addressInCameroon: '',
+      editId: '',
       emergencyName: '',
       emergencyPhone: '',
     };
@@ -173,12 +209,15 @@ export default function ApplicationFormPage() {
     try {
       // Create Application matching backend fields
       const payload: any = {
-        visa_type: formData.visaType, // Send ID
+        visa_type: formData.visaType, 
         full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`,
         date_of_birth: formData.birthDate,
         place_of_birth: formData.birthCountry,
         nationality: formData.nationality,
         gender: formData.gender,
+        marital_status: formData.maritalStatus || 'Non spécifié',
+        profession: formData.profession || 'Sans emploi',
+        birth_country: formData.birthCountry,
         passport_number: formData.passportNumber,
         passport_issue_date: formData.passportIssueDate,
         passport_expiry_date: formData.passportExpiryDate,
@@ -187,9 +226,16 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate,
         departure_date: formData.departureDate,
         address_in_cameroon: formData.addressInCameroon,
+        emergency_contact_name: formData.emergencyName || '',
+        emergency_contact_phone: formData.emergencyPhone || '',
       };
 
-      const newApp = await applicationService.createApplication(payload);
+      let newApp;
+      if (formData.editId) {
+        newApp = await applicationService.updateApplication(formData.editId, payload);
+      } else {
+        newApp = await applicationService.createApplication(payload);
+      }
 
       // Upload files
       toast.success('Demande enregistrée. Téléversement des documents...');

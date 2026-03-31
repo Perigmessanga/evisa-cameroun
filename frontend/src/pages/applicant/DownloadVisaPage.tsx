@@ -44,9 +44,40 @@ export default function DownloadVisaPage() {
     window.print();
   };
 
-  const handleDownloadPdf = () => {
-    // In a real app, this would trigger a backend PDF generation/download
-    alert('Simulating PDF download for ' + app.id);
+  const handleDownloadPdf = async () => {
+    if (!id || !app.evisa) {
+      toast.error('Erreur: e-Visa non généré.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      // Remover string '/api/v1' extra se o baseUrl já tiver
+      const urlBase = baseUrl.endsWith('/api/v1') ? baseUrl.slice(0, -7) : baseUrl;
+      
+      const response = await fetch(`${urlBase}/api/evisas/${app.evisa.id}/download/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `evisa_${app.evisa.visa_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Téléchargement lancé.');
+    } catch (err) {
+      toast.error('Erreur lors du téléchargement.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -156,11 +187,19 @@ export default function DownloadVisaPage() {
 
           {/* Right Column: Photo & QR */}
           <div className="flex flex-col items-center justify-start gap-6 border-l shrink-0 border-cm-border/50 pl-0 md:pl-8 pt-6 md:pt-0">
-            {/* Placeholder Photo */}
-            <div className="w-28 h-36 bg-cm-cream border border-cm-border/70 rounded shadow-inner flex items-center justify-center p-1">
-               <div className="w-full h-full bg-cm-border/20 flex items-center justify-center text-cm-muted text-[10px] text-center p-2">
-                 Photo<br/>Numérisée
-               </div>
+            {/* Real Photo if available */}
+            <div className="w-28 h-36 bg-cm-cream border border-cm-border/70 rounded shadow-inner flex items-center justify-center p-1 overflow-hidden">
+               {app.documents?.find((d: any) => d.document_type === 'PHOTO') ? (
+                 <img 
+                   src={app.documents.find((d: any) => d.document_type === 'PHOTO').file_url} 
+                   alt="Profile" 
+                   className="w-full h-full object-cover rounded"
+                 />
+               ) : (
+                 <div className="w-full h-full bg-cm-border/20 flex items-center justify-center text-cm-muted text-[10px] text-center p-2">
+                   Photo<br/>Numérisée
+                 </div>
+               )}
             </div>
 
             {/* Simulated QR Code */}

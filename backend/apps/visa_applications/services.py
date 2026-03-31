@@ -17,7 +17,7 @@ class EVisaService:
         Génère un e-visa complet pour une demande approuvée.
         Retourne l'objet EVisa créé.
         """
-        from .models import EVisa
+        from apps.evisa.models import EVisa
 
         # Calculer les dates
         issue_date  = timezone.now().date()
@@ -25,30 +25,27 @@ class EVisaService:
             days=application.visa_type.validity_days
         )
 
-        # Générer le numéro de visa unique
-        visa_number = self._generate_visa_number()
+        # Générer le numéro de visa unique (ou laisser le modèle le faire dans save)
+        # Mais ici on construit le QR code avant, donc on le génère manuellement
+        year = timezone.now().year
+        count = EVisa.objects.filter(created_at__year=year).count() + 1
+        visa_number = f"CM-VISA-{year}-{count:06d}"
 
         # Générer le QR Code
         qr_data = self._build_qr_data(visa_number, application)
         qr_b64  = self._generate_qr_code(qr_data)
 
-        # Générer le PDF
-        pdf_content = self._generate_pdf(application, visa_number, issue_date, expiry_date, qr_b64)
-
-        # Créer l'objet EVisa
-        evisa = EVisa(
-            application  = application,
-            visa_number  = visa_number,
-            issue_date   = issue_date,
-            expiry_date  = expiry_date,
-            qr_code      = qr_b64,
+        # Créer l'objet EVisa (Le PDF sera généré à la volée lors du téléchargement)
+        evisa, created = EVisa.objects.get_or_create(
+            application=application,
+            defaults={
+                'visa_number': visa_number,
+                'issue_date': issue_date,
+                'expiry_date': expiry_date,
+                'qr_code': qr_b64,
+                'pdf_file_path': f'evisas/evisa_{visa_number}.pdf',
+            }
         )
-        evisa.pdf_file.save(
-            f'evisa_{visa_number}.pdf',
-            ContentFile(pdf_content),
-            save=False
-        )
-        evisa.save()
         return evisa
 
     # ── Numéro de visa ─────────────────────────────────────────

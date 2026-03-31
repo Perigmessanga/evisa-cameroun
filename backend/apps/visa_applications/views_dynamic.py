@@ -5,8 +5,9 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from .models import (
     VisaApplication, ApplicationStatus, VisaHistory, EmbassyOpinion, 
-    BorderCheckStatus, EVisa, SecurityAlert
+    BorderCheckStatus, SecurityAlert
 )
+from apps.evisa.models import EVisa
 from .serializers import VisaApplicationSerializer, SecurityAlertSerializer
 from .services import EVisa_service
 from apps.notifications.models import NotificationService

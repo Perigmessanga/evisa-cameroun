@@ -76,14 +76,22 @@ export interface VisaApplication {
   nationality: string;
   residence_country: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
+  marital_status?: string;
+  profession?: string;
+  birth_country?: string;
+  
   passport_number: string;
   passport_issue_date: string;
   passport_expiry_date: string;
   passport_country: string;
+
   purpose_of_visit: string;
   arrival_date: string;
   departure_date: string;
   address_in_cameroon: string;
+  
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
   
   // Avis / Traitement
   embassy_opinion: 'NONE' | 'FAVORABLE' | 'UNFAVORABLE';
@@ -100,6 +108,14 @@ export interface VisaApplication {
   rejection_reason: string;
   created_at: string;
   updated_at: string;
+
+  // Traçabilité & Biométrie
+  processed_by_name?: string;
+  assigned_agent_name?: string;
+  biometric_photos?: {
+    face_image: string | null;
+    passport_photo: string | null;
+  };
 
   // Relations complémentaires
   documents?: ApplicationDocument[];

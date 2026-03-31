@@ -19,6 +19,8 @@ import ProfilePage from './pages/applicant/ProfilePage';
 import AgentDashboard from './pages/agent/DashboardPage';
 import ApplicationsListPage from './pages/agent/ApplicationsListPage';
 import ApplicationDetailPage from './pages/agent/ApplicationDetailPage';
+import PendingDocsPage from './pages/agent/PendingDocsPage';
+import PaymentsHistoryPage from './pages/agent/PaymentsHistoryPage';
 import AgentProfilePage from './pages/agent/AgentProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
@@ -41,6 +43,7 @@ import BiometricPage from './pages/applicant/BiometricPage';
 import ApplicantSupportPage from './pages/applicant/ApplicantSupportPage';
 import DraftsPage from './pages/applicant/DraftsPage';
 import TrackingDetailPage from './pages/applicant/TrackingDetailPage';
+import ApplicationReviewPage from './pages/applicant/ApplicationReviewPage';
 
 // newly created Admin
 import UserFormPage from './pages/admin/UserFormPage';
@@ -103,6 +106,7 @@ export default function App() {
           <Route path="dashboard" element={<ApplicantDashboard />} />
           <Route path="application" element={<ApplicationFormPage />} />
           <Route path="biometric" element={<BiometricPage />} />
+          <Route path="review" element={<ApplicationReviewPage />} />
           <Route path="payment" element={<PaymentPage />} />
           <Route path="tracking" element={<TrackingPage />} />
           <Route path="tracking/:id" element={<TrackingDetailPage />} />
@@ -117,6 +121,8 @@ export default function App() {
           <Route path="dashboard" element={<AgentDashboard />} />
           <Route path="applications" element={<ApplicationsListPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />
+          <Route path="pending-docs" element={<PendingDocsPage />} />
+          <Route path="payments" element={<PaymentsHistoryPage />} />
           <Route path="profile" element={<AgentProfilePage />} />
         </Route>
 

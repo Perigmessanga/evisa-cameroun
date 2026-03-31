@@ -86,6 +86,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     visa_type_name    = serializers.CharField(source='visa_type.name', read_only=True)
     applicant_name    = serializers.CharField(source='applicant.get_full_name', read_only=True)
     assigned_agent_name = serializers.SerializerMethodField()
+    processed_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model  = VisaApplication
@@ -93,11 +94,14 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'id', 'application_number', 'applicant_name',
             'visa_type_name', 'status', 'full_name',
             'nationality', 'submitted_at', 'assigned_agent_name',
-            'created_at',
+            'processed_by_name', 'created_at',
         ]
 
     def get_assigned_agent_name(self, obj):
         return obj.assigned_agent.get_full_name() if obj.assigned_agent else None
+
+    def get_processed_by_name(self, obj):
+        return obj.processed_by.get_full_name() if obj.processed_by else None
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -111,6 +115,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     comments       = serializers.SerializerMethodField()
     evisa          = serializers.SerializerMethodField()
     has_biometrics = serializers.SerializerMethodField()
+    biometric_photos = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
 
     class Meta:
@@ -120,16 +125,18 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'assigned_agent', 'status',
             # Personal
             'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 
-            'residence_country', 'gender',
+            'residence_country', 'gender', 'marital_status', 'profession', 'birth_country',
             # Passport
             'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
             # Travel
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
+            # Emergency
+            'emergency_contact_name', 'emergency_contact_phone',
             # Processing
             'submitted_at', 'processed_at', 'rejection_reason',
             # Relations
             'documents', 'comments', 'evisa',
-            'has_biometrics', 'payment_status',
+            'has_biometrics', 'biometric_photos', 'payment_status',
             'created_at', 'updated_at',
         ]
 
@@ -149,6 +156,16 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     def get_has_biometrics(self, obj):
         return hasattr(obj, 'biometric_data')
 
+    def get_biometric_photos(self, obj):
+        if hasattr(obj, 'biometric_data'):
+            request = self.context.get('request')
+            bio = obj.biometric_data
+            return {
+                'face_image': request.build_absolute_uri(bio.face_image.url) if bio.face_image and request else None,
+                'passport_photo': request.build_absolute_uri(bio.passport_photo.url) if bio.passport_photo and request else None,
+            }
+        return None
+
     def get_payment_status(self, obj):
         if hasattr(obj, 'payment'):
             return obj.payment.status
@@ -166,10 +183,13 @@ class CreateApplicationSerializer(serializers.ModelSerializer):
             'visa_type',
             # Personal
             'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 'gender',
+            'marital_status', 'profession', 'birth_country',
             # Passport
             'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
             # Travel
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
+            # Emergency
+            'emergency_contact_name', 'emergency_contact_phone',
         ]
         read_only_fields = ['id']
 
@@ -249,9 +269,28 @@ class VisaApplicationSerializer(serializers.ModelSerializer):
 class VisaApplicationUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = VisaApplication
-        # ici tu peux choisir les champs modifiables par l'update
-        fields = ['status', 'remark', 'visa_type']  
-        # status = par exemple "approved", "rejected", etc.
+        fields = [
+            'id', 'visa_type',
+            'full_name', 'date_of_birth', 'place_of_birth', 'nationality', 'gender',
+            'marital_status', 'profession', 'birth_country',
+            'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
+            'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
+            'emergency_contact_name', 'emergency_contact_phone',
+        ]
+
+    def validate(self, attrs):
+        today = timezone.now().date()
+        
+        if attrs.get('passport_expiry_date') and attrs['passport_expiry_date'] <= today:
+            raise serializers.ValidationError({'passport_expiry_date': 'Le passeport est expiré.'})
+            
+        if attrs.get('arrival_date') and attrs['arrival_date'] < today:
+            raise serializers.ValidationError({'arrival_date': 'La date d\'arrivée doit être dans le futur.'})
+            
+        if attrs.get('arrival_date') and attrs.get('departure_date'):
+            if attrs['departure_date'] <= attrs['arrival_date']:
+                raise serializers.ValidationError({'departure_date': 'La date de départ doit être après l\'arrivée.'})
+        return attrs
     
 
 

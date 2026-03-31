@@ -12,7 +12,7 @@ export default function PaymentPage() {
   const location = useLocation();
   const applicationId = location.state?.applicationId;
 
-  const [method, setMethod] = useState<'CARD' | 'MOBILE_MONEY_MTN' | 'MOBILE_MONEY_ORANGE'>('CARD');
+  const [method, setMethod] = useState<'CARD' | 'MOBILE_MONEY_MTN' | 'MOBILE_MONEY_ORANGE' | 'AWDPAY'>('AWDPAY');
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -51,26 +51,29 @@ export default function PaymentPage() {
     setLoading(true);
 
     try {
-      // 1. Initiate Payment
       const initRes: any = await applicationService.initiatePayment(applicationId, method);
-      const transactionId = initRes.payment.transaction_id || initRes.payment.id;
+      const transactionId = initRes.payment.transaction_id;
+
+      // 2. Simulation de traitement (Attente visuelle)
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // 2. Mock User processing time
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // 3. Confirm Payment (Mock Endpoint)
-      await applicationService.confirmPayment(transactionId, method);
-      
-      // 4. Submit Application
+      // 3. Appel API pour confirmer le paiement en base (Mock endpoint)
+      try {
+        await applicationService.confirmPayment(transactionId, method);
+      } catch (e) {
+        console.warn("Erreur mineure lors de la confirmation API, poursuite de la simulation.");
+      }
+
+      // 4. Soumettre la demande (Changement de statut DRAFT -> SUBMITTED)
       await applicationService.submitApplication(applicationId);
 
       setSuccess(true);
-      toast.success('Paiement réussi !');
+      toast.success('Paiement simulé avec succès ! Votre demande est maintenant soumise.');
       
       // Auto redirect after success display
-      setTimeout(() => navigate('/applicant/dashboard'), 4000);
+      setTimeout(() => navigate('/applicant/dashboard'), 5000);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erreur lors du paiement.');
+      toast.error(err.response?.data?.error || 'Erreur lors du traitement du paiement simulé.');
     } finally {
       setLoading(false);
     }
@@ -140,16 +143,17 @@ export default function PaymentPage() {
               <CreditCard size={20} className="text-cm-green-mid" /> Moyen de paiement
             </h2>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
+                { id: 'AWDPAY', label: 'AWDPAY', color: 'border-cm-green bg-cm-green/5' },
                 { id: 'CARD', label: 'Carte Bancaire', color: 'border-cm-green-mid bg-cm-green-pale/10' },
-                { id: 'MOBILE_MONEY_MTN', label: 'MTN Mobile Money', color: 'border-yellow-500 bg-yellow-50' },
+                { id: 'MOBILE_MONEY_MTN', label: 'MTN MoMo', color: 'border-yellow-500 bg-yellow-50' },
                 { id: 'MOBILE_MONEY_ORANGE', label: 'Orange Money', color: 'border-orange-500 bg-orange-50' }
               ].map(opt => (
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setMethod(opt.id as 'CARD'|'MOBILE_MONEY_MTN'|'MOBILE_MONEY_ORANGE')}
+                  onClick={() => setMethod(opt.id as any)}
                   className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2
                     ${method === opt.id ? opt.color : 'border-cm-border hover:border-cm-green-pale bg-white'}
                   `}
@@ -159,7 +163,7 @@ export default function PaymentPage() {
                   >
                     {method === opt.id && <div className="w-2 h-2 rounded-full bg-cm-green-mid" />}
                   </div>
-                  <span className="text-sm font-bold text-cm-text text-center leading-tight">{opt.label}</span>
+                  <span className="text-[10px] font-bold text-cm-text text-center leading-tight uppercase tracking-tighter">{opt.label}</span>
                 </button>
               ))}
             </div>

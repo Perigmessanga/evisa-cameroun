@@ -169,32 +169,110 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p = canvas.Canvas(buffer, pagesize=A4)
         width, height = A4
         
-        # En-tête
-        p.setFont("Helvetica-Bold", 24)
-        p.drawString(100, height - 100, "RÉPUBLIQUE DU CAMEROUN")
+        # En-tête (Style Officiel)
+        p.setFont("Helvetica-Bold", 18)
+        p.drawCentredString(width/2, height - 50, "RÉPUBLIQUE DU CAMEROUN")
+        p.setFont("Helvetica", 12)
+        p.drawCentredString(width/2, height - 65, "REPUBLIC OF CAMEROON")
+        p.setFont("Helvetica-Bold", 10)
+        p.drawCentredString(width/2, height - 80, "PAIX - TRAVAIL - PATRIE | PEACE - WORK - FATHERLAND")
+        
+        p.line(50, height - 100, width - 50, height - 100)
+        
         p.setFont("Helvetica-Bold", 16)
-        p.drawString(100, height - 130, "VISA ÉLECTRONIQUE (e-Visa)")
+        p.drawCentredString(width/2, height - 130, "VISA ÉLECTRONIQUE / ELECTRONIC VISA (e-Visa)")
+        
+        # Cadre d'informations
+        p.rect(50, height - 400, width - 100, 250)
         
         # Informations
-        p.setFont("Helvetica", 14)
-        y_pos = height - 180
-        p.drawString(100, y_pos, f"Numéro de Visa : {evisa.visa_number}")
-        p.drawString(100, y_pos - 25, f"Nom complet : {evisa.application.full_name}")
-        p.drawString(100, y_pos - 50, f"Numéro de passeport : {evisa.application.passport_number}")
-        p.drawString(100, y_pos - 75, f"Date d'émission : {evisa.issue_date.strftime('%Y-%m-%d')}")
-        p.drawString(100, y_pos - 100, f"Date d'expiration : {evisa.expiry_date.strftime('%Y-%m-%d')}")
-        p.drawString(100, y_pos - 125, f"Type de Visa : {evisa.application.visa_type.name}")
+        p.setFont("Helvetica-Bold", 12)
+        y_pos = height - 170
+        x_col2 = width / 2
         
-        # QR Code
-        qr_img = qrcode.make(evisa.visa_number)
+        # Photo de l'intéressé (Recherche exhaustive)
+        photo_path = None
+        
+        # 1. Essayer la biométrie (Priorité photo faciale)
+        if hasattr(evisa.application, 'biometric_data'):
+            bio_data = evisa.application.biometric_data
+            if bio_data.face_image and bio_data.face_image.name:
+                photo_path = bio_data.face_image.path
+            elif bio_data.passport_photo and bio_data.passport_photo.name:
+                photo_path = bio_data.passport_photo.path
+
+        # 2. Essayer les documents uploadés si pas encore d'image
+        if not photo_path:
+            types_photo = ['PHOTO', 'PASSPORT', 'PASSPORT_COPY', 'ID_CARD']
+            photo_doc = evisa.application.documents.filter(document_type__in=types_photo).first()
+            if photo_doc and photo_doc.file and photo_doc.file.name:
+                photo_path = photo_doc.file.path
+
+        # Dessiner la photo
+        photo_rect = (width - 170, y_pos - 130, 100, 130)
+        if photo_path:
+            import os
+            if os.path.exists(photo_path):
+                try:
+                    p.drawImage(photo_path, *photo_rect[:2], width=photo_rect[2], height=photo_rect[3])
+                except Exception as e:
+                    print(f"Erreur ReportLab drawImage: {e}")
+                    p.rect(*photo_rect)
+                    p.setFont("Helvetica", 6)
+                    p.drawCentredString(width - 120, y_pos - 145, "PHOTO LOAD ERROR")
+            else:
+                p.rect(*photo_rect)
+                p.setFont("Helvetica", 8)
+                p.drawCentredString(width - 120, y_pos - 65, "FILE NOT FOUND")
+        else:
+            p.rect(*photo_rect)
+            p.setFont("Helvetica", 8)
+            p.drawCentredString(width - 120, y_pos - 65, "NO PHOTO DATA")
+
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(70, y_pos, "INFORMATIONS DU VISA")
+        p.setFont("Helvetica", 10)
+        y_pos -= 25
+        p.drawString(70, y_pos, f"Numéro de Visa / Visa Number : {evisa.visa_number}")
+        p.drawString(70, y_pos - 20, f"Catégorie / Category : {evisa.application.visa_type.name}")
+        p.drawString(70, y_pos - 40, f"Date d'émission / Date of Issue : {evisa.issue_date.strftime('%d/%m/%Y')}")
+        p.drawString(70, y_pos - 60, f"Date d'expiration / Expiry Date : {evisa.expiry_date.strftime('%d/%m/%Y')}")
+        p.drawString(70, y_pos - 80, f"Entrées / Entries : MULTIPLE")
+        
+        p.setFont("Helvetica-Bold", 12)
+        y_pos -= 120
+        p.drawString(70, y_pos, "INFORMATIONS DU TITULAIRE / HOLDER INFORMATION")
+        p.setFont("Helvetica", 10)
+        y_pos -= 25
+        p.drawString(70, y_pos, f"Nom complet / Full Name : {evisa.application.full_name.upper()}")
+        p.drawString(70, y_pos - 20, f"Date de naissance / Date of Birth : {evisa.application.date_of_birth.strftime('%d/%m/%Y') if evisa.application.date_of_birth else 'N/A'}")
+        p.drawString(70, y_pos - 40, f"Nationalité / Nationality : {evisa.application.nationality}")
+        p.drawString(70, y_pos - 60, f"Passeport / Passport No : {evisa.application.passport_number}")
+
+        # QR Code (Scannable)
+        qr_data = f"VISA:{evisa.visa_number}|NAME:{evisa.application.full_name}|EXP:{evisa.expiry_date}"
+        qr = qrcode.QRCode(version=1, border=2)
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
         with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
             qr_img.save(tmp.name)
-            p.drawImage(tmp.name, 100, y_pos - 300, width=150, height=150)
+            p.drawImage(tmp.name, width/2 - 75, height - 600, width=150, height=150)
             
         # Mention de validité
-        p.setFont("Helvetica-Oblique", 10)
-        p.drawString(100, 50, "Ceci est un document électronique officiel. Scannez le QR code pour vérification.")
+        p.setFont("Helvetica-BoldOblique", 11)
+        p.drawCentredString(width/2, height - 620, "SCANNEZ POUR VÉRIFICATION / SCAN FOR VERIFICATION")
         
+        p.setFont("Helvetica-Oblique", 9)
+        p.drawString(50, 100, "Ceci est un document électronique officiel généré par le système e-Visa Cameroun.")
+        p.drawString(50, 85, "Il doit être présenté avec le passeport physique au point d'entrée.")
+        
+        # Signature simulée / Cachet
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(width - 250, 100, "Le Délégué Général à la Sûreté Nationale")
+        p.drawString(width - 200, 85, "(Signé électroniquement)")
+
         p.showPage()
         p.save()
         buffer.seek(0)

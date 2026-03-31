@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { 
   Scan, Search, ShieldCheck, User, 
   MapPin, Calendar, FileText, CheckCircle2, 
-  XCircle, AlertTriangle, Loader2, ArrowLeft
+  XCircle, AlertTriangle, Loader2, ArrowLeft,
+  Camera, StopCircle
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import visaService from '../../services/visaService';
 import CameroonFlag from '../../components/common/CameroonFlag';
@@ -15,21 +17,53 @@ export default function VerificationVisaPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VisaApplication | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query) return;
+  useEffect(() => {
+    let scanner: any = null;
+    if (isScanning) {
+      // @ts-ignore
+      scanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      }, false);
 
+      scanner.render((decodedText: string) => {
+        setQuery(decodedText);
+        setIsScanning(false);
+        scanner.clear();
+        // Optionnel: déclencher la recherche immédiatement
+        performSearch(decodedText);
+      }, (error: any) => {
+        // console.warn(error);
+      });
+    }
+
+    return () => {
+      if (scanner) {
+        try { scanner.clear(); } catch(e) {}
+      }
+    };
+  }, [isScanning]);
+
+  const performSearch = async (val: string) => {
     setLoading(true);
     setResult(null);
     try {
-      const data = await visaService.verifyEVisa(query);
+      const data = await visaService.verifyEVisa(val);
       setResult(data);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Visa introuvable ou invalide');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query) return;
+    performSearch(query);
   };
 
   const handleRecordPassage = async (action: 'ENTRY' | 'EXIT' | 'DENIED') => {
@@ -73,7 +107,7 @@ export default function VerificationVisaPage() {
       </div>
 
       {/* ── SEARCH AREA ── */}
-      <div className="bg-white p-8 rounded-3xl border border-cm-border shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      <div className="bg-white p-8 rounded-3xl border border-cm-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-6">
         <form onSubmit={handleSearch} className="relative group">
           <input 
             type="text"
@@ -92,6 +126,27 @@ export default function VerificationVisaPage() {
             Vérifier
           </button>
         </form>
+
+        <div className="flex flex-col items-center gap-4">
+           {!isScanning ? (
+             <button 
+               onClick={() => setIsScanning(true)}
+               className="flex items-center gap-3 px-8 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all w-full md:w-auto"
+             >
+               <Camera size={24} /> Scanner le QR Code ici
+             </button>
+           ) : (
+             <div className="w-full max-w-sm space-y-4">
+                <div id="reader" className="overflow-hidden rounded-2xl border-4 border-cm-green shadow-xl bg-black min-h-[300px]"></div>
+                <button 
+                   onClick={() => setIsScanning(false)}
+                   className="w-full flex items-center justify-center gap-2 py-3 bg-cm-red text-white rounded-xl font-bold"
+                >
+                   <StopCircle size={20} /> Arrêter le scan
+                </button>
+             </div>
+           )}
+        </div>
       </div>
 
       {/* ── RESULT AREA ── */}

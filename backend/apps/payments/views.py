@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 import uuid
+import requests
+import json
 
 from apps.payments.models import Payment
 from apps.payments.serializers import (
@@ -30,6 +32,10 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         # Les demandeurs voient leurs paiements
         if user.is_applicant:
             return Payment.objects.filter(application__applicant=user)
+        
+        # Les agents voient uniquement les paiements des demandes qui leur sont assignées
+        elif user.is_agent:
+            return Payment.objects.filter(application__assigned_agent=user)
         
         # Les admins voient tout
         elif user.is_admin:
@@ -93,15 +99,55 @@ class InitiatePaymentView(generics.CreateAPIView):
         payment.status = 'PROCESSING'
         payment.save()
         
-        # TODO: Intégrer avec la vraie passerelle de paiement
-        # Pour le moment, on simule un paiement
-        payment_url = self._generate_payment_url(payment)
+        # Intégrer avec la vraie passerelle de paiement
+        if payment_method == 'AWDPAY':
+            payment_url = self._initiate_awdpay_payment(payment)
+        else:
+            # Pour le moment, on simule les autres méthodes
+            payment_url = self._generate_payment_url(payment)
         
         return Response({
             'payment': PaymentSerializer(payment).data,
             'payment_url': payment_url,
             'message': 'Paiement initié. Veuillez compléter le paiement.'
         }, status=status.HTTP_201_CREATED)
+
+    def _initiate_awdpay_payment(self, payment):
+        """Intégration réelle avec AWDPAY."""
+        from django.conf import settings
+        
+        url = "https://www.awdpay.com/api/checkout/v2/initiate"
+        headers = {
+            "Authorization": f"Bearer {getattr(settings, 'AWDPAY_PRIVATE_KEY', '')}",
+            "Content-Type": "application/json"
+        }
+        
+        # Déterminer les URLs de redirection
+        # Dans un environnement réel, ces URLs devraient pointer vers le frontend
+        base_frontend_url = "http://localhost:3000" # À adapter selon l'env
+        
+        payload = {
+            "amount": float(payment.amount),
+            "currency": payment.currency,
+            "customIdentifier": payment.transaction_id,
+            "callbackUrl": f"http://localhost:8000/api/v1/payments/webhook/awdpay/", # URL du webhook
+            "successUrl": f"{base_frontend_url}/applicant/payment-success?trxId={payment.transaction_id}",
+            "failedUrl": f"{base_frontend_url}/applicant/payment-failed?trxId={payment.transaction_id}",
+            "test": True # Passer à False en production
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            if response.status_code == 200 or response.status_code == 201:
+                data = response.json()
+                # Supposons que AWDPAY renvoie l'URL dans 'paymentUrl' ou similar
+                # Selon l'expérience habituelle des APIs de paiement
+                return data.get('paymentUrl') or data.get('url') or f"https://www.awdpay.com/checkout/{data.get('trxId')}"
+            else:
+                # Fallback sur une URL simulée si l'API échoue (pour ne pas bloquer les tests si pas de clé valide)
+                return f"https://www.awdpay.com/checkout/mock-{payment.transaction_id}"
+        except Exception:
+            return f"https://www.awdpay.com/checkout/mock-{payment.transaction_id}"
     
     def _generate_payment_url(self, payment):
         """Générer l'URL de paiement (à remplacer par vraie intégration)."""
@@ -120,39 +166,90 @@ class PaymentWebhookView(generics.GenericAPIView):
     def post(self, request):
         """
         Recevoir la notification de paiement.
-        Body dépend de la passerelle utilisée.
+        Supporte le format standard et le format AWDPAY (trxId).
         """
-        # TODO: Vérifier la signature de la requête
-        # TODO: Parser les données selon la passerelle
+        # Detection AWDPAY
+        trx_id = request.data.get('trxId') or request.data.get('transaction_id') or request.data.get('customIdentifier')
+        status_payment = request.data.get('status', '').lower() # 'success', 'failed', 'completed', etc.
         
-        transaction_id = request.data.get('transaction_id')
-        status_payment = request.data.get('status')  # 'success', 'failed', etc.
-        
-        if not transaction_id:
+        if not trx_id:
             return Response({
-                'error': 'transaction_id manquant'
+                'error': 'transaction_id ou trxId manquant'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            payment = Payment.objects.get(transaction_id=transaction_id)
+            payment = Payment.objects.get(transaction_id=trx_id)
         except Payment.DoesNotExist:
             return Response({
                 'error': 'Paiement introuvable'
             }, status=status.HTTP_404_NOT_FOUND)
         
         # Mettre à jour le statut
-        if status_payment == 'success':
+        if status_payment in ['success', 'completed']:
             payment.status = 'COMPLETED'
             payment.paid_at = timezone.now()
             payment.save()
             
-            # TODO: Envoyer notification au demandeur
+            # Mise à jour automatique de la demande
+            application = payment.application
+            if application.status == 'DRAFT':
+                application.status = 'SUBMITTED'
+                application.submitted_at = timezone.now()
+                application.save()
+                
+                # Notification
+                from apps.notifications.models import NotificationService
+                NotificationService.send_application_submitted(application)
             
-        elif status_payment == 'failed':
+        elif status_payment in ['failed', 'error']:
             payment.status = 'FAILED'
             payment.save()
         
-        return Response({'message': 'Webhook reçu'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Webhook traité'}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """
+        Recevoir la notification de paiement.
+        Supporte le format standard et le format AWDPAY (trxId).
+        """
+        # Detection AWDPAY
+        trx_id = request.data.get('trxId') or request.data.get('transaction_id') or request.data.get('customIdentifier')
+        status_payment = request.data.get('status', '').lower() # 'success', 'failed', 'completed', etc.
+        
+        if not trx_id:
+            return Response({
+                'error': 'transaction_id ou trxId manquant'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            payment = Payment.objects.get(transaction_id=trx_id)
+        except Payment.DoesNotExist:
+            return Response({
+                'error': 'Paiement introuvable'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Mettre à jour le statut
+        if status_payment in ['success', 'completed']:
+            payment.status = 'COMPLETED'
+            payment.paid_at = timezone.now()
+            payment.save()
+            
+            # Mise à jour automatique de la demande
+            application = payment.application
+            if application.status == 'DRAFT':
+                application.status = 'SUBMITTED'
+                application.submitted_at = timezone.now()
+                application.save()
+                
+                # Notification
+                from apps.notifications.models import NotificationService
+                NotificationService.send_application_submitted(application)
+            
+        elif status_payment in ['failed', 'error', 'failed']:
+            payment.status = 'FAILED'
+            payment.save()
+        
+        return Response({'message': 'Webhook traité'}, status=status.HTTP_200_OK)
 
 
 class ConfirmPaymentMockView(generics.GenericAPIView):

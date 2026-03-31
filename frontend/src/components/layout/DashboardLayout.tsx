@@ -35,6 +35,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         return [
           { name: 'Tableau de bord', path: '/agent/dashboard', icon: <Home size={20} /> },
           { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} /> },
+          { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
         ];
       case 'ADMIN':

@@ -11,12 +11,13 @@ class BiometricDataSerializer(serializers.ModelSerializer):
         read_only=True
     )
     face_image_url = serializers.ImageField(source='face_image', read_only=True)
+    passport_photo_url = serializers.ImageField(source='passport_photo', read_only=True)
 
     class Meta:
         model = BiometricData
         fields = [
             'id', 'application', 'application_number',
-            'face_image_url', 'quality_score',
+            'face_image_url', 'passport_photo_url', 'quality_score',
             'liveness_verified', 'is_verified',
             'captured_at', 'verified_at'
         ]
@@ -31,18 +32,14 @@ class BiometricDataCreateSerializer(serializers.ModelSerializer):
     Serializer pour créer/uploader des données biométriques.
     """
     face_image = serializers.ImageField(write_only=True)
+    passport_photo = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
         model = BiometricData
-        fields = ['application', 'face_image']
-
-    def validate_application(self, value):
-        """Vérifier que la demande n'a pas déjà de données biométriques."""
-        if hasattr(value, 'biometric_data'):
-            raise serializers.ValidationError(
-                "Cette demande a déjà des données biométriques."
-            )
-        return value
+        fields = ['application', 'face_image', 'passport_photo']
+        extra_kwargs = {
+            'application': {'validators': []}
+        }
 
     def create(self, validated_data):
         """

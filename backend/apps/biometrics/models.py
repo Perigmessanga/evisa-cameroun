@@ -25,6 +25,7 @@ class BiometricData(models.Model):
         on_delete=models.CASCADE, related_name='biometric_data'
     )
     face_image        = models.ImageField(upload_to=biometric_upload_path, verbose_name='Photo faciale')
+    passport_photo    = models.ImageField(upload_to=biometric_upload_path, null=True, blank=True, verbose_name='Photo Passeport')
     face_encoding     = models.JSONField(default=dict, verbose_name='Encodage facial')
     quality_score     = models.FloatField(null=True, blank=True, verbose_name='Score qualité')
     liveness_verified = models.BooleanField(default=False, verbose_name='Vivacité vérifiée')
@@ -49,7 +50,7 @@ class BiometricDataSerializer(serializers.ModelSerializer):
     class Meta:
         model  = BiometricData
         fields = [
-            'id', 'face_image', 'quality_score',
+            'id', 'face_image', 'passport_photo', 'quality_score',
             'liveness_verified', 'is_verified', 'captured_at',
         ]
         read_only_fields = ['id', 'quality_score', 'liveness_verified', 'is_verified', 'captured_at']
@@ -68,6 +69,7 @@ class CaptureBiometricSerializer(serializers.Serializer):
     liveness_verified = serializers.BooleanField(default=False)
     quality_score     = serializers.FloatField(min_value=0, max_value=1, required=False)
     face_encoding     = serializers.JSONField(required=False, default=dict)
+    passport_photo_base64 = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     def validate_face_image_base64(self, value):
         # Vérifier que c'est bien du base64 valide
@@ -141,6 +143,21 @@ class CaptureBiometricView(APIView):
             ContentFile(img_bytes),
             save=True
         )
+
+        # Gérer la photo passeport si fournie
+        passport_b64 = data.get('passport_photo_base64')
+        if passport_b64:
+            if ',' in passport_b64:
+                passport_b64 = passport_b64.split(',')[1]
+            try:
+                pass_bytes = base64.b64decode(passport_b64)
+                biometric.passport_photo.save(
+                    f'passport_{application.application_number}.jpg',
+                    ContentFile(pass_bytes),
+                    save=True
+                )
+            except Exception:
+                pass
 
         return api_response(
             data=BiometricDataSerializer(biometric).data,

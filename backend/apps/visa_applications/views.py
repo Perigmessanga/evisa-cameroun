@@ -56,17 +56,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des demandes de visa.
     """
+    queryset = VisaApplication.objects.all()
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return ApplicationListSerializer
-        if self.action == 'retrieve':
-            return ApplicationDetailSerializer
-        if self.action == 'create':
-            return CreateApplicationSerializer
-        return VisaApplicationSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -204,10 +197,12 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return response
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return CreateApplicationSerializer
-        elif self.action == 'list':
+        if self.action == 'list':
             return ApplicationListSerializer
+        elif self.action == 'retrieve':
+            return ApplicationDetailSerializer
+        elif self.action == 'create':
+            return CreateApplicationSerializer
         elif self.action in ['update', 'partial_update']:
             return VisaApplicationUpdateSerializer
         return VisaApplicationSerializer
@@ -290,21 +285,15 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
         
         # Vérifier le statut
-        if application.status not in ['DRAFT', 'PENDING_DOCS']:
+        if application.status != 'DRAFT':
             return Response({
                 'error': 'Cette demande a déjà été soumise.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Vérifier que le paiement est complété
-        try:
-            payment = application.payment
-            if payment.status != 'COMPLETED':
-                return Response({
-                    'error': 'Le paiement doit être complété avant de soumettre.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
+        if not hasattr(application, 'payment') or not application.payment.is_completed:
             return Response({
-                'error': 'Aucun paiement trouvé pour cette demande.'
+                'error': 'Le paiement doit être complété avant de soumettre.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Soumettre la demande
@@ -312,13 +301,12 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         application.submitted_at = timezone.now()
         application.save()
         
-        # Envoi d'email de confirmation de soumission
-        try:
-            from apps.notifications.models import NotificationService
-            NotificationService.send_application_submitted(application)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f'Email soumission échoué: {e}')
+        # Assignation automatique d'un agent
+        application.assign_best_agent()
+        
+        # Envoi d'email
+        from apps.notifications.models import NotificationService
+        NotificationService.send_application_submitted(application)
         
         return Response({
             'message': 'Demande soumise avec succès.',
@@ -362,20 +350,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         
         application.save()
         
-        # TODO: Si APPROVED, générer l'e-visa
+        # Si APPROVED, générer l'e-visa via le service dédié
         if new_status == 'APPROVED':
-            from apps.evisa.models import EVisa
-            from datetime import timedelta
-            expiry = timezone.now().date() + timedelta(days=application.visa_type.validity_days)
-            EVisa.objects.get_or_create(
-                application=application,
-                defaults={
-                    'issue_date': timezone.now().date(),
-                    'expiry_date': expiry,
-                    'pdf_file_path': 'to_be_generated.pdf',
-                    'qr_code': application.application_number
-                }
-            )
+            from .services import EVisa_service
+            EVisa_service.generate_evisa(application)
             
         # Envoi de la notification selons le nouveau statut
         from apps.notifications.models import NotificationService
@@ -481,21 +459,44 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if not request.user.is_embassy:
             return Response({'error': 'Permission refusée. Réservé à l\'ambassade.'}, status=status.HTTP_403_FORBIDDEN)
         
-        application = self.get_object()
         opinion = request.data.get('opinion') # 'FAVORABLE' or 'UNFAVORABLE'
         notes = request.data.get('notes', '')
         
         if opinion not in ['FAVORABLE', 'UNFAVORABLE']:
             return Response({'error': 'L\'avis doit être FAVORABLE ou UNFAVORABLE.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        application.embassy_opinion = opinion
+        application.embassy_comment = notes
+        # Revenir en traitement pour que l'agent puisse décider finalment
+        application.status = 'PROCESSING'
+        application.save()
+
         ApplicationComment.objects.create(
             application=application,
             author=request.user,
-            content=f"Avis {opinion} : {notes}",
+            content=f"Avis {opinion} fourni par l'ambassade : {notes}",
             is_internal=True
         )
         
-        return Response({'message': f'Avis {opinion} enregistré.'})
+        return Response({'message': f'Avis {opinion} enregistré. Demande renvoyée en traitement.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def request_embassy_review(self, request, pk=None):
+        """Demander l'avis de l'ambassade."""
+        if not (request.user.is_agent or request.user.is_admin):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        application = self.get_object()
+        application.status = 'PENDING_REVIEW'
+        application.save()
+        
+        ApplicationComment.objects.create(
+            application=application,
+            author=request.user,
+            content="Avis consulaire sollicité auprès de l'Ambassade du Cameroun.",
+            is_internal=True
+        )
+        return Response({'message': 'Demande d\'avis envoyée à l\'ambassade.'})
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

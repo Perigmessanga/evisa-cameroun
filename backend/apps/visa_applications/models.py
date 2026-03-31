@@ -110,6 +110,9 @@ class VisaApplication(models.Model):
     nationality      = models.CharField(max_length=100, verbose_name='Nationalité')
     residence_country = models.CharField(max_length=100, verbose_name='Pays de résidence', default='Autre')
     gender           = models.CharField(max_length=10, choices=Gender.choices, verbose_name='Genre')
+    marital_status   = models.CharField(max_length=50, blank=True, null=True, verbose_name='Situation matrimoniale')
+    profession       = models.CharField(max_length=100, blank=True, null=True, verbose_name='Profession')
+    birth_country    = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays de naissance')
 
     # ── Informations passeport ─────────────────────────────────
     passport_number      = models.CharField(max_length=50, verbose_name='Numéro passeport')
@@ -122,6 +125,10 @@ class VisaApplication(models.Model):
     arrival_date        = models.DateField(verbose_name='Date d\'arrivée prévue')
     departure_date      = models.DateField(verbose_name='Date de départ prévue')
     address_in_cameroon = models.TextField(verbose_name='Adresse au Cameroun')
+
+    # ── Contact d'urgence ──────────────────────────────────────
+    emergency_contact_name  = models.CharField(max_length=200, blank=True, null=True, verbose_name='Contact d\'urgence (Nom)')
+    emergency_contact_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name='Contact d\'urgence (Tél)')
 
     # ── Avis Ambassade ─────────────────────────────────────────
     embassy_opinion = models.CharField(
@@ -165,6 +172,27 @@ class VisaApplication(models.Model):
 
     def __str__(self):
         return f'{self.application_number} — {self.full_name} ({self.status})'
+
+    @property
+    def is_editable(self):
+        """Une demande est modifiable si elle est en brouillon ou si on a demandé des documents."""
+        return self.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING_DOCS]
+
+    def assign_best_agent(self):
+        """Assigne automatiquement la demande à l'agent le moins chargé."""
+        from apps.users.models import User, UserRole
+        from django.db.models import Count
+        
+        # Trouver tous les agents d'immigration actifs
+        agents = User.objects.filter(role=UserRole.AGENT, is_active=True).annotate(
+            job_count=Count('assigned_applications', filter=models.Q(assigned_applications__status__in=['SUBMITTED', 'PROCESSING', 'PENDING_DOCS']))
+        ).order_by('job_count')
+        
+        if agents.exists():
+            self.assigned_agent = agents.first()
+            self.save(update_fields=['assigned_agent'])
+            return True
+        return False
 
     def save(self, *args, **kwargs):
         if not self.application_number:
@@ -211,26 +239,7 @@ class Document(models.Model):
         return f'{self.document_type} — {self.application.application_number}'
 
 
-# ─────────────────────────────────────────────────────────────────
-# E-VISA (Le document final)
-# ─────────────────────────────────────────────────────────────────
-class EVisa(models.Model):
-    id                 = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    application        = models.OneToOneField(VisaApplication, on_delete=models.CASCADE, related_name='e_visa')
-    visa_number        = models.CharField(max_length=50, unique=True)
-    issue_date         = models.DateField()
-    expiry_date        = models.DateField()
-    qr_code_data       = models.TextField()
-    pdf_file           = models.FileField(upload_to='e_visas/', null=True, blank=True)
-    
-    created_at         = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        db_table = 'evisa_issued'
-        verbose_name = 'E-Visa émis'
-
-    def __str__(self):
-        return f'E-Visa {self.visa_number} ({self.application.full_name})'
 
 
 # ─────────────────────────────────────────────────────────────────
