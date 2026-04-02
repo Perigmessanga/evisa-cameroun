@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import visaService from '../../services/visaService';
 import { 
   ArrowLeft, Calendar, FileText, MapPin, 
@@ -15,6 +16,7 @@ import { VisaApplication } from '../../types';
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [app, setApp] = useState<VisaApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -299,29 +301,33 @@ export default function ApplicationDetailPage() {
         {/* ── RIGHT COL: ACTIONS ── */}
         <div className="space-y-6">
           
-          {/* EMBASSY OPINION */}
-          <div className="bg-white rounded-3xl border border-cm-border p-6 shadow-xs">
-             <h3 className="text-sm font-bold text-cm-muted uppercase mb-4 flex items-center gap-2">
-               Avis de l'Ambassade
-             </h3>
-             <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl space-y-3">
-                <div className="flex items-center gap-2">
-                   {app.embassy_opinion === 'FAVORABLE' ? (
-                     <CheckCircle2 size={18} className="text-cm-green" />
-                   ) : app.embassy_opinion === 'UNFAVORABLE' ? (
-                     <XCircle size={18} className="text-cm-red" />
-                   ) : (
-                     <Clock size={18} className="text-cm-gold" />
-                   )}
-                   <span className="font-bold text-cm-text">{app.embassy_opinion || 'EN ATTENTE'}</span>
-                </div>
-                <p className="text-xs text-cm-muted italic">"{app.embassy_comment || 'Aucun commentaire consulaire fourni.'}"</p>
-             </div>
-          </div>
+          {/* EMBASSY OPINION (Only show if not the embassy itself) */}
+          {user?.role !== 'EMBASSY' && (
+            <div className="bg-white rounded-3xl border border-cm-border p-6 shadow-xs">
+               <h3 className="text-sm font-bold text-cm-muted uppercase mb-4 flex items-center gap-2">
+                 Avis de l'Ambassade
+               </h3>
+               <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2">
+                     {app.embassy_opinion === 'FAVORABLE' ? (
+                       <CheckCircle2 size={18} className="text-cm-green" />
+                     ) : app.embassy_opinion === 'UNFAVORABLE' ? (
+                       <XCircle size={18} className="text-cm-red" />
+                     ) : (
+                       <Clock size={18} className="text-cm-gold" />
+                     )}
+                     <span className="font-bold text-cm-text">{app.embassy_opinion || 'EN ATTENTE'}</span>
+                  </div>
+                  <p className="text-xs text-cm-muted italic">"{app.embassy_comment || 'Aucun commentaire consulaire fourni.'}"</p>
+               </div>
+            </div>
+          )}
 
           {/* AGENT ACTIONS */}
           <div className="bg-cm-text rounded-3xl p-8 space-y-6 shadow-2xl">
-              <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">Décision Finale</h3>
+              <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">
+                {user?.role === 'EMBASSY' ? 'Décision Consulaire' : 'Décision Finale'}
+              </h3>
               
               <div className="grid gap-3">
                  <button 

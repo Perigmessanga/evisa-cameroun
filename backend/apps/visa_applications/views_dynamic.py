@@ -17,26 +17,60 @@ class ImmigrationStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if not (request.user.role == 'AGENT' or request.user.role == 'ADMIN'):
+        if not (request.user.role in ['AGENT', 'ADMIN', 'EMBASSY']):
             return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
         
-        stats = VisaApplication.objects.aggregate(
+        queryset = VisaApplication.objects.all()
+        if request.user.role == 'EMBASSY':
+            queryset = queryset.filter(assigned_agent=request.user)
+        elif request.user.role == 'AGENT':
+            # Agents see all or their assigned? The user said they only handle dossiers for those with no diplomatic rep.
+            # So they should also see what's assigned to them.
+            queryset = queryset.filter(assigned_agent=request.user)
+
+        # Base stats for dashboard tiles
+        stats = queryset.aggregate(
             pending=Count('id', filter=Q(status=ApplicationStatus.SUBMITTED)),
             processing=Count('id', filter=Q(status=ApplicationStatus.PROCESSING)),
             approved=Count('id', filter=Q(status=ApplicationStatus.APPROVED)),
             rejected=Count('id', filter=Q(status=ApplicationStatus.REJECTED))
         )
+        
+        # Stats pour le profil (Réelles)
+        thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+        today = timezone.now().date()
+        
+        monthly_data = queryset.filter(processed_at__gte=thirty_days_ago).aggregate(
+            total=Count('id'),
+            approved=Count('id', filter=Q(status=ApplicationStatus.APPROVED))
+        )
+        
+        # Temps moyen de traitement (en jours)
+        from django.db.models import Avg, F, ExpressionWrapper, DurationField
+        avg_time = queryset.filter(processed_at__isnull=False, submitted_at__isnull=False).annotate(
+            duration=ExpressionWrapper(F('processed_at') - F('submitted_at'), output_field=DurationField())
+        ).aggregate(avg_duration=Avg('duration'))['avg_duration']
+        
+        avg_days = avg_time.total_seconds() / 86400 if avg_time else 0
+        
+        stats['processedToday'] = queryset.filter(processed_at__date=today).count()
+        stats['monthlyTotal'] = monthly_data['total']
+        stats['compliance'] = round((monthly_data['approved'] / monthly_data['total'] * 100), 1) if monthly_data['total'] > 0 else 100.0
+        stats['avgDays'] = round(avg_days, 1)
+        
         return api_response(data=stats)
 
 class ImmigrationListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if not (request.user.role == 'AGENT' or request.user.role == 'ADMIN'):
+        if not (request.user.role in ['AGENT', 'ADMIN', 'EMBASSY']):
             return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
         
         queryset = VisaApplication.objects.all()
-        
+        if request.user.role in ['EMBASSY', 'AGENT'] and not request.user.is_superuser:
+            queryset = queryset.filter(assigned_agent=request.user)
+            
         # Filtres
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -57,7 +91,7 @@ class ImmigrationDecisionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
-        if not (request.user.role == 'AGENT' or request.user.role == 'ADMIN'):
+        if not (request.user.role in ['AGENT', 'ADMIN', 'EMBASSY']):
             return api_response(message="Accès refusé", status_code=status.HTTP_403_FORBIDDEN)
             
         try:
@@ -180,7 +214,7 @@ class BorderVerificationView(APIView):
             # Recherche par numéro d'application, numéro de visa, ou numéro de passeport
             application = VisaApplication.objects.filter(
                 Q(application_number=query) | 
-                Q(e_visa__visa_number=query) |
+                Q(evisa__visa_number=query) |
                 Q(passport_number=query)
             ).first()
             

@@ -84,11 +84,13 @@ WSGI_APPLICATION = 'evisa_backend.wsgi.application'
 # ─────────────────────────────────────────
 # BASE DE DONNÉES
 # ─────────────────────────────────────────
-if 'test' in sys.argv:
+USE_SQLITE = config('USE_SQLITE', default=False, cast=bool)
+
+if 'test' in sys.argv or USE_SQLITE:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db_test.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 else:

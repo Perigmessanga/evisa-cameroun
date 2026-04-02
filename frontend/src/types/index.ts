@@ -15,6 +15,7 @@ export interface User {
   is_active: boolean;
   is_email_verified: boolean;
   two_factor_enabled: boolean;
+  embassy_country?: string;
   created_at: string;
   last_login: string | null;
 }
@@ -180,6 +181,7 @@ export type PaymentMethod = 'CARD' | 'MOBILE_MONEY_MTN' | 'MOBILE_MONEY_ORANGE' 
 export interface Payment {
   id: string;
   application: string;
+  application_number: string;
   amount: number;
   currency: string;
   payment_method: PaymentMethod;

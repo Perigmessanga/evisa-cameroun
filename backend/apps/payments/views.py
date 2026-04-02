@@ -33,8 +33,8 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_applicant:
             return Payment.objects.filter(application__applicant=user)
         
-        # Les agents voient uniquement les paiements des demandes qui leur sont assignées
-        elif user.is_agent:
+        # Les agents et les ambassades voient uniquement les paiements des demandes qui leur sont assignées
+        elif user.is_agent or user.is_embassy:
             return Payment.objects.filter(application__assigned_agent=user)
         
         # Les admins voient tout

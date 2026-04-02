@@ -179,19 +179,33 @@ class VisaApplication(models.Model):
         return self.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING_DOCS]
 
     def assign_best_agent(self):
-        """Assigne automatiquement la demande à l'agent le moins chargé."""
+        """Assigne automatiquement la demande à l'ambassade correspondante ou à l'agent le moins chargé."""
         from apps.users.models import User, UserRole
-        from django.db.models import Count
+        from django.db.models import Count, Q
         
-        # Trouver tous les agents d'immigration actifs
+        # 1. Chercher si une ambassade existe pour la nationalité du demandeur
+        # On compare la nationalité avec le champ embassy_country de l'utilisateur
+        embassy = User.objects.filter(
+            role=UserRole.EMBASSY, 
+            embassy_country__iexact=self.nationality,
+            is_active=True
+        ).first()
+        
+        if embassy:
+            self.assigned_agent = embassy
+            self.save(update_fields=['assigned_agent'])
+            return True
+            
+        # 2. Sinon, trouver tous les agents d'immigration actifs et assigner au moins chargé
         agents = User.objects.filter(role=UserRole.AGENT, is_active=True).annotate(
-            job_count=Count('assigned_applications', filter=models.Q(assigned_applications__status__in=['SUBMITTED', 'PROCESSING', 'PENDING_DOCS']))
+            job_count=Count('assigned_applications', filter=Q(assigned_applications__status__in=['SUBMITTED', 'PROCESSING', 'PENDING_DOCS']))
         ).order_by('job_count')
         
         if agents.exists():
             self.assigned_agent = agents.first()
             self.save(update_fields=['assigned_agent'])
             return True
+            
         return False
 
     def save(self, *args, **kwargs):

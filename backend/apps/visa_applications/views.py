@@ -68,21 +68,17 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if user.is_applicant:
             return VisaApplication.objects.filter(applicant=user)
         
-        # Les agents voient toutes les demandes soumises
+        # Les agents voient les demandes qui leur sont assignées (load balanced)
         elif user.is_agent:
-            return VisaApplication.objects.exclude(status='DRAFT')
+            return VisaApplication.objects.filter(assigned_agent=user).exclude(status='DRAFT')
         
         # Les admins voient tout
         elif user.is_admin:
             return VisaApplication.objects.all()
         
-        # Les ambassades voient les demandes de leur pays de résidence
+        # Les ambassades voient les demandes qui leur sont assignées (par zone géographique)
         elif user.is_embassy:
-            country = getattr(user, 'embassy_country', None)
-            queryset = VisaApplication.objects.all()
-            if country:
-                queryset = queryset.filter(residence_country=country)
-            return queryset
+            return VisaApplication.objects.filter(assigned_agent=user)
         
         return VisaApplication.objects.none()
 

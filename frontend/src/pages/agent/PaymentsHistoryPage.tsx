@@ -17,7 +17,9 @@ export default function PaymentsHistoryPage() {
     setLoading(true);
     try {
       const response = await api.get('/payments/');
-      setPayments(response.data);
+      // Gérer la pagination (DRF rend results) ou le wrapper api_response (rend data)
+      const data = response.data.results || response.data.data || response.data;
+      setPayments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Erreur chargement paiements:', error);
     } finally {
@@ -31,7 +33,7 @@ export default function PaymentsHistoryPage() {
 
   const filteredPayments = payments.filter(p => 
     p.transaction_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.application?.toLowerCase().includes(searchTerm.toLowerCase())
+    p.application_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadge = (status: string) => {
@@ -126,7 +128,7 @@ export default function PaymentsHistoryPage() {
                     <div className="font-mono text-xs font-bold text-cm-text">{p.transaction_id || 'MOCK-TXN-123'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-semibold text-cm-muted italic">{p.application?.split('-')[0] || 'Dossier'}</div>
+                    <div className="text-sm font-semibold text-cm-muted italic">{p.application_number || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-cm-text text-sm">{Number(p.amount).toLocaleString()} XAF</div>

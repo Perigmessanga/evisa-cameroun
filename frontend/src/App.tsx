@@ -116,8 +116,8 @@ export default function App() {
           <Route path="drafts" element={<DraftsPage />} />
         </Route>
 
-        {/* ── AGENT ROUTES ── */}
-        <Route path="/agent" element={<ProtectedRoute allowedRoles={['AGENT']}><DashboardLayout><Outlet/></DashboardLayout></ProtectedRoute>}>
+        {/* ── AGENT ROUTES (and EMBASSY since they share the same dashboard) ── */}
+        <Route path="/agent" element={<ProtectedRoute allowedRoles={['AGENT', 'EMBASSY']}><DashboardLayout><Outlet/></DashboardLayout></ProtectedRoute>}>
           <Route path="dashboard" element={<AgentDashboard />} />
           <Route path="applications" element={<ApplicationsListPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />

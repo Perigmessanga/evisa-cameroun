@@ -70,7 +70,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'first_name', 'last_name', 'full_name',
             'phone', 'role', 'is_active', 'is_email_verified',
-            'two_factor_enabled', 'created_at', 'last_login',
+            'two_factor_enabled', 'embassy_country', 'created_at', 'last_login',
         ]
         read_only_fields = ['id', 'email', 'role', 'created_at', 'last_login']
 
@@ -120,7 +120,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'first_name', 'last_name', 'phone',
             'role', 'is_active', 'is_email_verified',
-            'two_factor_enabled', 'created_at', 'last_login', 'password'
+            'two_factor_enabled', 'embassy_country', 'created_at', 'last_login', 'password'
         ]
         read_only_fields = ['id', 'created_at', 'last_login']
 
