@@ -3,14 +3,14 @@
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Download, Printer, ArrowLeft, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
+import { Download, Printer, ArrowLeft, CheckCircle2, QrCode, Loader2, User, Camera } from 'lucide-react';
 import CameroonFlag from '../../components/common/CameroonFlag';
 import applicationService from '../../services/applicationService';
 import toast from 'react-hot-toast';
 
 export default function DownloadVisaPage() {
   const { id } = useParams<{ id: string }>();
-  
+
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,26 +44,33 @@ export default function DownloadVisaPage() {
     window.print();
   };
 
+  const getApplicantPhoto = () => {
+    if (app?.biometric_photos?.passport_photo) return app.biometric_photos.passport_photo;
+    if (!app?.documents) return null;
+    const photoDoc = app.documents.find((d: { document_type: string; }) => d.document_type === 'PHOTO');
+    return photoDoc ? (typeof photoDoc.file === 'string' ? photoDoc.file : null) : null;
+  };
+
   const handleDownloadPdf = async () => {
     if (!id || !app.evisa) {
       toast.error('Erreur: e-Visa non généré.');
       return;
     }
-    
+
     setLoading(true);
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       // Remover string '/api/v1' extra se o baseUrl já tiver
       const urlBase = baseUrl.endsWith('/api/v1') ? baseUrl.slice(0, -7) : baseUrl;
-      
+
       const response = await fetch(`${urlBase}/api/evisas/${app.evisa.id}/download/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token')}`
         }
       });
-      
+
       if (!response.ok) throw new Error('Download failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -82,7 +89,7 @@ export default function DownloadVisaPage() {
 
   return (
     <div className="max-w-4xl mx-auto pb-12 animate-fadeIn">
-      
+
       <div className="mb-6">
         <Link to="/applicant/tracking" className="inline-flex items-center gap-2 text-sm font-semibold text-cm-muted hover:text-cm-text transition-colors">
           <ArrowLeft size={16} /> Retour au suivi
@@ -97,13 +104,13 @@ export default function DownloadVisaPage() {
           <p className="text-cm-muted mt-1">Votre document de voyage électronique est prêt.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-cm-border text-cm-text rounded-lg font-bold text-sm hover:bg-cm-cream transition-colors shadow-sm"
           >
             <Printer size={16} /> Imprimer
           </button>
-          <button 
+          <button
             onClick={handleDownloadPdf}
             className="flex items-center gap-2 px-5 py-2 bg-cm-green-mid text-white rounded-lg font-bold text-sm hover:bg-cm-green transition-colors shadow-md"
           >
@@ -114,10 +121,10 @@ export default function DownloadVisaPage() {
 
       {/* ── VISA DOCUMENT PREVIEW ── */}
       <div className="bg-white rounded-none sm:rounded-2xl shadow-[0_24px_80px_rgba(13,31,23,0.08)] border border-cm-border p-8 sm:p-12 relative overflow-hidden print:shadow-none print:border-none print:p-0">
-        
+
         {/* Decorative Top Border */}
         <div className="absolute top-0 left-0 w-full h-3 bg-linear-to-r from-cm-green-pale via-cm-green to-cm-gold" />
-        
+
         {/* Visa Header */}
         <div className="flex justify-between items-start border-b-2 border-cm-border pb-6 mb-8">
           <div className="flex gap-4">
@@ -138,9 +145,9 @@ export default function DownloadVisaPage() {
 
         {/* Visa Content */}
         <div className="grid md:grid-cols-4 gap-8">
-          
+
           <div className="md:col-span-3 space-y-6">
-            
+
             {/* Applicant Details */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               <div>
@@ -182,24 +189,24 @@ export default function DownloadVisaPage() {
                 <p className="font-bold text-cm-text text-sm sm:text-base">18 Jan 2024</p>
               </div>
             </div>
-            
+
           </div>
 
           {/* Right Column: Photo & QR */}
           <div className="flex flex-col items-center justify-start gap-6 border-l shrink-0 border-cm-border/50 pl-0 md:pl-8 pt-6 md:pt-0">
             {/* Real Photo if available */}
             <div className="w-28 h-36 bg-cm-cream border border-cm-border/70 rounded shadow-inner flex items-center justify-center p-1 overflow-hidden">
-               {app.documents?.find((d: any) => d.document_type === 'PHOTO') ? (
-                 <img 
-                   src={app.documents.find((d: any) => d.document_type === 'PHOTO').file_url} 
-                   alt="Profile" 
-                   className="w-full h-full object-cover rounded"
-                 />
-               ) : (
-                 <div className="w-full h-full bg-cm-border/20 flex items-center justify-center text-cm-muted text-[10px] text-center p-2">
-                   Photo<br/>Numérisée
-                 </div>
-               )}
+              {getApplicantPhoto() ? (
+                <img
+                  src={getApplicantPhoto() as string}
+                  alt="Profile"
+                  className="w-full h-full object-cover rounded"
+                />
+              ) : (
+                <div className="w-full h-full bg-cm-border/20 flex items-center justify-center text-cm-muted text-[10px] text-center p-2">
+                  Photo<br />Numérisée
+                </div>
+              )}
             </div>
 
             {/* Simulated QR Code */}
@@ -208,7 +215,7 @@ export default function DownloadVisaPage() {
               <span className="text-[8px] font-mono text-cm-muted mt-1 uppercase tracking-widest">{String(app.application_number || app.id).split('-')[0]}</span>
             </div>
           </div>
-          
+
         </div>
 
         {/* Visa Footer Note */}
@@ -218,9 +225,9 @@ export default function DownloadVisaPage() {
 
         {/* Watermark (Hidden on print, visible on screen) */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] print:opacity-10 z-0 overflow-hidden">
-           <div className="grayscale">
-             <CameroonFlag size={800} />
-           </div>
+          <div className="grayscale">
+            <CameroonFlag size={800} />
+          </div>
         </div>
 
       </div>
