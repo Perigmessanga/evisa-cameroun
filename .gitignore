@@ -19,5 +19,6 @@ dist/
 mysql_data/
 
 # OS
+*.zip
 .DS_Store
 Thumbs.db
