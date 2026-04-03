@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,charles237.pythonanywhere.com').split(',')
 
 # ─────────────────────────────────────────
 # APPLICATIONS
@@ -196,12 +196,9 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://localhost:5173",
-    "https://127.0.0.1:5173",
+    "https://charles237.pythonanywhere.com",
+    # "https://your-vercel-app.vercel.app",  # TODO: Ajouter l'URL Vercel ici
 ]
 
 CORS_ALLOW_CREDENTIALS = True
