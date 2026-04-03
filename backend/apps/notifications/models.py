@@ -135,19 +135,17 @@ class NotificationService:
     @classmethod
     def send_documents_requested(cls, application, agent_message):
         user = application.applicant
-        base_url = "http://localhost:3001"
+        base_url = "http://localhost:3000"  # Correction pour le lien frontend typique
         context = {
-            'user_name': user.get_full_name(),
             'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
-            'agent_message': agent_message,
             'liste_documents_requis': agent_message,
-            'lien_soummision_documents': f"{base_url}/applicant/application",
+            'lien_soumission_documents': f"{base_url}/applicant/tracking/{application.id}",
         }
         subject, message = cls._get_template_and_render(
             'DOC_REQUEST', context,
-            f'MISE À JOUR : Documents Complémentaires Requis - {application.application_number}',
-            f'Bonjour {user.get_full_name()},\n\nAprès examen de votre dossier n° {application.application_number}, des documents complémentaires sont nécessaires pour poursuivre le traitement.\n\nInstructions de l\'agent :\n--------------------------\n{agent_message}\n--------------------------\n\nVeuillez vous connecter à votre espace demandeur pour soumettre les documents manquants dès que possible.\n\nCordialement,\nService de l\'Immigration - Cameroun'
+            f'Documents supplémentaires requis — Dossier {application.application_number}',
+            f"Bonjour {context['nom_demandeur']},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\nL'équipe de traitement des visas e-Visa Cameroun"
         )
         cls._send(user, subject, message, application)
 

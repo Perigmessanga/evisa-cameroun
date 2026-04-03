@@ -1,0 +1,2 @@
+USER: ID=0ab55280-abd1-4194-bb2b-987ad3c784bc, Email=ambassade.france@evisa.cm, Role=EMBASSY, Country='France'
+APP: ID=acb7f591-0c1e-47e1-aec6-fa3e0e83b17b, Num=CMR-2026-DT48BBY8, Status=APPROVED, Residence='Autre', AssignedAgent=50941d9d-2920-4feb-9a61-6222eff6d261

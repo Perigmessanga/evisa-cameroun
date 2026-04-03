@@ -82,17 +82,28 @@ const visaService = {
     return response.data.data || response.data;
   },
 
-  downloadEVisa: async (id: string) => {
-    const response = await api.get(`/../../api/evisas/${id}/download/`, {
+  downloadEVisa: async (evisaId: string, visaNumber: string) => {
+    const response = await api.get(`/evisas/${evisaId}/download/`, {
       responseType: 'blob'
     });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `evisa_${id}.pdf`);
+    link.setAttribute('download', `evisa_${visaNumber}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();
+  },
+
+  uploadSupplementaryDocs: async (id: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    const response = await api.post(`/visa_applications/applications/${id}/upload_supplementary_docs/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
   }
 };
 

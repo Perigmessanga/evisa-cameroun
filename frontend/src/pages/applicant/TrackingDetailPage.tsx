@@ -6,6 +6,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Clock, FileWarning, Search, Calendar, MapPin, Download, Loader2 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
 import applicationService from '../../services/applicationService';
+import visaService from '../../services/visaService';
 import toast from 'react-hot-toast';
 
 export default function TrackingDetailPage() {
@@ -46,10 +47,11 @@ export default function TrackingDetailPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED': return <Badge variant="success">Approuvée</Badge>;
-      case 'IN_PROGRESS': return <Badge variant="warning">En cours</Badge>;
+      case 'PROCESSING': return <Badge variant="warning">En traitement</Badge>;
       case 'REJECTED': return <Badge variant="danger">Rejetée</Badge>;
       case 'SUBMITTED': return <Badge variant="warning">Soumise</Badge>;
-      default: return <Badge>{status}</Badge>;
+      case 'PENDING_DOCS': return <Badge variant="danger">Documents requis</Badge>;
+      default: return <Badge variant="default">{status}</Badge>;
     }
   };
 
@@ -62,7 +64,7 @@ export default function TrackingDetailPage() {
   const timelineSteps = [
     { label: 'Soumission', done: true },
     { label: 'Paiement', done: true },
-    { label: 'Traitement en cours', done: application.status === 'IN_PROGRESS' || application.status === 'APPROVED' },
+    { label: 'Traitement en cours', done: ['PROCESSING', 'PENDING_DOCS', 'PENDING_REVIEW', 'APPROVED'].includes(application.status) },
     { label: 'Décision finale', done: application.status === 'APPROVED' || application.status === 'REJECTED' },
   ];
 
@@ -158,7 +160,50 @@ export default function TrackingDetailPage() {
                     <p className="text-xs text-cm-green-mid mt-1 font-semibold">Visa délivré avec succès.</p>
                   )}
                   {step.done && idx === timelineSteps.length - 1 && application.status === 'REJECTED' && (
-                    <p className="text-xs text-cm-red mt-1 font-semibold">Demande rejetée.</p>
+                    <div className="mt-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-red-500 mb-1">Motif du rejet</p>
+                      <p className="text-sm text-red-700 font-medium italic leading-relaxed">
+                        {application.rejection_reason || 'Aucun motif détaillé n\'a été fourni par l\'agent.'}
+                      </p>
+                    </div>
+                  )}
+                  {application.status === 'PENDING_DOCS' && idx === 2 && (
+                    <div className="mt-2 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm animate-pulse-slow">
+                       <p className="text-[10px] uppercase tracking-wider font-bold text-amber-600 mb-2">Documents manquants requis</p>
+                       <p className="text-sm text-amber-800 font-medium italic mb-4 leading-relaxed">
+                         "{application.rejection_reason || "Veuillez vérifier vos emails pour la liste des documents à fournir."}"
+                       </p>
+                       
+                       <label className="block">
+                         <span className="sr-only">Choisir des fichiers</span>
+                         <input 
+                           type="file" 
+                           multiple
+                           onChange={async (e) => {
+                             const files = Array.from(e.target.files || []);
+                             if (files.length === 0) return;
+                             
+                             const loadingToast = toast.loading('Téléchargement des documents...');
+                             try {
+                               await visaService.uploadSupplementaryDocs(application.id, files);
+                               toast.success('Documents envoyés avec succès !', { id: loadingToast });
+                               // Recharger l'application
+                               applicationService.getApplication(application.id).then(setApplication);
+                             } catch (err) {
+                               toast.error('Erreur lors de l\'envoi.', { id: loadingToast });
+                             }
+                           }}
+                           className="block w-full text-sm text-amber-600
+                             file:mr-4 file:py-2 file:px-4
+                             file:rounded-xl file:border-0
+                             file:text-xs file:font-black
+                             file:bg-amber-600 file:text-white
+                             hover:file:bg-amber-700
+                             cursor-pointer"
+                         />
+                       </label>
+                       <p className="text-[9px] text-amber-500 mt-2 font-bold italic uppercase tracking-tighter">L'agent sera notifié dès que vous aurez soumis ces pièces.</p>
+                    </div>
                   )}
                 </div>
               ))}

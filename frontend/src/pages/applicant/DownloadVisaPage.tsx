@@ -45,13 +45,21 @@ export default function DownloadVisaPage() {
   };
 
   const getApplicantPhoto = () => {
+    // Préférer la photo officielle téléversée lors de la demande (PHOTO)
+    const photoDoc = app?.documents?.find((d: { document_type: string; }) => d.document_type === 'PHOTO');
+    if (photoDoc && photoDoc.file) {
+      return typeof photoDoc.file === 'string' ? photoDoc.file : (photoDoc.file as any).url;
+    }
+
+    // Fallback : Biométrie (Capture webcam ou autre)
     if (app?.biometric_photos?.passport_photo) return app.biometric_photos.passport_photo;
-    if (!app?.documents) return null;
-    const photoDoc = app.documents.find((d: { document_type: string; }) => d.document_type === 'PHOTO');
-    return photoDoc ? (typeof photoDoc.file === 'string' ? photoDoc.file : null) : null;
+    if (app?.biometric_photos?.face_image) return app.biometric_photos.face_image;
+    
+    return null;
   };
 
   const handleDownloadPdf = async () => {
+    // ... rest of the code is unchanged for now
     if (!id || !app.evisa) {
       toast.error('Erreur: e-Visa non généré.');
       return;
@@ -139,7 +147,7 @@ export default function DownloadVisaPage() {
           </div>
           <div className="text-right">
             <h3 className="font-black text-3xl tracking-widest text-cm-text/20 uppercase mb-1">E-VISA</h3>
-            <p className="text-xs font-bold text-cm-muted">No: <span className="text-cm-text">{app.application_number || app.id}</span></p>
+            <p className="text-xs font-bold text-cm-muted">No: <span className="text-cm-text">{app.evisa?.visa_number || app.application_number || app.id}</span></p>
           </div>
         </div>
 
@@ -178,15 +186,19 @@ export default function DownloadVisaPage() {
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Entrées / Entries</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">MULTIPLE</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base uppercase">{app.evisa?.entries || 'MULTIPLE'}</p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Délivré le / Issued On</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base">18 Oct 2023</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base">
+                  {app.evisa?.issue_date ? new Date(app.evisa.issue_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '---'}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] sm:text-xs font-bold text-cm-muted uppercase tracking-wider">Valable jusqu'au / Valid Until</p>
-                <p className="font-bold text-cm-text text-sm sm:text-base">18 Jan 2024</p>
+                <p className="font-bold text-cm-text text-sm sm:text-base">
+                   {app.evisa?.expiry_date ? new Date(app.evisa.expiry_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '---'}
+                </p>
               </div>
             </div>
 
