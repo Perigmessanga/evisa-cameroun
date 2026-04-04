@@ -198,7 +198,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "https://charles237.pythonanywhere.com",
-    # "https://your-vercel-app.vercel.app",  # TODO: Ajouter l'URL Vercel ici
+    "https://evisa-cameroun.vercel.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
