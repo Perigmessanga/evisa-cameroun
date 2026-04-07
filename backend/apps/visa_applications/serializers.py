@@ -42,8 +42,12 @@ class DocumentSerializer(serializers.ModelSerializer):
 
     def get_file_url(self, obj):
         request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
+        if obj.file:
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            # Fallback if no request context
+            from django.conf import settings
+            return f"{settings.BASE_BACKEND_URL.rstrip('/')}{obj.file.url}"
         return None
 
     def validate_file(self, value):
@@ -160,9 +164,20 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'biometric_data'):
             request = self.context.get('request')
             bio = obj.biometric_data
+            from django.conf import settings
+            base_url = settings.BASE_BACKEND_URL.rstrip('/') if hasattr(settings, 'BASE_BACKEND_URL') else ''
+            
+            face_url = None
+            if bio.face_image:
+                face_url = request.build_absolute_uri(bio.face_image.url) if request else f"{base_url}{bio.face_image.url}"
+                
+            passport_url = None
+            if bio.passport_photo:
+                passport_url = request.build_absolute_uri(bio.passport_photo.url) if request else f"{base_url}{bio.passport_photo.url}"
+                
             return {
-                'face_image': request.build_absolute_uri(bio.face_image.url) if bio.face_image and request else None,
-                'passport_photo': request.build_absolute_uri(bio.passport_photo.url) if bio.passport_photo and request else None,
+                'face_image': face_url,
+                'passport_photo': passport_url,
             }
         return None
 
@@ -258,7 +273,7 @@ class SecurityAlertSerializer(serializers.ModelSerializer):
 class VisaApplicationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # inclut les infos utilisateur
     visa_type = VisaTypeSerializer(read_only=True)
-    documents = serializers.StringRelatedField(many=True, read_only=True)  # ou DocumentSerializer si tu veux détaillé
+    documents = DocumentSerializer(many=True, read_only=True)
 
     class Meta:
         model = VisaApplication

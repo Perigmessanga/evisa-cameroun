@@ -68,7 +68,7 @@ export default function ApplicationDetailPage() {
     if (app?.biometric_photos?.face_image) return app.biometric_photos.face_image;
     if (!app?.documents) return null;
     const photoDoc = app.documents.find(d => d.document_type === 'PHOTO');
-    return photoDoc ? (typeof photoDoc.file === 'string' ? photoDoc.file : null) : null;
+    return photoDoc ? (photoDoc.file_url || photoDoc.file) : null;
   };
 
   if (loading) {
@@ -205,7 +205,7 @@ export default function ApplicationDetailPage() {
                      </div>
                   </div>
                   <a 
-                    href={doc.file as string} 
+                    href={(doc.file_url || doc.file) as string} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="p-2 text-cm-muted hover:text-cm-green hover:bg-cm-green/10 rounded-lg transition-all"

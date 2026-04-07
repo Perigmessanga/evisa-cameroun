@@ -130,7 +130,14 @@ export default function TrackingDetailPage() {
                     <span className="text-sm font-semibold text-cm-text">
                       {doc.document_type || doc.file_name || `Document ${index + 1}`}
                     </span>
-                    <CheckCircle2 size={16} className="text-cm-green-mid" />
+                    <a 
+                      href={(doc.file_url || doc.file) as string} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="p-1.5 text-cm-green-mid hover:bg-cm-green/10 rounded-lg transition-all"
+                    >
+                      <Download size={16} />
+                    </a>
                   </div>
                 ))
               ) : (
