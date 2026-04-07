@@ -9,6 +9,7 @@ import requests
 import json
 
 from apps.payments.models import Payment
+from django.conf import settings
 from apps.payments.serializers import (
     PaymentSerializer,
     PaymentInitiateSerializer,
@@ -123,17 +124,18 @@ class InitiatePaymentView(generics.CreateAPIView):
         }
         
         # Déterminer les URLs de redirection
-        # Dans un environnement réel, ces URLs devraient pointer vers le frontend
-        base_frontend_url = "http://localhost:3000" # À adapter selon l'env
+        # Utilisation des réglages configurés (local ou production)
+        base_frontend_url = settings.BASE_FRONTEND_URL
+        base_backend_url = settings.BASE_BACKEND_URL
         
         payload = {
             "amount": float(payment.amount),
             "currency": payment.currency,
             "customIdentifier": payment.transaction_id,
-            "callbackUrl": f"http://localhost:8000/api/v1/payments/webhook/awdpay/", # URL du webhook
+            "callbackUrl": f"{base_backend_url}/api/v1/payments/webhook/awdpay/", # URL du webhook
             "successUrl": f"{base_frontend_url}/applicant/payment-success?trxId={payment.transaction_id}",
             "failedUrl": f"{base_frontend_url}/applicant/payment-failed?trxId={payment.transaction_id}",
-            "test": True # Passer à False en production
+            "test": settings.DEBUG # Passer à False en production si DEBUG=False
         }
         
         try:

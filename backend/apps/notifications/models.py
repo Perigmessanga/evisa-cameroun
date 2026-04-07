@@ -84,7 +84,7 @@ class NotificationService:
     @classmethod
     def send_application_submitted(cls, application):
         user = application.applicant
-        base_url = "http://localhost:3001"
+        base_url = settings.BASE_FRONTEND_URL
         context = {
             'user_name': user.get_full_name(),
             'nom_demandeur': user.get_full_name(),
@@ -101,7 +101,7 @@ class NotificationService:
     @classmethod
     def send_application_approved(cls, application):
         user = application.applicant
-        base_url = "http://localhost:3001"
+        base_url = settings.BASE_FRONTEND_URL
         context = {
             'user_name': user.get_full_name(),
             'nom_demandeur': user.get_full_name(),
@@ -135,7 +135,7 @@ class NotificationService:
     @classmethod
     def send_documents_requested(cls, application, agent_message):
         user = application.applicant
-        base_url = "http://localhost:3000"  # Correction pour le lien frontend typique
+        base_url = settings.BASE_FRONTEND_URL
         context = {
             'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
@@ -265,4 +265,4 @@ class EmailTemplate(models.Model):
         ordering = ['type', 'name']
 
     def __str__(self):
-        return f"[{self.type}] {self.name}"
+        return f"[{self.type}] {self.name}"

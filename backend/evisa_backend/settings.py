@@ -202,9 +202,14 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-csrftoken',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://evisa-cameroun.vercel.app",
+    "https://charles237.pythonanywhere.com",
 ]
 
 # ─────────────────────────────────────────
@@ -247,3 +252,6 @@ if not DEBUG:
     AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # par défaut
 ]
+
+BASE_BACKEND_URL = config('BASE_BACKEND_URL')
+BASE_FRONTEND_URL = config('BASE_FRONTEND_URL')
