@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,charles237.pythonanywhere.com').split(',')
 
 # ─────────────────────────────────────────
 # APPLICATIONS
@@ -84,11 +84,13 @@ WSGI_APPLICATION = 'evisa_backend.wsgi.application'
 # ─────────────────────────────────────────
 # BASE DE DONNÉES
 # ─────────────────────────────────────────
-if 'test' in sys.argv:
+USE_SQLITE = config('USE_SQLITE', default=False, cast=bool)
+
+if 'test' in sys.argv or USE_SQLITE:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db_test.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 else:
@@ -195,14 +197,19 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://localhost:5173",
-    "https://127.0.0.1:5173",
+    "https://charles237.pythonanywhere.com",
+    "https://evisa-cameroun.vercel.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-csrftoken',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://evisa-cameroun.vercel.app",
+    "https://charles237.pythonanywhere.com",
 ]
 
 # ─────────────────────────────────────────
@@ -245,3 +252,6 @@ if not DEBUG:
     AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # par défaut
 ]
+
+BASE_BACKEND_URL = config('BASE_BACKEND_URL')
+BASE_FRONTEND_URL = config('BASE_FRONTEND_URL')

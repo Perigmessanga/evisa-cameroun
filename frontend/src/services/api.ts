@@ -5,7 +5,7 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://127.0.0.1:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://charles237.pythonanywhere.com/api/v1';
 
 console.log("API URL:", BASE_URL);
 

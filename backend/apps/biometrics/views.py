@@ -63,7 +63,11 @@ class BiometricDataViewSet(viewsets.ModelViewSet):
         # - Extraire l'encodage facial
         # - Calculer le score de qualité
         
-        # Pour l'instant, on simule
+        # Pour l'édition de brouillon, si la biométrie existe déjà, on la supprime pour la remplacer
+        if hasattr(application, 'biometric_data'):
+            application.biometric_data.delete()
+
+        # Enregistrer les nouvelles données
         biometric_data = serializer.save()
         
         # Simuler un score de qualité

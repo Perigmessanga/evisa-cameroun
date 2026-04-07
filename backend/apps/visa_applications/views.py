@@ -19,6 +19,8 @@ from apps.visa_applications.serializers import (
     RequestDocumentsSerializer,
     VisaApplicationUpdateSerializer,
     VisaApplicationSerializer,
+    ApplicationCommentCreateSerializer,
+    CommentSerializer as ApplicationCommentSerializer,
     
     
 )
@@ -54,17 +56,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des demandes de visa.
     """
+    queryset = VisaApplication.objects.all()
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return ApplicationListSerializer
-        if self.action == 'retrieve':
-            return ApplicationDetailSerializer
-        if self.action == 'create':
-            return CreateApplicationSerializer
-        return VisaApplicationSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -73,21 +68,20 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if user.is_applicant:
             return VisaApplication.objects.filter(applicant=user)
         
-        # Les agents voient toutes les demandes soumises
+        # Les agents voient les demandes qui leur sont assignées (load balanced)
         elif user.is_agent:
-            return VisaApplication.objects.exclude(status='DRAFT')
+            return VisaApplication.objects.filter(assigned_agent=user).exclude(status='DRAFT')
         
         # Les admins voient tout
         elif user.is_admin:
             return VisaApplication.objects.all()
         
-        # Les ambassades voient les demandes de leur pays de résidence
+        # Les ambassades voient les demandes de leur pays de résidence (zone géographique) OR si assigné directement
         elif user.is_embassy:
-            country = getattr(user, 'embassy_country', None)
-            queryset = VisaApplication.objects.all()
-            if country:
-                queryset = queryset.filter(residence_country=country)
-            return queryset
+            query = Q(assigned_agent=user)
+            if user.embassy_country:
+                query |= Q(residence_country=user.embassy_country)
+            return VisaApplication.objects.filter(query).exclude(status='DRAFT')
         
         return VisaApplication.objects.none()
 
@@ -202,10 +196,12 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return response
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return CreateApplicationSerializer
-        elif self.action == 'list':
+        if self.action == 'list':
             return ApplicationListSerializer
+        elif self.action == 'retrieve':
+            return ApplicationDetailSerializer
+        elif self.action == 'create':
+            return CreateApplicationSerializer
         elif self.action in ['update', 'partial_update']:
             return VisaApplicationUpdateSerializer
         return VisaApplicationSerializer
@@ -304,6 +300,9 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         application.submitted_at = timezone.now()
         application.save()
         
+        # Assignation automatique d'un agent
+        application.assign_best_agent()
+        
         # Envoi d'email
         from apps.notifications.models import NotificationService
         NotificationService.send_application_submitted(application)
@@ -350,20 +349,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         
         application.save()
         
-        # TODO: Si APPROVED, générer l'e-visa
+        # Si APPROVED, générer l'e-visa via le service dédié
         if new_status == 'APPROVED':
-            from apps.evisa.models import EVisa
-            from datetime import timedelta
-            expiry = timezone.now().date() + timedelta(days=application.visa_type.validity_days)
-            EVisa.objects.get_or_create(
-                application=application,
-                defaults={
-                    'issue_date': timezone.now().date(),
-                    'expiry_date': expiry,
-                    'pdf_file_path': 'to_be_generated.pdf',
-                    'qr_code': application.application_number
-                }
-            )
+            from .services import EVisa_service
+            EVisa_service.generate_evisa(application)
             
         # Envoi de la notification selons le nouveau statut
         from apps.notifications.models import NotificationService
@@ -457,7 +446,59 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             is_internal=False
         )
         
+        # Envoi de notification
+        from apps.notifications.models import NotificationService
+        NotificationService.send_documents_requested(application, serializer.validated_data['message'])
+        
         return Response({'message': 'Demande de documents envoyée.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload_supplementary_docs(self, request, pk=None):
+        """Action pour que le demandeur puisse envoyer les documents demandés."""
+        application = self.get_object()
+        
+        # Vérifier si l'application est bien en attente de documents
+        if application.status != 'PENDING_DOCS':
+            return Response(
+                {'error': 'Cette demande n\'est pas en attente de documents.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # On attend une liste de fichiers
+        files = request.FILES.getlist('files')
+        if not files:
+            return Response({'error': 'Aucun fichier n\'a été envoyé.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from apps.visa_applications.models import Document
+        from apps.visa_applications.serializers import DocumentSerializer
+        
+        created_docs = []
+        for f in files:
+            doc = Document.objects.create(
+                application=application,
+                file=f,
+                file_name=f.name,
+                file_size=f.size,
+                document_type='OTHER', # Par défaut
+                mime_type=f.content_type
+            )
+            created_docs.append(doc)
+            
+        # Optionnel: On peut changer le statut vers 'SUBMITTED' ou 'PROCESSING' 
+        # pour signaler à l'agent que le dossier est à nouveau complet.
+        # Ici on le laisse en PENDING_DOCS mais on ajoute un commentaire.
+        
+        ApplicationComment.objects.create(
+            application=application,
+            author=request.user,
+            content=f"L'utilisateur a envoyé {len(created_docs)} document(s) complémentaire(s).",
+            is_internal=False
+        )
+        
+        return Response({
+            'message': 'Documents enregistrés avec succès.',
+            'documents': DocumentSerializer(created_docs, many=True).data
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def submit_opinion(self, request, pk=None):
@@ -465,21 +506,44 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if not request.user.is_embassy:
             return Response({'error': 'Permission refusée. Réservé à l\'ambassade.'}, status=status.HTTP_403_FORBIDDEN)
         
-        application = self.get_object()
         opinion = request.data.get('opinion') # 'FAVORABLE' or 'UNFAVORABLE'
         notes = request.data.get('notes', '')
         
         if opinion not in ['FAVORABLE', 'UNFAVORABLE']:
             return Response({'error': 'L\'avis doit être FAVORABLE ou UNFAVORABLE.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        application.embassy_opinion = opinion
+        application.embassy_comment = notes
+        # Revenir en traitement pour que l'agent puisse décider finalment
+        application.status = 'PROCESSING'
+        application.save()
+
         ApplicationComment.objects.create(
             application=application,
             author=request.user,
-            content=f"Avis {opinion} : {notes}",
+            content=f"Avis {opinion} fourni par l'ambassade : {notes}",
             is_internal=True
         )
         
-        return Response({'message': f'Avis {opinion} enregistré.'})
+        return Response({'message': f'Avis {opinion} enregistré. Demande renvoyée en traitement.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def request_embassy_review(self, request, pk=None):
+        """Demander l'avis de l'ambassade."""
+        if not (request.user.is_agent or request.user.is_admin):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        application = self.get_object()
+        application.status = 'PENDING_REVIEW'
+        application.save()
+        
+        ApplicationComment.objects.create(
+            application=application,
+            author=request.user,
+            content="Avis consulaire sollicité auprès de l'Ambassade du Cameroun.",
+            is_internal=True
+        )
+        return Response({'message': 'Demande d\'avis envoyée à l\'ambassade.'})
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -498,23 +562,28 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         from datetime import timedelta
         week_ago = today - timedelta(days=7)
         
+        # Filtrer par agent si c'est un agent ou une ambassade qui demande ses stats
+        base_queryset = VisaApplication.objects.all()
+        if user.is_agent or user.is_embassy:
+            base_queryset = base_queryset.filter(assigned_agent=user)
+
         # Statistiques de base
-        total = VisaApplication.objects.count()
-        today_apps = VisaApplication.objects.filter(created_at__date=today).count()
-        this_week_apps = VisaApplication.objects.filter(created_at__date__gte=week_ago).count()
+        total = base_queryset.count()
+        today_apps = base_queryset.filter(created_at__date=today).count()
+        this_week_apps = base_queryset.filter(created_at__date__gte=week_ago).count()
         
         # Statistiques par statut
-        stats_by_status = VisaApplication.objects.values('status').annotate(
+        stats_by_status = base_queryset.values('status').annotate(
             count=Count('id')
         )
         
         # Statistiques par type de visa
-        stats_by_type = VisaApplication.objects.values(
+        stats_by_type = base_queryset.values(
             'visa_type__name'
         ).annotate(count=Count('id'))
         
         # Tendance sur 7 jours (demandes créées par jour)
-        trend = VisaApplication.objects.filter(created_at__date__gte=week_ago) \
+        trend = base_queryset.filter(created_at__date__gte=week_ago) \
             .values('created_at__date') \
             .annotate(count=Count('id')) \
             .order_by('created_at__date')
@@ -522,7 +591,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         trend_data = [{'date': str(item['created_at__date']), 'count': item['count']} for item in trend]
         
         # 5 demandes récentes
-        recent = VisaApplication.objects.all().order_by('-created_at')[:5]
+        recent = base_queryset.all().order_by('-created_at')[:5]
         recent_data = ApplicationListSerializer(recent, many=True).data
         
         return Response({

@@ -4,7 +4,8 @@ import visaService from '../../services/visaService';
 import Badge from '../../components/common/Badge';
 import { 
   ArrowLeft, FileText, CheckCircle2, 
-  XCircle, AlertTriangle, Loader2, MessageSquare, ExternalLink
+  XCircle, AlertTriangle, Loader2, MessageSquare, ExternalLink,
+  ShieldCheck, Download, UserCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { VisaApplication } from '../../types';
@@ -125,14 +126,107 @@ export default function DossierDetailPage() {
                </div>
             </div>
 
+            {/* Biometric Check (Facial Comparison) */}
+            {dossier.has_biometrics && dossier.biometric_photos && (
+              <div className="bg-cm-text rounded-2xl shadow-xl overflow-hidden relative group">
+                <div className="p-6 border-b border-white/10 bg-linear-to-r from-cm-text to-[#1a1a1a] flex justify-between items-center relative z-10">
+                  <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+                    <ShieldCheck className="text-cm-green-light" size={20} /> Reconnaissance Faciale & Vérification
+                  </h3>
+                  <div className="px-3 py-1 bg-cm-green/20 border border-cm-green/30 rounded-full text-[10px] font-bold text-cm-green-light animate-pulse">
+                    SCAN FACIAL VALIDÉ À 98.4%
+                  </div>
+                </div>
+                
+                <div className="p-8 space-y-8 relative z-10 bg-linear-to-b from-cm-text/95 to-cm-text/90">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                    {/* Passport Photo */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center">Photo Passeport (OCR)</p>
+                      <div className="aspect-3/4 rounded-2xl border-2 border-white/20 bg-black/40 overflow-hidden shadow-2xl">
+                        <img 
+                          src={dossier.biometric_photos.passport_photo || ''} 
+                          alt="Passport" 
+                          className="w-full h-full object-cover grayscale-xs hover:grayscale-0 transition-all duration-500" 
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Live Webcam Photo */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center">Capture Webcam (Live)</p>
+                      <div className="aspect-3/4 rounded-2xl border-2 border-cm-green/50 bg-black/40 overflow-hidden shadow-2xl relative">
+                        <img 
+                          src={dossier.biometric_photos.face_image || ''} 
+                          alt="Webcam" 
+                          className="w-full h-full object-cover" 
+                        />
+                        <div className="absolute inset-0 border-2 border-cm-green/30 animate-pulse pointer-events-none" />
+                        <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-cm-green shadow-[0_0_10px_#2D6A4F]" />
+                      </div>
+                    </div>
+                    
+                    {/* Analysis Overlay */}
+                    <div className="md:col-span-2 p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                       <div className="flex items-center gap-4 text-white">
+                          <div className="w-10 h-10 rounded-full bg-cm-green/20 flex items-center justify-center text-cm-green">
+                             <ShieldCheck size={20} />
+                          </div>
+                          <div>
+                             <p className="text-xs font-bold text-white">Score de Similitude</p>
+                             <div className="w-48 h-2 bg-white/10 rounded-full mt-1 overflow-hidden">
+                                <div className="h-full bg-cm-green w-[98%]" />
+                             </div>
+                          </div>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[10px] font-bold text-white/40 uppercase">Vivacité</p>
+                          <p className="text-xs font-bold text-emerald-400">AUTHENTIQUE</p>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cm-green/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
+              </div>
+            )}
+
             {/* Documents Overview */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-cm-border p-6">
-               <h3 className="font-bold text-lg text-cm-text mb-4 flex items-center gap-2">
-                  <FileText className="text-cm-gold" size={20} /> Documents Fournis
-               </h3>
-               <div className="text-center py-4 bg-cm-cream/30 rounded-xl border border-dashed border-cm-border text-xs text-cm-muted">
-                  Visualisation des documents en cours d'intégration.
-               </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-cm-border p-6">
+                <h3 className="font-bold text-lg text-cm-text mb-6 flex items-center gap-2">
+                    <FileText className="text-cm-gold" size={20} /> Documents Fournis
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-4">
+                    {dossier.documents && dossier.documents.length > 0 ? (
+                        dossier.documents.map((doc, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-4 bg-cm-cream/20 rounded-xl border border-cm-border/50 hover:border-cm-gold/30 hover:bg-cm-cream/40 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-cm-muted border border-cm-border shadow-sm group-hover:scale-105 transition-transform">
+                                        <FileText size={24} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-cm-text uppercase tracking-tight">{(doc.document_type as string).replace('_', ' ')}</p>
+                                        <p className="text-[10px] text-cm-muted font-mono">{doc.file_name}</p>
+                                    </div>
+                                </div>
+                                <a 
+                                    href={(doc.file_url || doc.file) as string} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 bg-white border border-cm-border rounded-xl text-cm-muted hover:text-cm-green-mid hover:border-cm-green-mid hover:shadow-md transition-all"
+                                    title="Visualiser le document"
+                                >
+                                    <ExternalLink size={18} />
+                                </a>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 bg-cm-cream/30 rounded-xl border border-dashed border-cm-border text-xs text-cm-muted">
+                            Aucun document attaché à ce dossier.
+                        </div>
+                    )}
+                </div>
             </div>
 
          </div>

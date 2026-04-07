@@ -1,111 +1,203 @@
-import React from 'react';
-import { History, Search, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import visaService from '../../services/visaService';
+import { 
+  FileText, Search, Filter, ArrowUpDown, 
+  MapPin, Clock, User, ChevronRight, Loader2, X
+} from 'lucide-react';
+import Badge from '../../components/common/Badge';
+import { VisaApplication } from '../../types';
 
+export default function HistoriqueControlesPage() {
+  const [history, setHistory] = useState<VisaApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedApp, setSelectedApp] = useState<VisaApplication | null>(null);
 
-const HistoriqueControlesPage: React.FC = () => {
-  const passages = [
-    { id: 1, type: "ENTRÉE", name: "John Smith", passport: "USA123456", time: "10:32", status: "Autorisé", gate: "Aéroport NSI" },
-    { id: 2, type: "SORTIE", name: "Marie Dubois", passport: "FRA987654", time: "09:15", status: "Autorisé", gate: "Aéroport DLA" },
-    { id: 3, type: "ENTRÉE", name: "Liam O'Connor", passport: "IRL456123", time: "08:45", status: "Refusé", gate: "Port Kribi" },
-    { id: 4, type: "ENTRÉE", name: "Chen Wei", passport: "CHN789012", time: "08:20", status: "Autorisé", gate: "Aéroport NSI" },
-  ];
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const data = await visaService.getBorderHistory();
+        setHistory(data);
+      } catch (error) {
+        console.error('Erreur chargement historique:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, []);
+
+  const filteredHistory = history.filter(item => 
+    item.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.passport_number?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ENTERED': return <Badge variant="success">ENTRÉE</Badge>;
+      case 'EXITED': return <Badge variant="info">SORTIE</Badge>;
+      case 'DENIED': return <Badge variant="danger">REFUS</Badge>;
+      default: return <Badge variant="default">INCONNU</Badge>;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('fr-FR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-cm-green mb-4" size={40} />
+        <p className="text-cm-muted font-semibold">Chargement de l'historique...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-cm-green">Historique des Contrôles</h1>
-            <p className="text-gray-600">Consultez tous les passages enregistrés aux postes frontières.</p>
-          </div>
+    <div className="space-y-6 animate-fadeIn pb-10">
+      
+      {/* ── HEADER ── */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-cm-text">Historique des Contrôles</h1>
+          <p className="text-cm-muted font-semibold">Archives des passages et vérifications aux frontières</p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Controls */}
-          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
-            <div className="relative w-full sm:w-96">
-              <Search className="absolute text-gray-400 left-3 top-1/2 -translate-y-1/2" size={20} />
-              <input 
-                type="text" 
-                placeholder="Rechercher par nom, passeport..." 
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cm-gold outline-none"
-              />
-            </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex-1 sm:flex-none">
-                <Filter size={18} />
-                <span>Filtres</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-sm text-gray-600 uppercase tracking-wider">
-                  <th className="p-4 font-semibold">Direction</th>
-                  <th className="p-4 font-semibold">Voyageur</th>
-                  <th className="p-4 font-semibold">Heure</th>
-                  <th className="p-4 font-semibold">Poste</th>
-                  <th className="p-4 font-semibold">Statut</th>
-                  <th className="p-4 font-semibold text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {passages.map((passage) => (
-                  <tr key={passage.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {passage.type === "ENTRÉE" ? (
-                          <div className="p-1.5 bg-green-100 text-cm-green rounded-full">
-                            <ArrowDownRight size={16} />
-                          </div>
-                        ) : (
-                          <div className="p-1.5 bg-blue-100 text-blue-700 rounded-full">
-                            <ArrowUpRight size={16} />
-                          </div>
-                        )}
-                        <span className="font-medium text-gray-800">{passage.type}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="font-semibold text-gray-800">{passage.name}</p>
-                      <p className="text-xs text-gray-500 font-mono">{passage.passport}</p>
-                    </td>
-                    <td className="p-4 text-gray-600">{passage.time}</td>
-                    <td className="p-4 text-gray-600">{passage.gate}</td>
-                    <td className="p-4">
-                      {passage.status === 'Autorisé' ? (
-                        <span className="px-2.5 py-1 bg-green-100 text-cm-green rounded-full text-xs font-semibold">Autorisé</span>
-                      ) : (
-                        <span className="px-2.5 py-1 bg-red-100 text-cm-red rounded-full text-xs font-semibold">Refusé</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <button className="text-cm-gold hover:underline font-medium text-sm">
-                        Détails
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="p-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-600 bg-white">
-            <span>Affichage de 1 à 4 sur 450 passages</span>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50">Précédent</button>
-              <button className="px-3 py-1 border border-gray-200 rounded bg-cm-green text-white">1</button>
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50">2</button>
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50">Suivant</button>
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+           <div className="px-4 py-2 bg-cm-green/10 text-cm-green rounded-xl font-bold text-sm">
+             {filteredHistory.length} Passages
+           </div>
         </div>
-
       </div>
-  );
-};
 
-export default HistoriqueControlesPage;
+      {/* ── SEARCH & FILTERS ── */}
+      <div className="bg-white p-4 rounded-2xl border border-cm-border shadow-sm flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <input 
+            type="text"
+            placeholder="Rechercher par nom ou n° passeport..."
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-cm-border focus:border-cm-green outline-hidden transition-all text-sm font-semibold"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cm-muted" size={18} />
+        </div>
+        <button className="px-4 py-2.5 bg-cm-cream text-cm-text rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-cm-border hover:bg-cm-border/20 transition-all">
+          <Filter size={18} /> Filtres Avancés
+        </button>
+      </div>
+
+      {/* ── TABLE AREA ── */}
+      <div className="bg-white rounded-2xl border border-cm-border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-cm-cream/40 text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-cm-muted border-b border-cm-border">
+              <tr>
+                <th className="px-6 py-4">Action</th>
+                <th className="px-6 py-4">Voyageur</th>
+                <th className="px-6 py-4">Document</th>
+                <th className="px-6 py-4 flex items-center gap-1">
+                  <Clock size={12} /> Date & Heure <ArrowUpDown size={10} />
+                </th>
+                <th className="px-6 py-4">Agent</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cm-border/50">
+              {filteredHistory.map((item) => (
+                <tr key={item.id} className="hover:bg-cm-cream/10 transition-colors group">
+                  <td className="px-6 py-4">
+                    {getStatusBadge(item.border_check_status || '')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-cm-text text-sm capitalize">{item.full_name}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-mono text-cm-muted">{item.passport_number}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-cm-text font-bold">
+                      {formatDate(item.border_checked_at as string)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                     <span className="text-xs font-bold text-cm-text italic">{item.processed_by_name || 'En attente'}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => setSelectedApp(item)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-cm-green-pale/10 text-cm-green rounded-lg text-xs font-bold hover:bg-cm-green-pale/20 transition-all"
+                    >
+                      Détails <ChevronRight size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filteredHistory.length === 0 && (
+          <div className="p-20 text-center">
+            <FileText className="mx-auto text-cm-muted opacity-20 mb-4" size={48} />
+            <p className="text-cm-muted font-bold italic">Aucun enregistrement trouvé</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── DETAILS MODAL ── */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setSelectedApp(null)} />
+          <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-slideUp">
+             <div className="bg-cm-green p-6 text-white flex justify-between items-center">
+                <h3 className="font-display text-xl font-bold">Détails du Voyageur</h3>
+                <button onClick={() => setSelectedApp(null)} className="p-2 hover:bg-white/20 rounded-xl transition-all">
+                  <X size={24} />
+                </button>
+             </div>
+             <div className="p-8 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">Nom Complet</p>
+                     <p className="font-bold text-cm-text">{selectedApp.full_name}</p>
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">Nationalité</p>
+                     <p className="font-bold text-cm-text">{selectedApp.nationality}</p>
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">N° Passeport</p>
+                     <p className="font-bold font-mono text-cm-text">{selectedApp.passport_number}</p>
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">Type de Visa</p>
+                     <p className="font-bold text-cm-text">{selectedApp.visa_type?.name || 'Tourisme'}</p>
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">Action Enregistrée</p>
+                     <div className="mt-1">{getStatusBadge(selectedApp.border_check_status || '')}</div>
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-cm-muted uppercase">Date de Contrôle</p>
+                     <p className="font-bold text-cm-text">{formatDate(selectedApp.border_checked_at as string)}</p>
+                   </div>
+                </div>
+                <div className="pt-6 border-t border-cm-border flex justify-end">
+                   <button 
+                     onClick={() => setSelectedApp(null)}
+                     className="px-6 py-2.5 bg-cm-text text-white rounded-xl font-bold"
+                   >
+                     Fermer
+                   </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

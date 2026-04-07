@@ -11,7 +11,7 @@ import {
   MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart, BookOpen, Plus
 } from 'lucide-react';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -35,6 +35,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return [
           { name: 'Tableau de bord', path: '/agent/dashboard', icon: <Home size={20} /> },
           { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} /> },
+          { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
         ];
       case 'ADMIN':
@@ -49,16 +51,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ];
       case 'EMBASSY':
         return [
-          { name: 'Avis Consulaire', path: '/ambassade/dashboard', icon: <Home size={20} /> },
-          { name: 'Dossiers Requis', path: '/ambassade/dossiers', icon: <FileText size={20} /> },
-          { name: 'Messagerie', path: '/ambassade/messagerie', icon: <Mail size={20} /> }
+          { name: 'Tableau de bord', path: `/agent/dashboard`, icon: <Home size={20} /> },
+          { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} /> },
+          { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
+          { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
         ];
       case 'BORDER':
         return [
           { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <MapPin size={20} /> },
           { name: 'Scan & Vérification', path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
           { name: 'Historique', path: '/frontiere/historique', icon: <FileText size={20} /> },
-          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> }
+          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> },
+          { name: 'Mon profil', path: '/frontiere/profile', icon: <User size={20} /> }
         ];
       default:
         return [];

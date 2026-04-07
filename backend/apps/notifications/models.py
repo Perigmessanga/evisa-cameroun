@@ -56,8 +56,18 @@ class NotificationService:
     @classmethod
     def _render_template(cls, email_template, context_dict):
         """Rend le sujet et le corps avec le dictionnaire de contexte."""
-        subject_template = DjangoTemplate(email_template.subject)
-        body_template = DjangoTemplate(email_template.body_text)
+        # Support pour les placeholders à accolades simples {var} en les convertissant en {{var}}
+        import re
+        subject_content = email_template.subject
+        body_content = email_template.body_text
+        
+        # Regex pour trouver {variable} mais pas {{variable}}
+        pattern = r'(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})'
+        subject_content = re.sub(pattern, r'{{\1}}', subject_content)
+        body_content = re.sub(pattern, r'{{\1}}', body_content)
+        
+        subject_template = DjangoTemplate(subject_content)
+        body_template = DjangoTemplate(body_content)
         context = Context(context_dict)
         return subject_template.render(context), body_template.render(context)
 
@@ -74,9 +84,12 @@ class NotificationService:
     @classmethod
     def send_application_submitted(cls, application):
         user = application.applicant
+        base_url = settings.BASE_FRONTEND_URL
         context = {
             'user_name': user.get_full_name(),
+            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
+            'lien_demande_visa': f"{base_url}/applicant/tracking/{application.id}",
         }
         subject, message = cls._get_template_and_render(
             'APP_SUBMIT', context,
@@ -88,9 +101,12 @@ class NotificationService:
     @classmethod
     def send_application_approved(cls, application):
         user = application.applicant
+        base_url = settings.BASE_FRONTEND_URL
         context = {
             'user_name': user.get_full_name(),
+            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
+            'lien_telechargement_evisa': f"{base_url}/applicant/download-visa/{application.id}",
         }
         subject, message = cls._get_template_and_render(
             'APP_APPROVE', context,
@@ -104,8 +120,10 @@ class NotificationService:
         user = application.applicant
         context = {
             'user_name': user.get_full_name(),
+            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
             'rejection_reason': getattr(application, 'rejection_reason', 'Non spécifié'),
+            'raison_refus': getattr(application, 'rejection_reason', 'Non spécifié'),
         }
         subject, message = cls._get_template_and_render(
             'APP_REJECT', context,
@@ -117,15 +135,17 @@ class NotificationService:
     @classmethod
     def send_documents_requested(cls, application, agent_message):
         user = application.applicant
+        base_url = settings.BASE_FRONTEND_URL
         context = {
-            'user_name': user.get_full_name(),
+            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
-            'agent_message': agent_message,
+            'liste_documents_requis': agent_message,
+            'lien_soumission_documents': f"{base_url}/applicant/tracking/{application.id}",
         }
         subject, message = cls._get_template_and_render(
             'DOC_REQUEST', context,
-            f'Demande {application.application_number} — Documents complémentaires requis',
-            f'Bonjour {user.get_full_name()},\n\nDes documents complémentaires sont nécessaires pour votre demande n° {application.application_number}.\n\nMessage de l\'agent : {agent_message}\n\nConnectez-vous à la plateforme pour les fournir.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Documents supplémentaires requis — Dossier {application.application_number}',
+            f"Bonjour {context['nom_demandeur']},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\nL'équipe de traitement des visas e-Visa Cameroun"
         )
         cls._send(user, subject, message, application)
 
@@ -245,4 +265,4 @@ class EmailTemplate(models.Model):
         ordering = ['type', 'name']
 
     def __str__(self):
-        return f"[{self.type}] {self.name}"
+        return f"[{self.type}] {self.name}"

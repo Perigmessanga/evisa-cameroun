@@ -28,7 +28,7 @@ export default function Footer() {
             <li>Mentions Légales</li>
             <li>Politique de Confidentialité</li>
             <li>Conditions Générales d'Utilisation</li>
-            <li className="pt-2 text-white">support@diplomatie.cm</li>
+            <li className="pt-2 text-white">messangaperig3@gmail.com</li>
           </ul>
         </div>
       </div>

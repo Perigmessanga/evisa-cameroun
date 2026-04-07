@@ -1,198 +1,263 @@
-import React, { useState } from 'react';
-import { Search, QrCode, UserCheck, UserX, Clock, AlertTriangle, Loader2, Fingerprint } from 'lucide-react';
+import { useState } from 'react';
+import { 
+  Scan, Search, ShieldCheck, User, 
+  MapPin, Calendar, FileText, CheckCircle2, 
+  XCircle, AlertTriangle, Loader2, ArrowLeft,
+  Camera, StopCircle
+} from 'lucide-react';
+import { useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import visaService from '../../services/visaService';
+import CameroonFlag from '../../components/common/CameroonFlag';
+import Badge from '../../components/common/Badge';
 import { VisaApplication } from '../../types';
-import toast from 'react-hot-toast';
 
-const VerificationVisaPage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
+export default function VerificationVisaPage() {
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [app, setApp] = useState<VisaApplication | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [recordLoading, setRecordLoading] = useState(false);
+  const [result, setResult] = useState<VisaApplication | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery) return;
-    
+  useEffect(() => {
+    let scanner: any = null;
+    if (isScanning) {
+      // @ts-ignore
+      scanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      }, false);
+
+      scanner.render((decodedText: string) => {
+        setQuery(decodedText);
+        setIsScanning(false);
+        scanner.clear();
+        // Optionnel: déclencher la recherche immédiatement
+        performSearch(decodedText);
+      }, (error: any) => {
+        // console.warn(error);
+      });
+    }
+
+    return () => {
+      if (scanner) {
+        try { scanner.clear(); } catch(e) {}
+      }
+    };
+  }, [isScanning]);
+
+  const performSearch = async (val: string) => {
     setLoading(true);
-    setSearchError(null);
-    setApp(null);
-    
+    setResult(null);
     try {
-      const result = await visaService.verifyEVisa(searchQuery.trim());
-      setApp(result);
+      const data = await visaService.verifyEVisa(val);
+      setResult(data);
     } catch (error: any) {
-      console.error('Erreur vérification visa:', error);
-      setSearchError(error.response?.data?.message || 'Visa introuvable ou invalide.');
-      toast.error('Vérification échouée.');
+      toast.error(error.response?.data?.message || 'Visa introuvable ou invalide');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRecordPassage = async (status: 'AUTHORIZED' | 'DENIED') => {
-    if (!app?.id) return;
-    setRecordLoading(true);
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query) return;
+    performSearch(query);
+  };
+
+  const handleRecordPassage = async (action: 'ENTRY' | 'EXIT' | 'DENIED') => {
+    if (!result) return;
+    
+    setActionLoading(true);
     try {
-      // status 'AUTHORIZED' maps to 'ENTRY' entry for now in this context? 
-      // Actually backend expects 'ENTRY' or 'EXIT'.
-      // If we are at the border, it's usually ENTRY.
-      await visaService.submitBorderCheckIn(app.id, 'ENTRY');
-      toast.success(`Passage ${status === 'AUTHORIZED' ? 'autorisé' : 'refusé'} enregistré.`);
-      setApp(null);
-      setSearchQuery('');
-    } catch (error) {
-      console.error('Erreur enregistrement passage:', error);
-      toast.error("Erreur lors de l'enregistrement.");
+      await visaService.submitBorderCheckIn(result.id, action);
+      toast.success(action === 'DENIED' ? "Entrée refusée enregistrée" : "Passage enregistré avec succès");
+      
+      // Refresh local state to show updated status
+      const updated = await visaService.verifyEVisa(result.passport_number);
+      setResult(updated);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur lors de l’enregistrement');
     } finally {
-      setRecordLoading(false);
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return <Badge variant="success">Visa Valide</Badge>;
+      case 'REJECTED': return <Badge variant="danger">Visa Rejeté</Badge>;
+      case 'EXPIRED': return <Badge variant="warning">Visa Expiré</Badge>;
+      default: return <Badge variant="default">{status}</Badge>;
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-cm-text">Vérification de Visa</h1>
-        <p className="text-cm-muted font-medium mt-1">Scannez le QR code ou entrez le numéro de visa/passeport.</p>
+    <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
+      
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-cm-text">Scan & Vérification</h1>
+          <p className="text-cm-muted font-semibold">Contrôle des titres de voyage à l'entrée/sortie</p>
+        </div>
+        <div className="hidden sm:block">
+           <CameroonFlag size={48} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Scan QR Box */}
-        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-cm-border flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 bg-cm-green-pale/20 text-cm-green-mid rounded-2xl flex items-center justify-center mb-4">
-            <QrCode size={32} />
-          </div>
-          <h3 className="text-lg font-bold text-cm-text mb-2">Scanner un QR Code</h3>
-          <p className="text-sm text-cm-muted mb-6">Utilisez la caméra pour scanner le QR code présent sur le e-Visa.</p>
-          
+      {/* ── SEARCH AREA ── */}
+      <div className="bg-white p-8 rounded-3xl border border-cm-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-6">
+        <form onSubmit={handleSearch} className="relative group">
+          <input 
+            type="text"
+            placeholder="Scannez QR Code ou entrez N° Passeport / N° Visa"
+            className="w-full h-16 pl-14 pr-32 rounded-2xl border-2 border-cm-border bg-cm-cream/30 focus:border-cm-green focus:bg-white transition-all outline-hidden font-bold text-lg"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Scan className="absolute left-5 top-1/2 -translate-y-1/2 text-cm-muted group-focus-within:text-cm-green transition-colors" size={24} />
           <button 
-            onClick={() => setIsScanning(!isScanning)}
-            className="px-6 py-3 bg-cm-green-mid text-white rounded-xl font-bold hover:shadow-lg transition-all w-full flex items-center justify-center gap-2"
+            type="submit"
+            disabled={loading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-cm-text text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center gap-2"
           >
-            <QrCode size={18} />
-            {isScanning ? 'Arrêter le scan' : 'Démarrer le scan'}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+            Vérifier
           </button>
-          
-          {isScanning && (
-            <div className="mt-4 w-full aspect-video bg-black rounded-xl flex items-center justify-center border-2 border-dashed border-cm-gold relative overflow-hidden">
-               <div className="absolute inset-x-0 top-1/2 h-0.5 bg-cm-gold/50 shadow-[0_0_10px_cm-gold] animate-scan-line"></div>
-               <p className="text-white text-xs font-bold">Caméra active - En attente...</p>
-            </div>
-          )}
-        </div>
+        </form>
 
-        {/* Manual Entry Box */}
-        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-cm-border">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-cm-cream rounded-lg text-cm-muted">
-              <Search size={20} />
-            </div>
-            <h3 className="text-lg font-bold text-cm-text">Saisie Manuelle</h3>
-          </div>
-          
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-cm-muted uppercase tracking-wider mb-2">Numéro de Visa ou Passeport</label>
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:ring-2 focus:ring-cm-green-mid focus:border-transparent outline-none transition-all uppercase font-mono text-sm"
-                placeholder="Ex: CM-2023-XXXX"
-              />
-            </div>
-            <button 
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-white border-2 border-cm-green-mid text-cm-green-mid font-bold rounded-xl hover:bg-cm-green-mid hover:text-white transition-all w-full flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : <><Search size={18} /> Vérifier manuellement</>}
-            </button>
-          </form>
-
-          {searchError && (
-            <div className="mt-4 p-3 bg-cm-red/5 border border-cm-red/20 rounded-xl flex items-center gap-2 text-cm-red text-sm font-bold">
-              <AlertTriangle size={16} />
-              {searchError}
-            </div>
-          )}
+        <div className="flex flex-col items-center gap-4">
+           {!isScanning ? (
+             <button 
+               onClick={() => setIsScanning(true)}
+               className="flex items-center gap-3 px-8 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all w-full md:w-auto"
+             >
+               <Camera size={24} /> Scanner le QR Code ici
+             </button>
+           ) : (
+             <div className="w-full max-w-sm space-y-4">
+                <div id="reader" className="overflow-hidden rounded-2xl border-4 border-cm-green shadow-xl bg-black min-h-[300px]"></div>
+                <button 
+                   onClick={() => setIsScanning(false)}
+                   className="w-full flex items-center justify-center gap-2 py-3 bg-cm-red text-white rounded-xl font-bold"
+                >
+                   <StopCircle size={20} /> Arrêter le scan
+                </button>
+             </div>
+           )}
         </div>
       </div>
 
-      {/* Results Box */}
-      {app && (
-        <div className={`p-8 rounded-2xl border-2 animate-slideUp ${
-          app.status === 'APPROVED' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-cm-red/5 border-cm-red/20'
-        }`}>
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="flex flex-col items-center gap-4 shrink-0">
-               <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
-                 app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-cm-red'
-               }`}>
-                 {app.status === 'APPROVED' ? <UserCheck size={48} /> : <UserX size={48} />}
-               </div>
-               <div className={`px-4 py-1.5 rounded-full font-bold text-sm ${
-                 app.status === 'APPROVED' ? 'bg-emerald-600 text-white' : 'bg-cm-red text-white'
-               }`}>
-                 {app.status === 'APPROVED' ? 'VISA VALIDE' : 'VISA INVALIDE'}
-               </div>
-            </div>
-            
-            <div className="flex-1 space-y-6">
-              <div className="grid sm:grid-cols-2 gap-y-6 gap-x-12 bg-white/60 p-6 rounded-2xl border border-white">
-                <div>
-                  <p className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-1">Titulaire</p>
-                  <p className="font-bold text-lg text-cm-text">{app.full_name}</p>
+      {/* ── RESULT AREA ── */}
+      {result && (
+        <div className="bg-white rounded-3xl border border-cm-border shadow-xl overflow-hidden animate-slideUp">
+          
+          {/* Status Header */}
+          <div className={`p-6 flex items-center justify-between ${result.status === 'APPROVED' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+            <div className="flex items-center gap-4">
+              {result.status === 'APPROVED' ? (
+                <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
+                  <CheckCircle2 size={24} />
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-1">Passeport</p>
-                  <p className="font-mono font-bold text-lg text-cm-text">{app.passport_number}</p>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg">
+                  <XCircle size={24} />
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-1">Type de Visa</p>
-                  <p className="font-bold text-cm-text">{app.visa_type?.name}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-1">Date d'Expiration</p>
-                  <p className="font-bold text-cm-text">{new Date(app.passport_expiry_date).toLocaleDateString('fr-FR')}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-1">Nationalité</p>
-                  <p className="font-bold text-cm-text">{app.nationality}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                   <Fingerprint size={16} className={app.has_biometrics ? 'text-cm-green-mid' : 'text-cm-muted'} />
-                   <span className={`text-xs font-bold ${app.has_biometrics ? 'text-cm-green-mid' : 'text-cm-muted'}`}>
-                     {app.has_biometrics ? 'BIOMÉTRIE VÉRIFIÉE' : 'BIOMÉTRIE MANQUANTE'}
-                   </span>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-cm-border/20">
-                <button 
-                  onClick={() => handleRecordPassage('DENIED')}
-                  disabled={recordLoading}
-                  className="px-6 py-3 bg-white border border-cm-red text-cm-red rounded-xl hover:bg-cm-red/5 transition-all flex items-center gap-2 font-bold text-sm disabled:opacity-50"
-                >
-                  <UserX size={18} /> Refuser l'entrée
-                </button>
-                <button 
-                  onClick={() => handleRecordPassage('AUTHORIZED')}
-                  disabled={recordLoading}
-                  className="px-8 py-3 bg-cm-green-mid text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-bold text-sm shadow-md disabled:opacity-50"
-                >
-                  {recordLoading ? <Loader2 size={18} className="animate-spin" /> : <><UserCheck size={18} /> Autoriser l'entrée</>}
-                </button>
+              )}
+              <div>
+                 <div className="text-xs font-bold uppercase tracking-wider text-cm-muted">Statut du Visa</div>
+                 <div className="mt-0.5">{getStatusBadge(result.status)}</div>
               </div>
             </div>
+            <div className="text-right">
+              <div className="text-xs font-bold uppercase tracking-wider text-cm-muted">N° Demande</div>
+              <div className="font-mono font-bold text-cm-text">{result.application_number}</div>
+            </div>
+          </div>
+
+          <div className="p-8 grid md:grid-cols-2 gap-10">
+            {/* Passenger Info */}
+            <div className="space-y-6">
+              <h3 className="font-display font-bold text-lg text-cm-text flex items-center gap-2 pb-2 border-b border-cm-border">
+                <User size={20} className="text-cm-green" /> Informations Voyageur
+              </h3>
+              <div className="grid grid-cols-2 gap-y-4 text-sm">
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Nom Complet</p>
+                  <p className="font-bold text-cm-text text-base">{result.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Nationalité</p>
+                  <p className="font-bold text-cm-text">{result.nationality}</p>
+                </div>
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">N° Passeport</p>
+                  <p className="font-bold text-cm-text font-mono text-base">{result.passport_number}</p>
+                </div>
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Genre</p>
+                  <p className="font-bold text-cm-text">{result.gender === 'MALE' ? 'Masculin' : 'Féminin'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Visa Info */}
+            <div className="space-y-6">
+              <h3 className="font-display font-bold text-lg text-cm-text flex items-center gap-2 pb-2 border-b border-cm-border">
+                <ShieldCheck size={20} className="text-cm-green" /> Détails du Titre
+              </h3>
+              <div className="grid grid-cols-2 gap-y-4 text-sm">
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Type de Visa</p>
+                  <p className="font-bold text-cm-text">{result.visa_type?.name || 'Standard'}</p>
+                </div>
+                <div>
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Validité</p>
+                  <p className="font-bold text-cm-text">
+                    {result.arrival_date ? new Date(result.arrival_date).toLocaleDateString() : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div className="p-8 bg-cm-cream/30 border-t border-cm-border flex flex-wrap gap-4">
+            <button
+              onClick={() => handleRecordPassage('ENTRY')}
+              disabled={actionLoading || result.status !== 'APPROVED'}
+              className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            >
+              {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+              Autoriser l'Entrée
+            </button>
+            <button
+              onClick={() => handleRecordPassage('EXIT')}
+              disabled={actionLoading || result.status !== 'APPROVED'}
+              className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            >
+              {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} />}
+              Enregistrer Sortie
+            </button>
+            <button
+              onClick={() => handleRecordPassage('DENIED')}
+              disabled={actionLoading}
+              className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-4 bg-cm-red text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-md"
+            >
+              {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <AlertTriangle size={20} />}
+              Refuser l'Entrée
+            </button>
           </div>
         </div>
       )}
 
+      {!result && !loading && (
+        <div className="text-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-cm-border">
+          <Scan className="mx-auto text-cm-muted mb-4 opacity-20" size={64} />
+          <p className="text-cm-muted font-semibold">En attente de scan ou de saisie...</p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default VerificationVisaPage;
+}

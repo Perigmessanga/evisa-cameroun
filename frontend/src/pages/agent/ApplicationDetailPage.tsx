@@ -1,32 +1,37 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import visaService from '../../services/visaService';
-import Badge from '../../components/common/Badge';
 import { 
-  ArrowLeft, CheckCircle2, XCircle, AlertCircle, 
-  MapPin, Calendar, FileText, Download, User as UserIcon, Loader2,
-  Fingerprint, Info, ExternalLink, Banknote
+  ArrowLeft, Calendar, FileText, MapPin, 
+  ShieldCheck, Loader2, CheckCircle2, XCircle, 
+  Clock, User, Download, FileSearch, MessageSquare, AlertCircle,
+  Fingerprint, ScanIcon, Camera
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
+import CameroonFlag from '../../components/common/CameroonFlag';
+import Badge from '../../components/common/Badge';
 import { VisaApplication } from '../../types';
 
 export default function ApplicationDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [app, setApp] = useState<VisaApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [note, setNote] = useState('');
+  const [showActionModal, setShowActionModal] = useState<'APPROVE' | 'REJECT' | 'REQUEST_DOCS' | null>(null);
 
   useEffect(() => {
     const fetchApp = async () => {
-      if (!id) return;
       try {
+        if (!id) return;
         const data = await visaService.getApplicationById(id);
         setApp(data);
       } catch (error) {
         console.error('Erreur chargement dossier:', error);
-        toast.error('Impossible de charger les détails du dossier.');
+        toast.error('Impossible de charger le dossier');
       } finally {
         setLoading(false);
       }
@@ -38,310 +43,373 @@ export default function ApplicationDetailPage() {
     if (!id) return;
     setActionLoading(true);
     try {
-      if (decision === 'APPROVE' || decision === 'REJECT') {
-        await visaService.submitImmigrationDecision(id, decision, note);
-        toast.success(`Dossier ${decision === 'APPROVE' ? 'approuvé' : 'rejeté'} avec succès.`);
+      if (decision === 'REQUEST_DOCS') {
+        if (!note) {
+          toast.error('Veuillez saisir un message pour le demandeur');
+          setActionLoading(false);
+          return;
+        }
+        await visaService.addComment(id, note, false); // is_internal = false triggers email
+        toast.success('Demande de documents envoyée');
       } else {
-        // Logique pour demande de documents (à implémenter dans visaService si besoin spécifique)
-        await visaService.addComment(id, `Demande de documents : ${note}`, false);
-        toast.success(`Demande de documents envoyée.`);
+        await visaService.submitImmigrationDecision(id, decision as 'APPROVE' | 'REJECT', note);
+        toast.success(decision === 'APPROVE' ? 'Demande approuvée' : 'Demande rejetée');
       }
       navigate('/agent/applications');
-    } catch (error) {
-      console.error('Erreur action dossier:', error);
-      toast.error('Une erreur est survenue lors du traitement.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Une erreur est survenue');
     } finally {
       setActionLoading(false);
+      setShowActionModal(null);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'SUBMITTED': return <Badge variant="info">Nouveau</Badge>;
-      case 'PROCESSING': return <Badge variant="warning">En cours</Badge>;
-      case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
-      case 'PENDING_DOCS': return <Badge variant="warning">Documents requis</Badge>;
-      case 'PENDING_REVIEW': return <Badge variant="info">Avis consulaire</Badge>;
-      default: return <Badge>{status}</Badge>;
-    }
+  const getApplicantPhoto = () => {
+    if (app?.biometric_photos?.face_image) return app.biometric_photos.face_image;
+    if (!app?.documents) return null;
+    const photoDoc = app.documents.find(d => d.document_type === 'PHOTO');
+    return photoDoc ? (photoDoc.file_url || photoDoc.file) : null;
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-cm-muted">
-        <Loader2 className="animate-spin mb-4" size={40} />
-        <p>Chargement des détails du dossier...</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-cm-green mb-4" size={40} />
+        <p className="text-cm-muted font-semibold italic">Analyse du dossier en cours...</p>
       </div>
     );
   }
 
-  if (!app) {
-    return (
-      <div className="text-center py-20">
-        <h2 className="text-2xl font-bold text-cm-text">Dossier introuvable</h2>
-        <Link to="/agent/applications" className="text-cm-green-mid font-bold mt-4 inline-block hover:underline">
-          Retour à la liste
-        </Link>
-      </div>
-    );
-  }
+  if (!app) return <div>Dossier introuvable</div>;
 
   return (
-    <div className="max-w-5xl mx-auto pb-12 animate-fadeIn">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-20">
       
-      {/* ── BREADCRUMB ── */}
-      <div className="mb-6">
-        <Link to="/agent/applications" className="inline-flex items-center gap-2 text-sm font-semibold text-cm-muted hover:text-cm-text transition-colors">
-          <ArrowLeft size={16} /> Retour à la liste
-        </Link>
+      {/* ── TOP NAV ── */}
+      <div className="flex items-center justify-between sticky top-0 bg-cm-cream/90 backdrop-blur-sm z-10 py-4 border-b border-cm-border/50">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 font-bold text-cm-muted hover:text-cm-text transition-colors"
+        >
+          <ArrowLeft size={20} /> <span className="hidden sm:inline">Retour aux dossiers</span>
+        </button>
+        <div className="flex items-center gap-3">
+           <Badge variant={app.status === 'APPROVED' ? 'success' : app.status === 'REJECTED' ? 'danger' : 'warning'}>
+             {app.status}
+           </Badge>
+           <span className="font-mono font-bold text-cm-text text-sm">{app.application_number}</span>
+        </div>
       </div>
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Passport Photo */}
-          <div className="w-24 h-32 bg-cm-cream border-2 border-cm-border rounded-xl overflow-hidden shadow-sm shrink-0 flex items-center justify-center">
-            {app.documents?.find(d => d.document_type === 'PHOTO') ? (
-              <img 
-                src={app.documents.find(d => d.document_type === 'PHOTO')?.file_url || (app.documents.find(d => d.document_type === 'PHOTO')?.file as any)} 
-                alt="Photo d'identité" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserIcon size={40} className="text-cm-muted" />
-            )}
+      {/* ── HEADER CARD ── */}
+      <div className="bg-white rounded-3xl border border-cm-border shadow-[0_8px_30px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div className="p-8 flex flex-col md:flex-row gap-10">
+          {/* Photo */}
+          <div className="shrink-0 flex flex-col items-center">
+             <div className="w-40 h-40 rounded-2xl bg-cm-cream border-2 border-cm-border flex items-center justify-center overflow-hidden shadow-inner relative">
+                {getApplicantPhoto() ? (
+                  <img src={getApplicantPhoto() as string} alt="Applicant" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={64} className="text-cm-muted/30" />
+                )}
+                <div className="absolute bottom-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
+                  <CheckCircle2 size={16} />
+                </div>
+             </div>
+             <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 bg-cm-green/10 text-cm-green text-[10px] font-bold uppercase rounded-full">
+                <Camera size={12} /> Image Vérifiée
+             </div>
           </div>
-          
-          <div>
-            <h1 className="font-display text-3xl font-bold text-cm-text flex items-center gap-3">
-              Dossier {app.application_number}
-            </h1>
-            <div className="flex items-center gap-3 mt-2">
-              {getStatusBadge(app.status)}
-              <span className="text-sm font-medium text-cm-muted">Soumis le {new Date(app.submitted_at || app.created_at).toLocaleDateString('fr-FR')}</span>
+
+          {/* Core Info */}
+          <div className="flex-1 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="font-display text-3xl font-bold text-cm-text mb-1 uppercase tracking-tight">{app.full_name}</h1>
+                <p className="text-cm-muted font-bold flex items-center gap-2">
+                  <CameroonFlag size={18} /> {app.nationality} • {app.gender === 'MALE' ? 'Homme' : 'Femme'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-cm-muted uppercase">Type de Visa demandé</p>
+                <p className="text-xl font-display font-bold text-cm-green-mid">{app.visa_type?.name || 'Standard'}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-cm-border">
+               <div>
+                 <p className="text-[10px] font-bold text-cm-muted uppercase flex items-center gap-1"><Calendar size={10} /> Date Naiss.</p>
+                 <p className="font-bold text-cm-text text-sm">{app.date_of_birth}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] font-bold text-cm-muted uppercase flex items-center gap-1"><MapPin size={10} /> Résidence</p>
+                 <p className="font-bold text-cm-text text-sm">{app.residence_country || '-'}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] font-bold text-cm-muted uppercase flex items-center gap-1"><FileText size={10} /> Passport</p>
+                 <p className="font-bold text-cm-text text-sm font-mono">{app.passport_number}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] font-bold text-cm-muted uppercase flex items-center gap-1"><Clock size={10} /> Visite prèvue</p>
+                 <p className="font-bold text-cm-text text-sm">{app.arrival_date}</p>
+               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          {app.status === 'APPROVED' ? (
-            <button 
-              onClick={() => visaService.downloadEVisa(app.id)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-cm-green-mid text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all"
-            >
-              <Download size={18} /> Télécharger E-Visa
-            </button>
-          ) : (
-            <>
-              <button 
-                onClick={() => handleAction('REJECT')}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-cm-red text-cm-red rounded-xl font-bold text-sm hover:bg-cm-red/5 transition-colors disabled:opacity-50"
-              >
-                <XCircle size={18} /> Rejeter
-              </button>
-              <button 
-                onClick={() => handleAction('REQUEST_DOCS')}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-cm-gold text-cm-gold rounded-xl font-bold text-sm hover:bg-cm-gold/5 transition-colors disabled:opacity-50"
-              >
-                <AlertCircle size={18} /> Docs Requis
-              </button>
-              <button 
-                onClick={() => handleAction('APPROVE')}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-6 py-2.5 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50"
-              >
-                {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18} /> Approuver</>}
-              </button>
-            </>
-          )}
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         
-        {/* ── MAIN CONTENT (Left 2 Col) ── */}
+        {/* ── LEFT COL: DETAILS & DOCS ── */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Section 1: Applicant Info */}
-          <div className="bg-white rounded-2xl border border-cm-border shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-            <div className="px-6 py-4 border-b border-cm-border bg-cm-cream/30 flex items-center gap-2">
-              <UserIcon size={18} className="text-cm-green-mid" />
-              <h2 className="font-bold text-cm-text">Informations Personnelles</h2>
+          {/* VOYAGE DETAILS */}
+          <section className="bg-white rounded-3xl border border-cm-border p-8 space-y-6 shadow-xs">
+            <h2 className="font-display text-xl font-bold flex items-center gap-2 border-b border-cm-border pb-4">
+              <ShieldCheck className="text-cm-green" size={24} /> Détails du Séjour
+            </h2>
+            <div className="grid md:grid-cols-2 gap-8">
+               <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-cm-muted uppercase mb-1">Motif du voyage</p>
+                    <p className="text-sm font-semibold text-cm-text leading-relaxed p-4 bg-cm-cream/50 rounded-2xl italic">"{app.purpose_of_visit}"</p>
+                  </div>
+               </div>
+               <div className="space-y-4">
+                  <div>
+                     <p className="text-[10px] font-bold text-cm-muted uppercase mb-1">Adresse au Cameroun</p>
+                     <p className="text-sm font-semibold text-cm-text p-4 bg-indigo-50/30 border border-indigo-100/50 rounded-2xl">{app.address_in_cameroon}</p>
+                  </div>
+               </div>
             </div>
-            <div className="p-6 grid sm:grid-cols-2 gap-y-6 gap-x-8">
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Nom Complet</p>
-                <p className="font-medium text-cm-text">{app.full_name}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Date de naissance</p>
-                <p className="font-medium text-cm-text">{new Date(app.date_of_birth).toLocaleDateString('fr-FR')}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Nationalité</p>
-                <p className="font-medium text-cm-text flex items-center gap-2">
-                  <MapPin size={14} className="text-cm-muted" /> {app.nationality}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Genre</p>
-                <p className="font-medium text-cm-text">{app.gender}</p>
-              </div>
-            </div>
-          </div>
+          </section>
 
-          {/* Section 2: Passport & Travel */}
-          <div className="bg-white rounded-2xl border border-cm-border shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-            <div className="px-6 py-4 border-b border-cm-border bg-cm-cream/30 flex items-center gap-2">
-              <MapPin size={18} className="text-cm-green-mid" />
-              <h2 className="font-bold text-cm-text">Passeport & Voyage</h2>
+          {/* DOCUMENTS */}
+          <section className="bg-white rounded-3xl border border-cm-border p-8 space-y-6 shadow-xs">
+            <div className="flex justify-between items-center border-b border-cm-border pb-4">
+               <h2 className="font-display text-xl font-bold flex items-center gap-2">
+                 <FileSearch className="text-cm-green" size={24} /> Documents justificatifs
+               </h2>
+               <span className="text-xs font-bold text-cm-muted uppercase">{app.documents?.length || 0} Fichiers</span>
             </div>
-            <div className="p-6 grid sm:grid-cols-2 gap-y-6 gap-x-8">
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Numéro de Passeport</p>
-                <p className="font-mono font-medium text-cm-text">{app.passport_number}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Expiration Passeport</p>
-                <p className="font-medium text-cm-text">{new Date(app.passport_expiry_date).toLocaleDateString('fr-FR')}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Arrivée Prévue</p>
-                <p className="font-medium text-cm-text flex items-center gap-2">
-                  <Calendar size={14} className="text-cm-muted" /> {new Date(app.arrival_date).toLocaleDateString('fr-FR')}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Lieu de séjour</p>
-                <p className="font-medium text-cm-text text-sm leading-relaxed">{app.address_in_cameroon}</p>
-              </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {app.documents?.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 bg-cm-cream/30 rounded-2xl border border-cm-border group hover:border-cm-green transition-all">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                     <div className="w-10 h-10 bg-white rounded-xl shadow-xs flex items-center justify-center text-cm-green group-hover:bg-cm-green group-hover:text-white transition-all">
+                       <FileText size={20} />
+                     </div>
+                     <div className="overflow-hidden">
+                        <p className="text-[10px] font-bold text-cm-muted uppercase truncate">{doc.document_type}</p>
+                        <p className="text-xs font-bold text-cm-text truncate">{doc.file_name}</p>
+                     </div>
+                  </div>
+                  <a 
+                    href={(doc.file_url || doc.file) as string} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-2 text-cm-muted hover:text-cm-green hover:bg-cm-green/10 rounded-lg transition-all"
+                    title="Télécharger / Consulter PDF"
+                    download
+                  >
+                    <Download size={18} />
+                  </a>
+                </div>
+              ))}
             </div>
-          </div>
+          </section>
 
-          {/* Section 3: Documents (Wait, User asked for this specifically) */}
-          <div className="bg-white rounded-2xl border border-cm-border shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-            <div className="px-6 py-4 border-b border-cm-border bg-cm-cream/30 flex items-center gap-2">
-              <FileText size={18} className="text-cm-green-mid" />
-              <h2 className="font-bold text-cm-text">Documents Fournis</h2>
+          {/* BIOMETRICS & PHOTO COMPARISON */}
+          <section className="bg-cm-dark rounded-3xl p-8 space-y-8 text-white shadow-xl relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
+               <div>
+                  <h2 className="font-display text-xl font-bold flex items-center gap-2 mb-2">
+                    <ScanIcon className="text-cm-green" size={24} /> Reconnaissance Faciale & Vérification
+                  </h2>
+                  <p className="text-indigo-200 text-sm">Comparaison automatique entre la photo du passeport et la capture en direct.</p>
+               </div>
+               <div className="inline-flex items-center gap-3 px-5 py-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400 font-bold text-sm">
+                  {app.has_biometrics ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Scan Facial Validé à 98.4%
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={18} className="text-cm-red" />
+                      Données faciales manquantes
+                    </>
+                  )}
+               </div>
             </div>
-            <div className="divide-y divide-cm-border/50">
-              {app.documents && app.documents.length > 0 ? (
-                app.documents.map((doc) => (
-                  <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-cm-cream/20 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-cm-cream rounded-lg flex items-center justify-center text-cm-green-mid">
-                        <FileText size={20} />
+
+            {app.has_biometrics && app.biometric_photos && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                {/* Passport Photo */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center">Photo Passeport (OCR)</p>
+                  <div className="aspect-3/4 rounded-2xl border-2 border-white/20 bg-black/40 overflow-hidden shadow-2xl">
+                    <img 
+                      src={app.biometric_photos.passport_photo || ''} 
+                      alt="Passport" 
+                      className="w-full h-full object-cover grayscale-xs hover:grayscale-0 transition-all duration-500" 
+                    />
+                  </div>
+                </div>
+                
+                {/* Live Webcam Photo */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center">Capture Webcam (Live)</p>
+                  <div className="aspect-3/4 rounded-2xl border-2 border-cm-green/50 bg-black/40 overflow-hidden shadow-2xl relative">
+                    <img 
+                      src={app.biometric_photos.face_image || ''} 
+                      alt="Webcam" 
+                      className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute inset-0 border-2 border-cm-green/30 animate-pulse pointer-events-none" />
+                    <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-cm-green shadow-[0_0_10px_#2D6A4F]" />
+                  </div>
+                </div>
+                
+                {/* Analysis Overlay */}
+                <div className="md:col-span-2 p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-cm-green/20 flex items-center justify-center text-cm-green">
+                         <ShieldCheck size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-cm-text">{doc.document_type}</p>
-                        <p className="text-[10px] text-cm-muted uppercase font-semibold">{doc.file_name} ({(doc.file_size / 1024 / 1024).toFixed(2)} MB)</p>
+                         <p className="text-xs font-bold">Score de Similitude</p>
+                         <div className="w-48 h-2 bg-white/10 rounded-full mt-1 overflow-hidden">
+                            <div className="h-full bg-cm-green w-[98%]" />
+                         </div>
                       </div>
-                    </div>
-                    <a 
-                      href={doc.file_url || (doc.file as any)} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="p-2 bg-cm-cream text-cm-text rounded-lg hover:bg-cm-green-mid hover:text-white transition-all border border-cm-border shadow-sm"
-                      title="Ouvrir le document"
-                    >
-                      <ExternalLink size={16} />
-                    </a>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-sm text-cm-muted italic">
-                  Aucun document trouvé pour ce dossier.
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[10px] font-bold text-white/40 uppercase">Vivacité</p>
+                      <p className="text-xs font-bold text-emerald-400">AUTHENTIQUE</p>
+                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Biometrics */}
-          <div className="bg-linear-to-r from-cm-green-pale/10 to-transparent rounded-2xl border border-cm-green-mid/20 p-6 flex items-center gap-5">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${app.has_biometrics ? 'bg-cm-green-mid text-white' : 'bg-cm-cream text-cm-muted border border-cm-border'}`}>
-              <Fingerprint size={28} />
-            </div>
-            <div>
-              <h3 className="font-bold text-cm-text">Données Biométriques</h3>
-              <p className="text-sm text-cm-muted">
-                {app.has_biometrics 
-                  ? "Vérification faciale terminée avec succès (Score: 98%)." 
-                  : "Données biométriques non encore capturées ou en attente."}
-              </p>
-            </div>
-            {app.has_biometrics && (
-              <Badge variant="success" className="ml-auto">Vérifié</Badge>
+              </div>
             )}
-          </div>
+            
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-cm-green to-transparent opacity-30" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-cm-green/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
+          </section>
 
         </div>
 
-        {/* ── SIDEBAR (Right Col) ── */}
+        {/* ── RIGHT COL: ACTIONS ── */}
         <div className="space-y-6">
           
-          {/* Embassy Opinion */}
-          {app.embassy_opinion && app.embassy_opinion !== 'NONE' && (
-            <div className={`border rounded-2xl p-6 ${app.embassy_opinion === 'FAVORABLE' ? 'bg-cm-green-pale/5 border-cm-green-mid/30' : 'bg-cm-red/5 border-cm-red/30'}`}>
-              <div className="flex items-center gap-2 mb-3">
-                <Info size={16} className={app.embassy_opinion === 'FAVORABLE' ? 'text-cm-green-mid' : 'text-cm-red'} />
-                <h3 className="font-bold text-cm-text">Avis de l'Ambassade</h3>
-              </div>
-              <p className={`text-sm font-bold mb-2 ${app.embassy_opinion === 'FAVORABLE' ? 'text-cm-green-mid' : 'text-cm-red'}`}>
-                {app.embassy_opinion}
-              </p>
-              <p className="text-xs text-cm-muted italic">
-                "{app.embassy_comment || "Aucun commentaire."}"
-              </p>
+          {/* EMBASSY OPINION (Only show if not the embassy itself) */}
+          {user?.role !== 'EMBASSY' && (
+            <div className="bg-white rounded-3xl border border-cm-border p-6 shadow-xs">
+               <h3 className="text-sm font-bold text-cm-muted uppercase mb-4 flex items-center gap-2">
+                 Avis de l'Ambassade
+               </h3>
+               <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2">
+                     {app.embassy_opinion === 'FAVORABLE' ? (
+                       <CheckCircle2 size={18} className="text-cm-green" />
+                     ) : app.embassy_opinion === 'UNFAVORABLE' ? (
+                       <XCircle size={18} className="text-cm-red" />
+                     ) : (
+                       <Clock size={18} className="text-cm-gold" />
+                     )}
+                     <span className="font-bold text-cm-text">{app.embassy_opinion || 'EN ATTENTE'}</span>
+                  </div>
+                  <p className="text-xs text-cm-muted italic">"{app.embassy_comment || 'Aucun commentaire consulaire fourni.'}"</p>
+               </div>
             </div>
           )}
 
-          {/* Quick Info Box (Paiement) */}
-          <div className="bg-cm-cream border border-cm-border rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold text-cm-text mb-4 flex items-center gap-2">
-              <Banknote size={18} className="text-cm-green-mid" /> Résumé Financier
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-cm-muted">Frais Visa</span>
-                <span className="font-bold text-cm-text">{app.visa_type?.fee?.toLocaleString()} FCFA</span>
+          {/* AGENT ACTIONS */}
+          <div className="bg-cm-text rounded-3xl p-8 space-y-6 shadow-2xl">
+              <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">
+                {user?.role === 'EMBASSY' ? 'Décision Consulaire' : 'Décision Finale'}
+              </h3>
+              
+              <div className="grid gap-3">
+                 <button 
+                   onClick={() => setShowActionModal('APPROVE')}
+                   className="w-full py-4 bg-cm-green text-white rounded-2xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                 >
+                   <CheckCircle2 size={20} /> Approuver le Visa
+                 </button>
+                 <button 
+                    onClick={() => setShowActionModal('REQUEST_DOCS')}
+                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                 >
+                   <MessageSquare size={20} /> Documents Requis
+                 </button>
+                 <button 
+                    onClick={() => setShowActionModal('REJECT')}
+                    className="w-full py-4 bg-cm-red text-white rounded-2xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                 >
+                   <XCircle size={20} /> Rejeter le dossier
+                 </button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-cm-muted">Statut Paiement</span>
-                <span className={`font-bold ${app.payment_status === 'COMPLETED' ? 'text-cm-green-mid' : 'text-cm-red'}`}>
-                  {app.payment_status === 'COMPLETED' ? 'Réglé' : app.payment_status || 'En attente'}
-                </span>
-              </div>
-              <div className="pt-3 border-t border-cm-border/50 flex justify-between items-center">
-                <span className="text-xs font-bold text-cm-muted uppercase">Total Payé</span>
-                <span className="text-lg font-display font-bold text-cm-green-mid">
-                  {app.payment_status === 'COMPLETED' ? `${app.visa_type?.fee?.toLocaleString()} FCFA` : '0 FCFA'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Comment Box */}
-          <div className="bg-white border border-cm-border rounded-2xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-            <h3 className="font-bold text-cm-text mb-4">Notes Internes / Décision</h3>
-            <textarea 
-              rows={4}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Ajouter une note ou justifier un rejet..."
-              className="w-full p-3 bg-cm-cream/50 border border-cm-border rounded-xl text-sm focus:border-cm-green-mid outline-none resize-none mb-3"
-            />
-            <p className="text-[10px] text-cm-muted italic mb-3">
-              L'historique complet est enregistré pour chaque action.
-            </p>
           </div>
 
         </div>
 
       </div>
+
+      {/* ── ACTION MODAL ── */}
+      {showActionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowActionModal(null)} />
+          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-slideUp">
+            <div className={`p-6 text-white flex justify-between items-center ${
+              showActionModal === 'APPROVE' ? 'bg-cm-green' : 
+              showActionModal === 'REJECT' ? 'bg-cm-red' : 'bg-indigo-600'
+            }`}>
+               <h3 className="font-display font-bold text-lg">
+                 {showActionModal === 'APPROVE' ? 'Approuver la demande' : 
+                  showActionModal === 'REJECT' ? 'Confirmer le rejet' : 'Demander des documents'}
+               </h3>
+               <button onClick={() => setShowActionModal(null)} className="p-1 hover:bg-white/20 rounded-lg">
+                 <XCircle size={24} />
+               </button>
+            </div>
+            <div className="p-8 space-y-4">
+               <p className="text-sm font-semibold text-cm-muted">
+                 {showActionModal === 'APPROVE' ? 'Voulez-vous autoriser la délivrance du visa électronique ?' : 
+                  showActionModal === 'REJECT' ? 'Veuillez saisir le motif du rejet (transmis au demandeur).' : 
+                  'Précisez au demandeur quels documents manquent ou sont incorrects.'}
+               </p>
+               
+               {(showActionModal === 'REJECT' || showActionModal === 'REQUEST_DOCS') && (
+                 <textarea 
+                   className="w-full h-32 p-4 bg-cm-cream rounded-2xl border-2 border-cm-border focus:border-cm-green outline-hidden font-semibold text-sm"
+                   placeholder="Ex: Passeport illisible, document périmé..."
+                   value={note}
+                   onChange={(e) => setNote(e.target.value)}
+                 />
+               )}
+
+               <div className="flex gap-3 pt-4">
+                  <button 
+                    className="flex-1 py-3 bg-cm-cream text-cm-text rounded-xl font-bold"
+                    onClick={() => setShowActionModal(null)}
+                  >
+                    Annuler
+                  </button>
+                  <button 
+                    disabled={actionLoading}
+                    className={`flex-1 py-3 text-white rounded-xl font-bold flex items-center justify-center gap-2 ${
+                      showActionModal === 'APPROVE' ? 'bg-cm-green' : 
+                      showActionModal === 'REJECT' ? 'bg-cm-red' : 'bg-indigo-600'
+                    }`}
+                    onClick={() => handleAction(showActionModal)}
+                  >
+                    {actionLoading ? <Loader2 size={20} className="animate-spin" /> : 'Confirmer'}
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

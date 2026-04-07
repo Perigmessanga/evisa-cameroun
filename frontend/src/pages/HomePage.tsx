@@ -168,8 +168,8 @@ export default function HomePage() {
               if (item === 'apply') toPath = user ? '/applicant/application' : '/auth/login';
               if (item === 'tracking') toPath = user ? '/applicant/tracking' : '/auth/login';
               if (item === 'contact') toPath = '/contact';
-              const stateObj = (!user && (item === 'apply' || item === 'tracking')) 
-                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } } 
+              const stateObj = (!user && (item === 'apply' || item === 'tracking'))
+                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } }
                 : undefined;
 
               return (
@@ -187,7 +187,7 @@ export default function HomePage() {
             <Link to={user ? "/applicant/dashboard" : "/auth/login"} className={`hidden sm:flex px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid' : 'bg-white text-cm-green hover:bg-cm-cream'} whitespace-nowrap`}>
               {user ? 'Mon Tableau de bord' : t.nav.login}
             </Link>
-            <button 
+            <button
               className={`lg:hidden p-2 rounded-lg ${scrolled ? 'text-cm-text bg-cm-cream' : 'text-white bg-white/10'}`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -195,7 +195,7 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-        
+
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-cm-border shadow-lg p-6 flex flex-col gap-4 animate-fadeUp z-50">
@@ -204,15 +204,15 @@ export default function HomePage() {
               if (item === 'apply') toPath = user ? '/applicant/application' : '/auth/login';
               if (item === 'tracking') toPath = user ? '/applicant/tracking' : '/auth/login';
               if (item === 'contact') toPath = '/contact';
-              const stateObj = (!user && (item === 'apply' || item === 'tracking')) 
-                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } } 
+              const stateObj = (!user && (item === 'apply' || item === 'tracking'))
+                ? { from: { pathname: item === 'apply' ? '/applicant/application' : '/applicant/tracking' } }
                 : undefined;
 
               return (
-                <Link 
-                  key={i} 
-                  to={toPath} 
-                  state={stateObj} 
+                <Link
+                  key={i}
+                  to={toPath}
+                  state={stateObj}
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-cm-text font-bold text-lg border-b border-cm-border/50 pb-3"
                 >
@@ -220,8 +220,8 @@ export default function HomePage() {
                 </Link>
               );
             })}
-            <Link 
-              to={user ? "/applicant/dashboard" : "/auth/login"} 
+            <Link
+              to={user ? "/applicant/dashboard" : "/auth/login"}
               onClick={() => setMobileMenuOpen(false)}
               className="mt-4 px-5 py-3 rounded-xl bg-cm-green text-white text-center font-bold"
             >
@@ -254,14 +254,14 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
-              <Link 
-                to={user ? "/applicant/application" : "/auth/login"} 
+              <Link
+                to={user ? "/applicant/application" : "/auth/login"}
                 state={!user ? { from: { pathname: '/applicant/application' } } : undefined}
                 className="group px-8 py-4 rounded-xl bg-linear-to-r from-cm-gold to-cm-gold-light text-cm-dark font-bold text-base transition-all hover:-translate-y-1 shadow-[0_12px_24px_-8px_rgba(201,149,42,0.4)] flex items-center gap-2 hover:shadow-[0_16px_32px_-8px_rgba(201,149,42,0.6)]"
               >
                 {t.hero.btnApply} <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link 
+              <Link
                 to={user ? "/applicant/tracking" : "/auth/login"}
                 state={!user ? { from: { pathname: '/applicant/tracking' } } : undefined}
                 className="px-8 py-4 rounded-xl bg-white/10 text-white font-bold text-base transition-all hover:bg-white/20 backdrop-blur-sm border border-white/20"
@@ -352,7 +352,7 @@ export default function HomePage() {
           <h2 className="font-display text-4xl lg:text-5xl font-bold text-cm-text mb-4">{t.visaTypes.title}</h2>
           <div className="w-24 h-1.5 bg-linear-to-r from-cm-gold to-cm-green mx-auto rounded-full" />
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8 relative z-10">
           {[
             { tag: t.visaTypes.tourism, icon: <Globe size={32} className="text-cm-green" /> },
@@ -461,7 +461,7 @@ export default function HomePage() {
               <li>Mentions Légales</li>
               <li>Politique de Confidentialité</li>
               <li>Conditions Générales d'Utilisation</li>
-              <li className="pt-2 text-white">support@diplomatie.cm</li>
+              <li className="pt-2 text-white">messangaperig3@gmail.com</li>
             </ul>
           </div>
         </div>

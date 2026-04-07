@@ -15,6 +15,7 @@ export interface User {
   is_active: boolean;
   is_email_verified: boolean;
   two_factor_enabled: boolean;
+  embassy_country?: string;
   created_at: string;
   last_login: string | null;
 }
@@ -76,14 +77,22 @@ export interface VisaApplication {
   nationality: string;
   residence_country: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
+  marital_status?: string;
+  profession?: string;
+  birth_country?: string;
+  
   passport_number: string;
   passport_issue_date: string;
   passport_expiry_date: string;
   passport_country: string;
+
   purpose_of_visit: string;
   arrival_date: string;
   departure_date: string;
   address_in_cameroon: string;
+  
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
   
   // Avis / Traitement
   embassy_opinion: 'NONE' | 'FAVORABLE' | 'UNFAVORABLE';
@@ -100,6 +109,14 @@ export interface VisaApplication {
   rejection_reason: string;
   created_at: string;
   updated_at: string;
+
+  // Traçabilité & Biométrie
+  processed_by_name?: string;
+  assigned_agent_name?: string;
+  biometric_photos?: {
+    face_image: string | null;
+    passport_photo: string | null;
+  };
 
   // Relations complémentaires
   documents?: ApplicationDocument[];
@@ -164,6 +181,7 @@ export type PaymentMethod = 'CARD' | 'MOBILE_MONEY_MTN' | 'MOBILE_MONEY_ORANGE' 
 export interface Payment {
   id: string;
   application: string;
+  application_number: string;
   amount: number;
   currency: string;
   payment_method: PaymentMethod;

@@ -1,7 +1,14 @@
+import os
+import django
 import urllib.request
 import json
 import sys
 import ssl
+
+# Configuration de Django pour accéder aux settings
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evisa_backend.settings')
+django.setup()
+from django.conf import settings
 
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
@@ -9,8 +16,11 @@ ctx.verify_mode = ssl.CERT_NONE
 
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc0MTkzOTQ4LCJpYXQiOjE3NzQxOTAzNDgsImp0aSI6IjI0NWMzNTYzZTU0ODRlYjE5NDM3N2U0NGVjNDY2YWJlIiwidXNlcl9pZCI6IjVkOTYzODNhLWQ1ZmQtNGMyYi04YWZlLWZjOWU1OWUyYzFmMSJ9.FiY1FNpnzmWRgVNqWJR_vzL_FibENR7tOuexxJJqhvo"
 
+base_backend_url = settings.BASE_BACKEND_URL
+
+# 1. Récupérer les types de visa
 try:
-    req = urllib.request.Request('https://127.0.0.1:8000/api/v1/visa_applications/types/', headers={'Accept': 'application/json'})
+    req = urllib.request.Request(f'{base_backend_url}/api/v1/visa_applications/types/', headers={'Accept': 'application/json'})
     with urllib.request.urlopen(req, context=ctx) as response:
         data = json.loads(response.read().decode())
         
@@ -24,16 +34,9 @@ try:
         visa_type_id = data[0]['id']
 except Exception as e:
     print("Error fetching types:", e)
-    # try http fallback
-    try:
-        req = urllib.request.Request('http://127.0.0.1:8000/api/v1/visa_applications/types/', headers={'Accept': 'application/json'})
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            visa_type_id = data['data']['results'][0]['id']
-    except Exception as e2:
-        print("Fallback HTTP Error:", e2)
-        sys.exit(1)
+    sys.exit(1)
 
+# 2. Créer une demande de visa
 payload = {
   "visa_type": visa_type_id,
   "full_name": "TEST USER",
@@ -54,7 +57,7 @@ payload = {
 try:
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
-        'https://127.0.0.1:8000/api/v1/visa_applications/applications/', 
+        f'{base_backend_url}/api/v1/visa_applications/applications/', 
         data=data, 
         headers={
             "Authorization": f"Bearer {token}",

@@ -53,6 +53,10 @@ class Payment(models.Model):
     def __str__(self):
         return f'Paiement {self.application.application_number} — {self.amount} {self.currency}'
 
+    @property
+    def is_completed(self):
+        return self.status == PaymentStatus.COMPLETED
+
 
 # ─── SERIALIZER ───────────────────────────────────────────────────
 class PaymentSerializer(serializers.ModelSerializer):

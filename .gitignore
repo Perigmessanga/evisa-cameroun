@@ -4,7 +4,13 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
-.env
+
+# Env files
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Django
 db.sqlite3
@@ -18,9 +24,10 @@ dist/
 # Docker
 mysql_data/
 
-# OS
+# OS / fichiers divers
 .DS_Store
 Thumbs.db
+*.zip
 *.pem
 *.key
 backend/ssl/

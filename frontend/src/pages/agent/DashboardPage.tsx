@@ -72,9 +72,12 @@ export default function AgentDashboard() {
              {user?.first_name[0]}{user?.last_name[0]}
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold text-cm-text">Tableau de Bord Agent</h1>
+            <h1 className="font-display text-2xl font-bold text-cm-text">
+              {user?.role === 'EMBASSY' ? `Ambassade : ${user?.embassy_country}` : 'Tableau de Bord Agent'}
+            </h1>
             <p className="text-cm-muted mt-0.5 flex items-center gap-2">
-              <ShieldCheck size={16} className="text-cm-green-mid" /> Agent d'immigration
+              <ShieldCheck size={16} className="text-cm-green-mid" /> 
+              {user?.role === 'EMBASSY' ? 'Représentation Diplomatique' : 'Agent d\'immigration'}
             </p>
           </div>
         </div>

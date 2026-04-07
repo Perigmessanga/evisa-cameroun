@@ -23,6 +23,11 @@ const applicationService = {
     return data.data || data;
   },
 
+    getApplicationById: async (id: string): Promise<VisaApplication> => {
+    const response = await api.get(`/visa_applications/applications/${id}/`);
+    return response.data.data || response.data;
+  },
+
   async createApplication(payload: ApplicationFormData): Promise<VisaApplication> {
     const { data } = await api.post('/visa_applications/applications/', payload);
     return data.data || data;
