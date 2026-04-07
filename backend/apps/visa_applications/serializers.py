@@ -174,6 +174,11 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             passport_url = None
             if bio.passport_photo:
                 passport_url = request.build_absolute_uri(bio.passport_photo.url) if request else f"{base_url}{bio.passport_photo.url}"
+            else:
+                # Fallback: Search for 'PASSPORT' document in uploaded files
+                passport_doc = obj.documents.filter(document_type='PASSPORT').first()
+                if passport_doc and passport_doc.file:
+                    passport_url = request.build_absolute_uri(passport_doc.file.url) if request else f"{base_url}{passport_doc.file.url}"
                 
             return {
                 'face_image': face_url,
