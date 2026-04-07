@@ -78,6 +78,15 @@ export default function DownloadVisaPage() {
       });
 
       if (!response.ok) throw new Error('Download failed');
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/pdf')) {
+        const text = await response.text();
+        if (text.includes('Simulating')) {
+          throw new Error('Le serveur renvoie encore une réponse de simulation. Veuillez redémarrer le backend.');
+        }
+        throw new Error('Le fichier reçu n\'est pas un PDF valide.');
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

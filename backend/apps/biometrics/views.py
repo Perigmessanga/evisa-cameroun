@@ -76,7 +76,7 @@ class BiometricDataViewSet(viewsets.ModelViewSet):
         biometric_data.save()
         
         return Response(
-            BiometricDataSerializer(biometric_data).data,
+            BiometricDataSerializer(biometric_data, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
 
@@ -106,7 +106,7 @@ class BiometricDataViewSet(viewsets.ModelViewSet):
         
         return Response({
             'message': 'Données biométriques vérifiées.',
-            'biometric_data': BiometricDataSerializer(biometric_data).data
+            'biometric_data': BiometricDataSerializer(biometric_data, context={'request': request}).data
         })
 
     @action(detail=True, methods=['post'])

@@ -82,9 +82,9 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         send_mail(
             subject=f"Réponse: {message.subject}",
             message=f"Bonjour {message.first_name},\n\nSuite à votre message :\n\"{message.message}\"\n\nVoici notre réponse :\n{reply_text}\n\nCordialement,\nSupport e-Visa Cameroun",
-            from_email='no-reply@evisa.cm',
+            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[message.email],
-            fail_silently=True,
+            fail_silently=False,
         )
         
         return Response({'status': 'Message répondu avec succès.'})
@@ -244,8 +244,8 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p.rect(*photo_rect)
         
         photo_path = None
-        # Priorité : Documents uploadés (PHOTO) > passport_photo (biométrique) > face_image (webcam)
-        photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
+        # Priorité : Documents uploadés (PHOTO, puis PASSPORT) > passport_photo (biométrique) > face_image (webcam)
+        photo_doc = evisa.application.documents.filter(document_type__in=['PHOTO', 'PASSPORT']).first()
         if photo_doc and photo_doc.file:
             photo_path = photo_doc.file.path
         

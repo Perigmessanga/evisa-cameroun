@@ -117,7 +117,7 @@ class RegisterView(APIView):
     def _send_verification_email(self, user, request):
         token = default_token_generator.make_token(user)
         uid   = urlsafe_base64_encode(force_bytes(user.pk))
-        frontend_url = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else 'http://localhost:3000'
+        frontend_url = settings.BASE_FRONTEND_URL
         verify_url = f'{frontend_url}/auth/verify-email/{uid}/{token}'
 
         if settings.DEBUG:
@@ -311,7 +311,7 @@ class ForgotPasswordView(APIView):
             user = User.objects.get(email=email, is_active=True)
             token = default_token_generator.make_token(user)
             uid   = urlsafe_base64_encode(force_bytes(user.pk))
-            frontend_url = settings.CORS_ALLOWED_ORIGINS[0] if settings.CORS_ALLOWED_ORIGINS else 'http://localhost:3000'
+            frontend_url = settings.BASE_FRONTEND_URL
             reset_url = f'{frontend_url}/auth/reset-password?uid={uid}&token={token}'
 
             send_mail(
