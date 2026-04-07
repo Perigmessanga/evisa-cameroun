@@ -31,6 +31,12 @@ User = get_user_model()
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     permission_classes = [IsAdminUser]
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return api_response(data=serializer.data)
 
     def get_serializer_class(self):
         if self.action == 'create':
