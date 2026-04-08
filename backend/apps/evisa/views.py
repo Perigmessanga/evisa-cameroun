@@ -270,15 +270,20 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             p.drawCentredString(photo_rect[0]+55, photo_rect[1]+60, "PHOTO")
 
         # QR Code
-        qr_data = f"evisa://{evisa.visa_number}"
-        qr = qrcode.QRCode(version=1, border=1)
-        qr.add_data(qr_data)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        qr_buffer = io.BytesIO()
-        qr_img.save(qr_buffer, format="PNG")
-        qr_buffer.seek(0)
-        p.drawImage(ImageReader(qr_buffer), width - 150, y_pos - 260, width=90, height=90)
+        try:
+            qr_data = f"evisa://{evisa.visa_number}"
+            qr = qrcode.QRCode(version=1, border=1)
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            qr_buffer = io.BytesIO()
+            qr_img.save(qr_buffer, format="PNG")
+            qr_buffer.seek(0)
+            p.drawImage(ImageReader(qr_buffer), width - 150, y_pos - 260, width=90, height=90)
+        except Exception as e:
+            p.setFont("Helvetica", 6)
+            p.drawCentredString(width - 105, y_pos - 210, "[QR Error]")
+            print(f"QR Error: {e}")
         p.setFont("Helvetica-Bold", 7)
         p.drawCentredString(width - 105, y_pos - 275, f"{evisa.visa_number.split('-')[-1]}")
 
