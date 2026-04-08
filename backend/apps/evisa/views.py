@@ -32,6 +32,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
     """
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
+    pagination_class = None
 
     def get_permissions(self):
         if self.action == 'create':
@@ -96,6 +97,7 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
     """
     queryset = SystemSetting.objects.all()
     serializer_class = SystemSettingSerializer
+    pagination_class = None
     # Seuls les admins peuvent modifier les configurations système
     # (Ou on peut faire un permission personnalisée, ici on check le rôle de l'utilisateur)
     permission_classes = [IsAuthenticated]
@@ -133,6 +135,7 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = EVisaSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
@@ -483,6 +486,7 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
     """
     serializer_class = BorderCrossingSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user

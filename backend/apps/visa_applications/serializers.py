@@ -316,6 +316,16 @@ class VisaApplicationUpdateSerializer(serializers.ModelSerializer):
             if attrs['departure_date'] <= attrs['arrival_date']:
                 raise serializers.ValidationError({'departure_date': 'La date de départ doit être après l\'arrivée.'})
         return attrs
+
+
+class VisaApplicationStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=['SUBMITTED', 'PROCESSING', 'APPROVED', 'REJECTED', 'PAYMENT_PENDING'])
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs.get('status') == 'REJECTED' and not attrs.get('rejection_reason'):
+            raise serializers.ValidationError({'rejection_reason': 'Le motif de rejet est obligatoire en cas de rejet.'})
+        return attrs
     
 
 

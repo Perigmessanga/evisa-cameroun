@@ -14,12 +14,11 @@ from django.db.models import Sum
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet pour consulter les logs d'audit (admin uniquement).
-    GET /api/audit-logs/           - Liste tous les logs
-    GET /api/audit-logs/{id}/      - Détails d'un log
     """
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = None
 
     def get_queryset(self):
         queryset = AuditLog.objects.all().order_by('-created_at')

@@ -21,8 +21,7 @@ from apps.visa_applications.serializers import (
     VisaApplicationSerializer,
     ApplicationCommentCreateSerializer,
     CommentSerializer as ApplicationCommentSerializer,
-    
-    
+    VisaApplicationStatusUpdateSerializer,
 )
 
 
@@ -35,6 +34,7 @@ class VisaTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = VisaType.objects.all()
     serializer_class = VisaTypeSerializer
+    pagination_class = None
     
     def get_permissions(self):
         from rest_framework.permissions import IsAdminUser, AllowAny
@@ -59,6 +59,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     queryset = VisaApplication.objects.all()
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
     def get_queryset(self):
@@ -506,6 +507,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         if not request.user.is_embassy:
             return Response({'error': 'Permission refusée. Réservé à l\'ambassade.'}, status=status.HTTP_403_FORBIDDEN)
         
+        application = self.get_object()
         opinion = request.data.get('opinion') # 'FAVORABLE' or 'UNFAVORABLE'
         notes = request.data.get('notes', '')
         
