@@ -60,6 +60,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
+    lookup_field = 'application_number'
 
 
     def get_queryset(self):

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Download, Printer, ArrowLeft, CheckCircle2, QrCode, Loader2, User, Camera } from 'lucide-react';
 import CameroonFlag from '../../components/common/CameroonFlag';
-import applicationService from '../../services/applicationService';
+import visaService from '../../services/visaService';
 import toast from 'react-hot-toast';
 
 export default function DownloadVisaPage() {
@@ -16,7 +16,7 @@ export default function DownloadVisaPage() {
 
   useEffect(() => {
     if (!id) return;
-    applicationService.getApplication(id)
+    visaService.getApplicationById(id)
       .then(res => setApp(res))
       .catch(() => toast.error('Impossible de charger le visa.'))
       .finally(() => setLoading(false));
@@ -59,7 +59,6 @@ export default function DownloadVisaPage() {
   };
 
   const handleDownloadPdf = async () => {
-    // ... rest of the code is unchanged for now
     if (!id || !app.evisa) {
       toast.error('Erreur: e-Visa non généré.');
       return;
@@ -67,37 +66,9 @@ export default function DownloadVisaPage() {
 
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      // Remover string '/api/v1' extra se o baseUrl já tiver
-      const urlBase = baseUrl.endsWith('/api/v1') ? baseUrl.slice(0, -7) : baseUrl;
-
-      const response = await fetch(`${urlBase}/api/evisas/${app.evisa.id}/download/`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-      
-      const contentType = response.headers.get('content-type');
-      if (contentType && !contentType.includes('application/pdf')) {
-        const text = await response.text();
-        if (text.includes('Simulating')) {
-          throw new Error('Le serveur renvoie encore une réponse de simulation. Veuillez redémarrer le backend.');
-        }
-        throw new Error('Le fichier reçu n\'est pas un PDF valide.');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `evisa_${app.evisa.visa_number}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast.success('Téléchargement lancé.');
+      await visaService.downloadEVisa(app.evisa.id, app.evisa.visa_number);
     } catch (err) {
+      console.error('Error downloading:', err);
       toast.error('Erreur lors du téléchargement.');
     } finally {
       setLoading(false);

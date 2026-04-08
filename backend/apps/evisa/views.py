@@ -7,6 +7,7 @@ from django.http import FileResponse
 from datetime import timedelta
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.colors import HexColor
 import qrcode
 import io
 import base64

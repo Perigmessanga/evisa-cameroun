@@ -83,16 +83,34 @@ const visaService = {
   },
 
   downloadEVisa: async (evisaId: string, visaNumber: string) => {
-    const response = await api.get(`/evisas/${evisaId}/download/`, {
-      responseType: 'blob'
+    // On remonte d'un niveau par rapport à /api/v1 (car evisa-download est sous /api/)
+    // On utilise responseType 'blob' pour gérer l'octet du PDF
+    const response = await api.get(`/../evisas/${evisaId}/download/`, {
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/pdf'
+      }
     });
-    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `evisa_${visaNumber}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Pour mobile, l'ouverture dans un nouvel onglet est souvent plus fiable que link.click()
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `evisa_${visaNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+    
+    // Libérer la mémoire après un délai pour laisser le temps au téléchargement/ouverture
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
   },
 
   uploadSupplementaryDocs: async (id: string, files: File[]) => {
