@@ -86,10 +86,7 @@ const visaService = {
     // On remonte d'un niveau par rapport à /api/v1 (car evisa-download est sous /api/)
     // On utilise responseType 'blob' pour gérer l'octet du PDF
     const response = await api.get(`/../evisas/${evisaId}/download/`, {
-      responseType: 'blob',
-      headers: {
-        'Accept': 'application/pdf'
-      }
+      responseType: 'blob'
     });
 
     const blob = new Blob([response.data], { type: 'application/pdf' });

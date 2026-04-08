@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status, generics
-from rest_framework.decorators import action
+from rest_framework.decorators import action, renderer_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
@@ -155,6 +155,7 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         
         return EVisa.objects.none()
 
+    @renderer_classes([])
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """
