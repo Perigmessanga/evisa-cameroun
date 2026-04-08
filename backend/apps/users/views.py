@@ -29,7 +29,7 @@ User = get_user_model()
 # ADMIN USERS VIEWSET
 # ─────────────────────────────────────────────────────────────────
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.all().order_by('-date_joined')
     permission_classes = [IsAdminUser]
     pagination_class = None
 

@@ -8,6 +8,7 @@ from datetime import timedelta
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
 import qrcode
 import io
 import base64
@@ -260,7 +261,6 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             elif bio.face_image: photo_path = bio.face_image.path
 
         if photo_path and os.path.exists(photo_path):
-            from reportlab.lib.utils import ImageReader
             try:
                 p.drawImage(ImageReader(photo_path), photo_rect[0]+2, photo_rect[1]+2, width=photo_rect[2]-4, height=photo_rect[3]-4, preserveAspectRatio=True)
             except:
