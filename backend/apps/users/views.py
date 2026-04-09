@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.db import transaction
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -101,24 +102,26 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if not serializer.is_valid():
-            return api_response(errors=serializer.errors,
-                                message='Données invalides.',
-                                status_code=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            serializer = RegisterSerializer(data=request.data)
+            if not serializer.is_valid():
+                return api_response(errors=serializer.errors,
+                                    message='Données invalides.',
+                                    status_code=status.HTTP_400_BAD_REQUEST)
 
-        user = serializer.save()
-        user.is_email_verified = False  # Toujours False à la création
-        user.save(update_fields=['is_email_verified'])
+            user = serializer.save()
+            user.is_email_verified = False  # Toujours False à la création
+            user.save(update_fields=['is_email_verified'])
 
-        # Envoyer l'email de vérification
-        verify_url = self._send_verification_email(user, request)
+            # Envoyer l'email de vérification
+            # (Si cette ligne échoue, la transaction est annulée et l'utilisateur n'est pas créé)
+            verify_url = self._send_verification_email(user, request)
 
-        return api_response(
-            data={'email': user.email, 'verification_url': verify_url if settings.DEBUG else None},
-            message='Inscription réussie. Vérifiez votre email pour activer votre compte.',
-            status_code=status.HTTP_201_CREATED
-        )
+            return api_response(
+                data={'email': user.email, 'verification_url': verify_url if settings.DEBUG else None},
+                message='Inscription réussie. Vérifiez votre email pour activer votre compte.',
+                status_code=status.HTTP_201_CREATED
+            )
 
     def _send_verification_email(self, user, request):
         token = default_token_generator.make_token(user)
