@@ -4,10 +4,10 @@ import django
 import sys
 import uuid
 
-# Configuration de l'environnement Django
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(BASE_DIR)
+# Ajouter le dossier backend au path pour trouver evisa_backend et apps
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evisa_backend.settings')
 django.setup()
 
