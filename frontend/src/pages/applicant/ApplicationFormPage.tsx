@@ -146,28 +146,40 @@ export default function ApplicationFormPage() {
     setExtraDocs(prev => prev.filter((_, idx) => idx !== i));
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
+    setLoading(true);
     try {
-      const draftData = {
-        ...formData,
-        draftId: formData.draftId || `DRAFT-${Date.now()}`,
-        savedAt: new Date().toISOString(),
-        stepReached: currentStep,
+      const payload: any = {
+        visa_type: formData.visaType || null,
+        full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`.trim() || 'BROUILLON',
+        date_of_birth: formData.birthDate || null,
+        place_of_birth: formData.birthCountry || '',
+        nationality: formData.nationality || '',
+        gender: formData.gender || '',
         status: 'DRAFT',
+        // On peut ajouter d'autres champs si on veut
+        passport_number: formData.passportNumber || '',
+        purpose_of_visit: formData.purpose || '',
+        arrival_date: formData.arrivalDate || null,
+        departure_date: formData.departureDate || null,
+        address_in_cameroon: formData.addressInCameroon || '',
       };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
-      // Also keep a list of all drafts
-      const allDrafts: Record<string, unknown>[] = JSON.parse(localStorage.getItem('evisa_all_drafts') || '[]');
-      const existing = allDrafts.findIndex((d: Record<string, unknown>) => d.draftId === draftData.draftId);
-      if (existing >= 0) {
-        allDrafts[existing] = draftData;
+
+      let res;
+      if (formData.editId) {
+        res = await applicationService.updateApplication(formData.editId, payload);
       } else {
-        allDrafts.push(draftData);
+        res = await applicationService.createApplication(payload);
+        setFormData(prev => ({ ...prev, editId: res.id }));
       }
-      localStorage.setItem('evisa_all_drafts', JSON.stringify(allDrafts));
-      toast.success('Brouillon sauvegardé ! Vous pouvez reprendre depuis votre liste de brouillons.');
-    } catch {
-      toast.error('Impossible de sauvegarder le brouillon.');
+
+      localStorage.removeItem(DRAFT_KEY); // On nettoie le local car c'est sur le serveur maintenant
+      toast.success('Brouillon sauvegardé sur le serveur !');
+    } catch (err) {
+      console.error("Draft Save error:", err);
+      toast.error('Impossible de sauvegarder le brouillon sur le serveur.');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -56,11 +56,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des demandes de visa.
     """
-    queryset = VisaApplication.objects.all()
+    queryset = VisaApplication.objects.all().order_by('-created_at')
     serializer_class = CreateApplicationSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
-    lookup_field = 'application_number'
+    lookup_field = 'id'
 
 
     def get_queryset(self):

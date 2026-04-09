@@ -4,8 +4,9 @@
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Plus, ChevronRight, Trash2, Clock, ArrowLeft } from 'lucide-react';
+import { BookOpen, Plus, ChevronRight, Trash2, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import applicationService from '../../services/applicationService';
 
 interface Draft {
   draftId: string;
@@ -37,28 +38,55 @@ const STEP_NAMES = ['Type de Visa', 'Infos Personnelles', 'Passeport & Voyage', 
 export default function DraftsPage() {
   const navigate = useNavigate();
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('evisa_all_drafts') || '[]');
-    setDrafts(saved);
+    loadDrafts();
   }, []);
+
+  const loadDrafts = async () => {
+    setLoading(true);
+    try {
+      const apps = await applicationService.getApplications();
+      // Filtrer les brouillons
+      const draftList = apps
+        .filter((app: any) => app.status === 'DRAFT')
+        .map((app: any) => ({
+          draftId: app.id,
+          visaType: app.visa_type?.code || app.visa_type || '', // Simplifié
+          firstName: app.full_name?.split(' ').slice(1).join(' ') || '',
+          lastName: app.full_name?.split(' ')[0] || '',
+          savedAt: app.updated_at || app.created_at,
+          stepReached: 0, // Optionnel car on recharge par ID
+          status: 'DRAFT',
+          nationality: app.nationality
+        }));
+      setDrafts(draftList);
+    } catch (err) {
+      toast.error('Erreur lors du chargement des brouillons.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const handleContinue = (draft: Draft) => {
-    localStorage.setItem('evisa_draft', JSON.stringify(draft));
-    navigate('/applicant/application');
+    // On passe l'ID pour que ApplicationFormPage puisse charger les données depuis l'API
+    navigate('/applicant/application', { state: { editId: draft.draftId } });
   };
 
-  const handleDelete = (draftId: string) => {
-    const updated = drafts.filter(d => d.draftId !== draftId);
-    setDrafts(updated);
-    localStorage.setItem('evisa_all_drafts', JSON.stringify(updated));
-    // Also remove current draft if it matches
-    const current = JSON.parse(localStorage.getItem('evisa_draft') || '{}');
-    if (current.draftId === draftId) localStorage.removeItem('evisa_draft');
-    toast.success('Brouillon supprimé.');
+  const handleDelete = async (draftId: string) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce brouillon ?')) return;
+    
+    try {
+      await applicationService.updateStatus(draftId, 'CANCELLED');
+      toast.success('Brouillon supprimé.');
+      loadDrafts();
+    } catch (err) {
+      toast.error('Erreur lors de la suppression.');
+    }
   };
 
   return (
@@ -79,7 +107,11 @@ export default function DraftsPage() {
       </div>
 
       {/* Drafts List */}
-      {drafts.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 size={48} className="text-cm-green-mid animate-spin" />
+        </div>
+      ) : drafts.length === 0 ? (
         <div className="bg-white rounded-3xl border border-cm-border p-16 text-center shadow-sm">
           <div className="w-16 h-16 rounded-2xl bg-cm-cream flex items-center justify-center mx-auto mb-4">
             <BookOpen size={32} className="text-cm-muted" />

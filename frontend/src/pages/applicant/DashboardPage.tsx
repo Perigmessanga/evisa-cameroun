@@ -5,25 +5,37 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
-import { mockApplications, mockNotifications } from '../../data/mockApplicantData';
 import { 
   FileText, Plus, Bell, Clock, FileCheck, FileWarning, 
-  ChevronRight, Download, Calendar
+  ChevronRight, Download, Calendar, Loader2
 } from 'lucide-react';
+import applicationService from '../../services/applicationService';
+import type { VisaApplication } from '../../types';
 
 export default function ApplicantDashboard() {
   const { user } = useAuth();
   
-  // Merge real submitted apps from localStorage + mocks
-  const [realApps, setRealApps] = useState<typeof mockApplications>([]);
+  const [allApplications, setAllApplications] = useState<VisaApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('evisa_applications') || '[]');
-    setRealApps(stored);
+    loadData();
   }, []);
-  const allApplications = [...realApps, ...mockApplications];
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const apps = await applicationService.getApplications();
+      setAllApplications(apps);
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  // Format dates locally
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'short', year: 'numeric'
     });
@@ -32,9 +44,13 @@ export default function ApplicantDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'IN_PROGRESS': return <Badge variant="warning">En cours</Badge>;
+      case 'IN_PROGRESS': 
+      case 'SUBMITTED': 
+      case 'PROCESSING': 
+        return <Badge variant="warning">En cours</Badge>;
       case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
       case 'DRAFT': return <Badge variant="default">Brouillon</Badge>;
+      case 'PENDING_DOCS': return <Badge variant="warning">Documents requis</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
@@ -72,7 +88,7 @@ export default function ApplicantDashboard() {
         {[
           { title: 'Total Demandes', value: allApplications.length, icon: <FileText className="text-cm-text/60" size={24} />, bg: 'bg-white' },
           { title: 'Visa Approuvés', value: allApplications.filter(a => a.status === 'APPROVED').length, icon: <FileCheck className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'En cours', value: allApplications.filter(a => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED').length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'En cours', value: allApplications.filter(a => ['IN_PROGRESS', 'SUBMITTED', 'PROCESSING', 'PENDING_DOCS'].includes(a.status)).length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
           { title: 'Rejetées', value: allApplications.filter(a => a.status === 'REJECTED').length, icon: <FileWarning className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between`}>
@@ -99,10 +115,12 @@ export default function ApplicantDashboard() {
             </Link>
           </div>
 
-          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            {allApplications.length > 0 ? (
+          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden min-h-[200px] flex flex-col justify-center">
+            {loading ? (
+              <div className="flex justify-center p-12"><Loader2 className="text-cm-green-mid animate-spin" size={32} /></div>
+            ) : allApplications.length > 0 ? (
               <ul className="divide-y divide-cm-border">
-                {allApplications.slice(0, 5).map((app, idx) => (
+                {allApplications.slice(0, 5).map((app) => (
                   <li key={app.id} className="p-5 hover:bg-cm-cream/30 transition-colors">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       
@@ -112,13 +130,13 @@ export default function ApplicantDashboard() {
                         </div>
                         <div>
                           <Link to={`/applicant/tracking/${app.id}`} className="font-bold text-cm-text hover:text-cm-green-mid transition-colors">
-                            {app.id}
+                            {app.application_number}
                           </Link>
-                          <p className="text-sm font-medium text-cm-muted">{app.type}</p>
+                          <p className="text-sm font-medium text-cm-muted">{typeof app.visa_type === 'object' ? app.visa_type.name : 'Visa'}</p>
                           <div className="flex items-center gap-3 mt-1.5 text-xs text-cm-muted/80">
-                            <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(app.submissionDate)}</span>
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(app.created_at)}</span>
                             <span>•</span>
-                            <span>{app.country}</span>
+                            <span>{app.nationality}</span>
                           </div>
                         </div>
                       </div>
@@ -131,7 +149,7 @@ export default function ApplicantDashboard() {
                           </Link>
                         ) : (
                           <span className="text-[10px] font-semibold text-cm-muted/60 uppercase">
-                            MAJ: {formatDate(app.lastUpdate)}
+                            MAJ: {formatDate(app.updated_at)}
                           </span>
                         )}
                       </div>
@@ -152,7 +170,7 @@ export default function ApplicantDashboard() {
           </div>
         </div>
 
-        {/* NOTIFICATIONS WIDGET */}
+        {/* NOTIFICATIONS WIDGET - Simplified for now as it needs a real backend too */}
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-display text-xl font-bold text-cm-text">Notifications</h2>
@@ -161,29 +179,9 @@ export default function ApplicantDashboard() {
             </button>
           </div>
 
-          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-1">
-            <ul className="divide-y divide-cm-border/50">
-              {mockNotifications.map(notif => (
-                <li key={notif.id} className={`p-4 rounded-xl transition-colors ${!notif.read ? 'bg-blue-50/50' : 'hover:bg-cm-cream/30'}`}>
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      {notif.type === 'success' ? <div className="w-2 h-2 rounded-full bg-cm-green-mid mt-1.5" /> : 
-                       notif.type === 'warning' ? <div className="w-2 h-2 rounded-full bg-cm-gold mt-1.5" /> : 
-                       <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />}
-                    </div>
-                    <div>
-                      <h4 className={`text-sm font-bold ${!notif.read ? 'text-cm-text' : 'text-cm-text/80'}`}>
-                        {notif.title}
-                      </h4>
-                      <p className="text-xs text-cm-muted mt-1 leading-relaxed">{notif.message}</p>
-                      <p className="text-[10px] text-cm-muted/60 font-semibold mt-2 uppercase tracking-wide">
-                        {formatDate(notif.date)}
-                      </p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 text-center text-cm-muted text-sm">
+            <Bell size={32} className="mx-auto mb-3 opacity-20" />
+            Aucune nouvelle notification.
           </div>
         </div>
 
