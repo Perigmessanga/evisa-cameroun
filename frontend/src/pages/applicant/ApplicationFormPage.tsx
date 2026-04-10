@@ -238,6 +238,7 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate,
         departure_date: formData.departureDate,
         address_in_cameroon: formData.addressInCameroon,
+        residence_country: formData.nationality, // Fallback to nationality if not explicit
         emergency_contact_name: formData.emergencyName || '',
         emergency_contact_phone: formData.emergencyPhone || '',
       };
@@ -276,27 +277,27 @@ export default function ApplicationFormPage() {
       toast.success('Documents téléversés avec succès. Redirection vers la capture biométrique...');
       setTimeout(() => navigate('/applicant/biometric', { state: { applicationId: newApp.id } }), 1500);
     } catch (err: any) {
+      console.error("Application Submission Error:", err);
       const errData = err.response?.data;
       let msg = 'Erreur lors de la création de la demande.';
+      
       if (errData) {
-        if (errData.errors) {
-          try {
-            msg = 'Erreurs de validation: ' + JSON.stringify(errData.errors);
-          } catch(e) {
-            msg = 'Erreurs: ' + String(errData.errors);
+        // Handle DRF specialized error formats
+        if (typeof errData === 'object') {
+          const errors = errData.errors || errData;
+          const errorMessages = Object.entries(errors).map(([field, error]: [string, any]) => {
+            const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+            const message = Array.isArray(error) ? error[0] : error;
+            return `${fieldName}: ${message}`;
+          });
+          if (errorMessages.length > 0) {
+            msg = `Validation échouée : ${errorMessages.join(' | ')}`;
           }
         } else if (typeof errData === 'string') {
           msg = errData;
-        } else if (errData.detail) {
-          msg = errData.detail;
-        } else if (errData.non_field_errors) {
-          msg = errData.non_field_errors[0];
-        } else {
-          msg = 'Erreurs: ' + JSON.stringify(errData);
         }
       }
-      toast.error(msg);
-      console.error("DRF Error Data:", errData);
+      toast.error(msg, { duration: 6000 });
     } finally {
       setLoading(false);
     }
@@ -620,7 +621,7 @@ export default function ApplicationFormPage() {
               </button>
             ) : (
               <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 px-8 py-3 bg-linear-to-r from-cm-gold to-cm-gold-light text-cm-dark rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0">
-                {loading ? <Loader2 size={18} className="animate-spin" /> : 'Soumettre et Payer'}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : 'Vérifier et Continuer vers la Biométrie'}
               </button>
             )}
           </div>

@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
 import { 
   FileText, Plus, Bell, Clock, FileCheck, FileWarning, 
-  ChevronRight, Download, Calendar, Loader2
+  ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import applicationService from '../../services/applicationService';
 import type { VisaApplication } from '../../types';
@@ -16,7 +16,10 @@ export default function ApplicantDashboard() {
   const { user } = useAuth();
   
   const [allApplications, setAllApplications] = useState<VisaApplication[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -25,12 +28,47 @@ export default function ApplicantDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Load applications
       const apps = await applicationService.getApplications();
       setAllApplications(apps);
+      
+      // Load notifications
+      await loadNotifications();
     } catch (err) {
       console.error("Error loading dashboard data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadNotifications = async () => {
+    setLoadingNotifs(true);
+    try {
+      const data = await applicationService.getNotifications();
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unread_count || 0);
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+    } finally {
+      setLoadingNotifs(false);
+    }
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await applicationService.markNotificationRead(id);
+      loadNotifications(); // Refresh
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await applicationService.markAllNotificationsRead();
+      loadNotifications(); // Refresh
+    } catch (err) {
+      console.error("Error marking all notifications as read:", err);
     }
   };
   
@@ -44,9 +82,9 @@ export default function ApplicantDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'IN_PROGRESS': 
       case 'SUBMITTED': 
       case 'PROCESSING': 
+      case 'PENDING_REVIEW':
         return <Badge variant="warning">En cours</Badge>;
       case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
       case 'DRAFT': return <Badge variant="default">Brouillon</Badge>;
@@ -57,8 +95,10 @@ export default function ApplicantDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'APPROVED': return <FileCheck className="text-cm-green-mid" size={24} />;
-      case 'IN_PROGRESS': return <Clock className="text-cm-gold" size={24} />;
+      case 'PENDING_REVIEW':
+      case 'SUBMITTED':
+      case 'PROCESSING':
+        return <Clock className="text-cm-gold" size={24} />;
       case 'REJECTED': return <FileWarning className="text-cm-red" size={24} />;
       default: return <FileText className="text-cm-muted" size={24} />;
     }
@@ -88,7 +128,7 @@ export default function ApplicantDashboard() {
         {[
           { title: 'Total Demandes', value: allApplications.length, icon: <FileText className="text-cm-text/60" size={24} />, bg: 'bg-white' },
           { title: 'Visa Approuvés', value: allApplications.filter(a => a.status === 'APPROVED').length, icon: <FileCheck className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'En cours', value: allApplications.filter(a => ['IN_PROGRESS', 'SUBMITTED', 'PROCESSING', 'PENDING_DOCS'].includes(a.status)).length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: 'En cours', value: allApplications.filter(a => ['SUBMITTED', 'PROCESSING', 'PENDING_DOCS', 'PENDING_REVIEW'].includes(a.status)).length, icon: <Clock className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
           { title: 'Rejetées', value: allApplications.filter(a => a.status === 'REJECTED').length, icon: <FileWarning className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between`}>
@@ -170,18 +210,63 @@ export default function ApplicantDashboard() {
           </div>
         </div>
 
-        {/* NOTIFICATIONS WIDGET - Simplified for now as it needs a real backend too */}
+        {/* NOTIFICATIONS WIDGET */}
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-display text-xl font-bold text-cm-text">Notifications</h2>
-            <button className="text-sm font-semibold text-cm-muted hover:text-cm-text transition-colors">
-              Tout marquer comme lu
-            </button>
+            <h2 className="font-display text-xl font-bold text-cm-text flex items-center gap-2">
+              Notifications 
+              {unreadCount > 0 && <span className="bg-cm-red text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
+            </h2>
+            {unreadCount > 0 && (
+              <button 
+                onClick={handleMarkAllAsRead}
+                className="text-xs font-semibold text-cm-muted hover:text-cm-green-mid transition-colors"
+              >
+                Tout marquer comme lu
+              </button>
+            )}
           </div>
 
-          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 text-center text-cm-muted text-sm">
-            <Bell size={32} className="mx-auto mb-3 opacity-20" />
-            Aucune nouvelle notification.
+          <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden min-h-[300px]">
+             {loadingNotifs ? (
+               <div className="flex justify-center p-12"><Loader2 className="text-cm-green-mid animate-spin" size={24} /></div>
+             ) : notifications.length > 0 ? (
+               <div className="divide-y divide-cm-border max-h-[500px] overflow-y-auto custom-scrollbar">
+                 {notifications.map((notif) => (
+                   <div 
+                    key={notif.id} 
+                    className={`p-4 transition-colors group relative ${!notif.read_at ? 'bg-cm-green-pale/5' : 'hover:bg-cm-cream/20'}`}
+                   >
+                     {!notif.read_at && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cm-green-mid" />}
+                     <div className="flex gap-3">
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.subject?.includes('APPROUVÉE') ? 'bg-cm-green/10 text-cm-green' : notif.subject?.includes('Refusée') ? 'bg-cm-red/10 text-cm-red' : 'bg-cm-gold/10 text-cm-gold'}`}>
+                         {notif.subject?.includes('APPROUVÉE') ? <CheckCircle2 size={16} /> : notif.subject?.includes('Refusée') ? <AlertCircle size={16} /> : <Bell size={16} />}
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <div className="flex justify-between items-start gap-2">
+                           <h4 className={`text-sm font-bold truncate ${!notif.read_at ? 'text-cm-text' : 'text-cm-muted'}`}>{notif.subject}</h4>
+                           <span className="text-[10px] text-cm-muted/60 shrink-0">{formatDate(notif.created_at)}</span>
+                         </div>
+                         <p className="text-xs text-cm-muted mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                         {!notif.read_at && (
+                           <button 
+                            onClick={() => handleMarkAsRead(notif.id)}
+                            className="mt-2 text-[10px] font-bold text-cm-green-mid opacity-0 group-hover:opacity-100 transition-opacity"
+                           >
+                            Marquer comme lu
+                           </button>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <div className="p-12 text-center">
+                 <Bell size={40} className="mx-auto mb-3 text-cm-border" />
+                 <p className="text-cm-muted text-sm">Aucune nouvelle notification.</p>
+               </div>
+             )}
           </div>
         </div>
 

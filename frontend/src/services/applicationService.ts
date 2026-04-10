@@ -95,6 +95,20 @@ const applicationService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // ── Notifications ───────────────────────────
+  async getNotifications(): Promise<{ notifications: any[], unread_count: number }> {
+    const { data } = await api.get('/notifications/');
+    return data.data || data;
+  },
+
+  async markNotificationRead(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/mark_read/`);
+  },
+
+  async markAllNotificationsRead(): Promise<void> {
+    await api.post('/notifications/mark_all_read/');
+  },
 };
 
 export default applicationService;
