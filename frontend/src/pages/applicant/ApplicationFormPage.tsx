@@ -163,6 +163,7 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate || null,
         departure_date: formData.departureDate || null,
         address_in_cameroon: formData.addressInCameroon || '',
+        last_completed_step: currentStep,
       };
 
       let res;

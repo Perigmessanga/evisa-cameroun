@@ -209,7 +209,8 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Créer une demande (brouillon) pour l'utilisateur connecté."""
-        serializer.save(applicant=self.request.user)
+        last_step = self.request.data.get('last_completed_step', 0)
+        serializer.save(applicant=self.request.user, last_completed_step=last_step)
 
     def update(self, request, *args, **kwargs):
         """Modifier une demande (seulement si status = DRAFT)."""

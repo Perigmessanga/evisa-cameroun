@@ -30,6 +30,7 @@ export default function ApplicantDashboard() {
     try {
       // Load applications
       const apps = await applicationService.getApplications();
+      console.log("DASHBOARD DATA:", apps); // Debug pour l'utilisateur
       setAllApplications(apps);
       
       // Load notifications
@@ -269,7 +270,11 @@ export default function ApplicantDashboard() {
              )}
           </div>
         </div>
-
+        <div className="mt-8 pt-4 border-t border-cm-border text-center">
+            <p className="text-[10px] text-cm-muted/30 font-mono uppercase tracking-widest">
+                e-Visa Cameroon Platform • Production Build v2.4.1 (Sync RealDB)
+            </p>
+        </div>
       </div>
     </div>
   );

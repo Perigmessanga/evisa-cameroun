@@ -98,7 +98,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'id', 'application_number', 'applicant_name',
             'visa_type_name', 'status', 'full_name',
             'nationality', 'submitted_at', 'assigned_agent_name',
-            'processed_by_name', 'created_at',
+            'processed_by_name', 'created_at', 'last_completed_step',
         ]
 
     def get_assigned_agent_name(self, obj):
@@ -141,7 +141,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             # Relations
             'documents', 'comments', 'evisa',
             'has_biometrics', 'biometric_photos', 'payment_status',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'last_completed_step',
         ]
 
     def get_comments(self, obj):

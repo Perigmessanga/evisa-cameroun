@@ -148,6 +148,9 @@ class VisaApplication(models.Model):
         verbose_name='Agent frontière'
     )
     border_checked_at   = models.DateTimeField(null=True, blank=True, verbose_name='Date vérification frontière')
+    
+    # ── Progress Tracking ──────────────────────────────────────
+    last_completed_step = models.PositiveIntegerField(default=0, verbose_name='Dernière étape complétée')
 
     # ── Traitement ─────────────────────────────────────────────
     has_biometrics   = models.BooleanField(default=False, verbose_name='Biométrie vérifiée')
