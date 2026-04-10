@@ -230,7 +230,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'], parser_classes=[parsers.MultiPartParser, parsers.FormParser])
-    def upload_document(self, request, pk=None):
+    def upload_document(self, request, id=None):
         """
         Upload un document pour la demande actuelle.
         POST /api/visa-applications/{id}/upload_document/
@@ -250,7 +250,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['delete'], url_path=r'delete_document/(?P<doc_id>[^/.]+)')
-    def delete_document(self, request, pk=None, doc_id=None):
+    def delete_document(self, request, id=None, doc_id=None):
         """
         Supprime un document d'une demande.
         DELETE /api/visa-applications/{id}/delete_document/{doc_id}/
@@ -271,7 +271,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
-    def submit(self, request, pk=None):
+    def submit(self, request, id=None):
         """
         Soumettre une demande (après paiement).
         POST /api/visa-applications/{id}/submit/
@@ -371,7 +371,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def comments(self, request, pk=None):
+    def comments(self, request, id=None):
         """
         Voir les commentaires d'une demande.
         GET /api/visa-applications/{id}/comments/
@@ -387,7 +387,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
-    def add_comment(self, request, pk=None):
+    def add_comment(self, request, id=None):
         """
         Ajouter un commentaire sur une demande.
         POST /api/visa-applications/{id}/add-comment/
@@ -409,7 +409,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def assign_agent(self, request, pk=None):
+    def assign_agent(self, request, id=None):
         """Affecter un agent à une demande."""
         if not (request.user.is_admin or request.user.is_embassy):
             return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
@@ -427,7 +427,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Agent introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def request_missing_docs(self, request, pk=None):
+    def request_missing_docs(self, request, id=None):
         """Passer la demande en statut PENDING_DOCS."""
         if not (request.user.is_agent or request.user.is_admin or request.user.is_embassy):
             return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
@@ -454,7 +454,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Demande de documents envoyée.'})
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def upload_supplementary_docs(self, request, pk=None):
+    def upload_supplementary_docs(self, request, id=None):
         """Action pour que le demandeur puisse envoyer les documents demandés."""
         application = self.get_object()
         
@@ -502,7 +502,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def submit_opinion(self, request, pk=None):
+    def submit_opinion(self, request, id=None):
         """Ajouter un avis consultatif (Ambassade)."""
         if not request.user.is_embassy:
             return Response({'error': 'Permission refusée. Réservé à l\'ambassade.'}, status=status.HTTP_403_FORBIDDEN)
@@ -530,7 +530,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         return Response({'message': f'Avis {opinion} enregistré. Demande renvoyée en traitement.'})
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def request_embassy_review(self, request, pk=None):
+    def request_embassy_review(self, request, id=None):
         """Demander l'avis de l'ambassade."""
         if not (request.user.is_agent or request.user.is_admin):
             return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)

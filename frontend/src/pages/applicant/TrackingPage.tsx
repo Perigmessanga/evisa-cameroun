@@ -54,7 +54,11 @@ export default function TrackingPage() {
     const appNumber = (app.application_number || app.id || '').toString().toLowerCase();
     const appType = (app.visa_type_name || '').toLowerCase();
     const matchesSearch = appNumber.includes(term) || appType.includes(term);
-    const matchesFilter = filter === 'ALL' || app.status === filter;
+    const matchesFilter = filter === 'ALL' 
+      ? true 
+      : filter === 'IN_PROGRESS' 
+        ? ['SUBMITTED', 'PROCESSING', 'PENDING_REVIEW', 'PENDING_DOCS'].includes(app.status)
+        : app.status === filter;
     return matchesSearch && matchesFilter;
   });
 
@@ -86,6 +90,7 @@ export default function TrackingPage() {
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           {[
             { id: 'ALL', label: 'Toutes' },
+            { id: 'DRAFT', label: 'Brouillons' },
             { id: 'IN_PROGRESS', label: 'En cours' },
             { id: 'APPROVED', label: 'Approuvées' },
             { id: 'REJECTED', label: 'Rejetées' }
