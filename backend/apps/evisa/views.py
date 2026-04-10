@@ -249,22 +249,25 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p.setLineWidth(1)
         p.rect(*photo_rect)
         
-        photo_path = None
+        photo_file = None
         # Priorité : Documents uploadés (PHOTO, puis PASSPORT) > passport_photo (biométrique) > face_image (webcam)
         photo_doc = evisa.application.documents.filter(document_type__in=['PHOTO', 'PASSPORT']).first()
         if photo_doc and photo_doc.file:
-            photo_path = photo_doc.file.path
+            photo_file = photo_doc.file
         
-        if not photo_path and hasattr(evisa.application, 'biometric_data'):
+        if not photo_file and hasattr(evisa.application, 'biometric_data'):
             bio = evisa.application.biometric_data
-            if bio.passport_photo: photo_path = bio.passport_photo.path
-            elif bio.face_image: photo_path = bio.face_image.path
+            if bio.passport_photo: photo_file = bio.passport_photo
+            elif bio.face_image: photo_file = bio.face_image
 
-        if photo_path and os.path.exists(photo_path):
+        if photo_file:
             try:
-                p.drawImage(ImageReader(photo_path), photo_rect[0]+2, photo_rect[1]+2, width=photo_rect[2]-4, height=photo_rect[3]-4, preserveAspectRatio=True)
-            except:
+                # On ouvre le fichier en mode binaire pour reportlab
+                img_data = io.BytesIO(photo_file.read())
+                p.drawImage(ImageReader(img_data), photo_rect[0]+2, photo_rect[1]+2, width=photo_rect[2]-4, height=photo_rect[3]-4, preserveAspectRatio=True)
+            except Exception as e:
                 p.drawCentredString(photo_rect[0]+55, photo_rect[1]+60, "PHOTO")
+                print(f"Error drawing photo: {e}")
         else:
             p.setFont("Helvetica", 8)
             p.drawCentredString(photo_rect[0]+55, photo_rect[1]+60, "PHOTO")

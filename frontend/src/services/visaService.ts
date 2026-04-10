@@ -92,19 +92,17 @@ const visaService = {
     const blob = new Blob([response.data], { type: 'application/pdf' });
     const url = window.URL.createObjectURL(blob);
     
-    // Pour mobile, l'ouverture dans un nouvel onglet est souvent plus fiable que link.click()
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Création d'un lien invisible pour déclencher le téléchargement
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `evisa_${visaNumber}.pdf`);
     
-    if (isMobile) {
-      window.open(url, '_blank');
-    } else {
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `evisa_${visaNumber}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
+    // Ajout et clic pour forcer le téléchargement (marche mieux sur mobile aussi)
+    document.body.appendChild(link);
+    link.click();
+    
+    // Nettoyage immédiat
+    document.body.removeChild(link);
     
     // Libérer la mémoire après un délai pour laisser le temps au téléchargement/ouverture
     setTimeout(() => window.URL.revokeObjectURL(url), 10000);
