@@ -201,8 +201,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://evisa-cameroun.vercel.app",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True  # Temporaire pour débugger le blocage navigateur
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-csrftoken',
 ]
@@ -210,6 +210,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CSRF_TRUSTED_ORIGINS = [
     "https://evisa-cameroun.vercel.app",
     "https://charles237.pythonanywhere.com",
+    config('FRONTEND_URL', default='https://evisa-cameroun.vercel.app'),
 ]
 
 # ─────────────────────────────────────────
