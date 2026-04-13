@@ -102,6 +102,18 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        
+        # Cas particulier : l'utilisateur existe déjà mais n'est pas vérifié
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user and not existing_user.is_email_verified:
+            verify_url = self._send_verification_email(existing_user, request)
+            return api_response(
+                data={'email': existing_user.email, 'verification_url': verify_url if settings.DEBUG else None},
+                message='Ce compte existe déjà mais n\'est pas vérifié. Un nouveau lien de vérification vous a été envoyé.',
+                status_code=status.HTTP_200_OK
+            )
+
         with transaction.atomic():
             serializer = RegisterSerializer(data=request.data)
             if not serializer.is_valid():
@@ -321,7 +333,7 @@ class ForgotPasswordView(APIView):
             token = default_token_generator.make_token(user)
             uid   = urlsafe_base64_encode(force_bytes(user.pk))
             frontend_url = settings.BASE_FRONTEND_URL
-            reset_url = f'{frontend_url}/auth/reset-password?uid={uid}&token={token}'
+            reset_url = f'{frontend_url}/auth/reset-password/{uid}/{token}'
 
             send_mail(
                 subject='e-Visa Cameroun — Réinitialisation de mot de passe',
