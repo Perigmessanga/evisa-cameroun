@@ -65,26 +65,31 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
+        # Optimisation : Charger les relations en une seule fois (N+1 fixes)
+        base_qs = VisaApplication.objects.select_related(
+            'applicant', 'visa_type', 'assigned_agent'
+        ).prefetch_related('documents')
+
         # Les demandeurs voient seulement leurs demandes
         if user.is_applicant:
-            return VisaApplication.objects.filter(applicant=user)
+            return base_qs.filter(applicant=user)
         
         # Les agents voient les demandes qui leur sont assignées (load balanced)
         elif user.is_agent:
-            return VisaApplication.objects.filter(assigned_agent=user).exclude(status='DRAFT')
+            return base_qs.filter(assigned_agent=user).exclude(status='DRAFT')
         
         # Les admins voient tout
         elif user.is_admin:
-            return VisaApplication.objects.all()
+            return base_qs.all()
         
         # Les ambassades voient les demandes de leur pays de résidence (zone géographique) OR si assigné directement
         elif user.is_embassy:
             query = Q(assigned_agent=user)
             if user.embassy_country:
                 query |= Q(residence_country=user.embassy_country)
-            return VisaApplication.objects.filter(query).exclude(status='DRAFT')
+            return base_qs.filter(query).exclude(status='DRAFT')
         
-        return VisaApplication.objects.none()
+        return base_qs.none()
 
     @action(detail=False, methods=['get'])
     def dashboard_stats(self, request):

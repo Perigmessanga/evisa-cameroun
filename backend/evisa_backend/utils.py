@@ -14,6 +14,9 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
+        # Diagnostic en console serveur pour le support technique
+        print(f"[DEBUG API ERR] {response.status_code} - {exc}")
+        
         error_data = {
             'success': False,
             'message': 'Une erreur est survenue.',
