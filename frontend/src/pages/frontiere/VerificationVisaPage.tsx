@@ -15,7 +15,7 @@ import { VisaApplication } from '../../types';
 export default function VerificationVisaPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<VisaApplication | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
@@ -71,12 +71,13 @@ export default function VerificationVisaPage() {
     
     setActionLoading(true);
     try {
-      await visaService.submitBorderCheckIn(result.id, action);
+      // result.evisa.id est l'ID de l'e-Visa nécessaire pour le passage
+      await visaService.submitBorderCheckIn(result.evisa.id, action);
       toast.success(action === 'DENIED' ? "Entrée refusée enregistrée" : "Passage enregistré avec succès");
       
-      // Refresh local state to show updated status
-      const updated = await visaService.verifyEVisa(result.passport_number);
-      setResult(updated);
+      // On peut rafraîchir ou vider le résultat
+      setResult(null);
+      setQuery('');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erreur lors de l’enregistrement');
     } finally {
@@ -154,9 +155,9 @@ export default function VerificationVisaPage() {
         <div className="bg-white rounded-3xl border border-cm-border shadow-xl overflow-hidden animate-slideUp">
           
           {/* Status Header */}
-          <div className={`p-6 flex items-center justify-between ${result.status === 'APPROVED' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+          <div className={`p-6 flex items-center justify-between ${result.valid ? 'bg-emerald-50' : 'bg-red-50'}`}>
             <div className="flex items-center gap-4">
-              {result.status === 'APPROVED' ? (
+              {result.valid ? (
                 <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
                   <CheckCircle2 size={24} />
                 </div>
@@ -167,12 +168,12 @@ export default function VerificationVisaPage() {
               )}
               <div>
                  <div className="text-xs font-bold uppercase tracking-wider text-cm-muted">Statut du Visa</div>
-                 <div className="mt-0.5">{getStatusBadge(result.status)}</div>
+                 <div className="mt-0.5">{result.valid ? <Badge variant="success">Visa Valide</Badge> : <Badge variant="danger">Visa Invalide</Badge>}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs font-bold uppercase tracking-wider text-cm-muted">N° Demande</div>
-              <div className="font-mono font-bold text-cm-text">{result.application_number}</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-cm-muted">N° Visa</div>
+              <div className="font-mono font-bold text-cm-text">{result.evisa?.visa_number}</div>
             </div>
           </div>
 
@@ -185,19 +186,15 @@ export default function VerificationVisaPage() {
               <div className="grid grid-cols-2 gap-y-4 text-sm">
                 <div>
                   <p className="text-cm-muted font-bold uppercase text-[10px]">Nom Complet</p>
-                  <p className="font-bold text-cm-text text-base">{result.full_name}</p>
+                  <p className="font-bold text-cm-text text-base">{result.evisa?.applicant_name}</p>
                 </div>
                 <div>
                   <p className="text-cm-muted font-bold uppercase text-[10px]">Nationalité</p>
-                  <p className="font-bold text-cm-text">{result.nationality}</p>
+                  <p className="font-bold text-cm-text">{result.evisa?.applicant_nationality}</p>
                 </div>
                 <div>
                   <p className="text-cm-muted font-bold uppercase text-[10px]">N° Passeport</p>
-                  <p className="font-bold text-cm-text font-mono text-base">{result.passport_number}</p>
-                </div>
-                <div>
-                  <p className="text-cm-muted font-bold uppercase text-[10px]">Genre</p>
-                  <p className="font-bold text-cm-text">{result.gender === 'MALE' ? 'Masculin' : 'Féminin'}</p>
+                  <p className="font-bold text-cm-text font-mono text-base">{result.evisa?.passport_number}</p>
                 </div>
               </div>
             </div>
@@ -210,12 +207,12 @@ export default function VerificationVisaPage() {
               <div className="grid grid-cols-2 gap-y-4 text-sm">
                 <div>
                   <p className="text-cm-muted font-bold uppercase text-[10px]">Type de Visa</p>
-                  <p className="font-bold text-cm-text">{result.visa_type?.name || 'Standard'}</p>
+                  <p className="font-bold text-cm-text">{result.evisa?.visa_type_name}</p>
                 </div>
                 <div>
-                  <p className="text-cm-muted font-bold uppercase text-[10px]">Validité</p>
-                  <p className="font-bold text-cm-text">
-                    {result.arrival_date ? new Date(result.arrival_date).toLocaleDateString() : '-'}
+                  <p className="text-cm-muted font-bold uppercase text-[10px]">Expiration</p>
+                  <p className="font-bold text-cm-text text-red-600">
+                    {result.evisa?.expiry_date ? new Date(result.evisa.expiry_date).toLocaleDateString() : '-'}
                   </p>
                 </div>
               </div>
@@ -226,7 +223,7 @@ export default function VerificationVisaPage() {
           <div className="p-8 bg-cm-cream/30 border-t border-cm-border flex flex-wrap gap-4">
             <button
               onClick={() => handleRecordPassage('ENTRY')}
-              disabled={actionLoading || result.status !== 'APPROVED'}
+              disabled={actionLoading || !result.valid}
               className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
@@ -234,7 +231,7 @@ export default function VerificationVisaPage() {
             </button>
             <button
               onClick={() => handleRecordPassage('EXIT')}
-              disabled={actionLoading || result.status !== 'APPROVED'}
+              disabled={actionLoading || !result.valid}
               className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} />}

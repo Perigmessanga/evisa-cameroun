@@ -11,12 +11,25 @@ class EVisaSerializer(serializers.ModelSerializer):
         source='application.full_name',
         read_only=True
     )
+    applicant_nationality = serializers.CharField(
+        source='application.nationality',
+        read_only=True
+    )
+    passport_number = serializers.CharField(
+        source='application.passport_number',
+        read_only=True
+    )
+    visa_type_name = serializers.CharField(
+        source='application.visa_type.name',
+        read_only=True
+    )
 
     class Meta:
         model = EVisa
         fields = [
             'id', 'application', 'visa_number',
-            'applicant_name', 'issue_date', 'expiry_date',
+            'applicant_name', 'applicant_nationality', 'passport_number', 'visa_type_name',
+            'issue_date', 'expiry_date',
             'qr_code', 'pdf_file_path', 'is_revoked',
             'is_valid', 'days_until_expiry', 'created_at'
         ]

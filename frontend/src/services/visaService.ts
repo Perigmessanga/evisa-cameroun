@@ -35,15 +35,23 @@ const visaService = {
     return response.data;
   },
 
-  // ── BORDER CONTROL ──
   verifyEVisa: async (query: string) => {
-    const response = await api.get('/visa_applications/border/verify/', { params: { query } });
-    return response.data.data;
+    // On utilise POST /api/evisas/verify/ (nécessite visa_number ou qr_code_data)
+    // On envoie 'query' aux deux par simplicité
+    const response = await api.post('/../evisas/verify/', { 
+      visa_number: query,
+      qr_code_data: query 
+    });
+    return response.data;
   },
 
-  submitBorderCheckIn: async (id: string, action: 'ENTRY' | 'EXIT' | 'DENIED') => {
-    const response = await api.post(`/visa_applications/border/applications/${id}/check-in/`, {
-      action
+  submitBorderCheckIn: async (evisaId: string, action: 'ENTRY' | 'EXIT' | 'DENIED', location: string = 'Aéroport International de Douala') => {
+    // On remonte d'un niveau (v1 -> api) pour atteindre /api/border-crossings/
+    const response = await api.post(`/../border-crossings/`, {
+      evisa: evisaId,
+      crossing_type: action,
+      location: location,
+      notes: ""
     });
     return response.data;
   },

@@ -522,9 +522,9 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
         Enregistrer un passage (entrée/sortie).
         POST /api/border-crossings/
         """
-        if not request.user.is_border_agent:
+        if not (request.user.role == 'BORDER' or request.user.role == 'ADMIN'):
             return Response({
-                'error': 'Seuls les agents frontières peuvent enregistrer des passages.'
+                'error': 'Permissions insuffisantes pour enregistrer des passages.'
             }, status=status.HTTP_403_FORBIDDEN)
         
         serializer = self.get_serializer(data=request.data)
@@ -557,10 +557,13 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
                 f"Nous vous souhaitons un excellent séjour.\n"
                 f"Services de l'Immigration, République du Cameroun"
             )
-            send_mail(
-                subject, message, settings.DEFAULT_FROM_EMAIL, [applicant_email],
-                fail_silently=True
-            )
+            try:
+                send_mail(
+                    subject, message, settings.DEFAULT_FROM_EMAIL, [applicant_email],
+                    fail_silently=False
+                )
+            except Exception as e:
+                print(f"CRITICAL ERROR: Failed to send welcome email to {applicant_email}: {e}")
             
         elif crossing_type == 'EXIT':
             # Lier à la dernière entrée non clôturée
