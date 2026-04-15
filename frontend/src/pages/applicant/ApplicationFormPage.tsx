@@ -166,12 +166,12 @@ export default function ApplicationFormPage() {
         last_completed_step: currentStep,
       };
 
-      let res;
+      let res: any;
       if (formData.editId) {
         res = await applicationService.updateApplication(formData.editId, payload);
       } else {
         res = await applicationService.createApplication(payload);
-        setFormData(prev => ({ ...prev, editId: res.id }));
+        setFormData((prev: any) => ({ ...prev, editId: res.id }));
       }
 
       localStorage.removeItem(DRAFT_KEY); // On nettoie le local car c'est sur le serveur maintenant

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import adminService from '../../services/adminService';
 import { 
   Users, Calendar, Clock, MapPin, Search, 
-  Filter, AlertTriangle, CheckCircle, PlaneLanding, PlaneTakeoff 
+  Filter, AlertTriangle, CheckCircle, PlaneLanding, PlaneTakeoff,
+  Loader2
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
-import SplashScreen from '../../components/common/SplashScreen';
 import toast from 'react-hot-toast';
 
 interface BorderStay {
@@ -64,7 +64,12 @@ const AdminBorderTrackingPage: React.FC = () => {
     }
   };
 
-  if (loading) return <SplashScreen />;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+      <Loader2 className="w-12 h-12 text-cm-green animate-spin" />
+      <p className="text-gray-500 font-medium animate-pulse">Chargement du suivi...</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fadeIn">

@@ -158,7 +158,10 @@ export default function ApplicantDashboard() {
 
           <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden min-h-[200px] flex flex-col justify-center">
             {loading ? (
-              <div className="flex justify-center p-12"><Loader2 className="text-cm-green-mid animate-spin" size={32} /></div>
+              <div className="flex flex-col items-center justify-center p-12 space-y-3">
+                <Loader2 className="text-cm-green-mid animate-spin" size={32} />
+                <p className="text-sm font-medium text-cm-muted">Récupération de vos dossiers...</p>
+              </div>
             ) : allApplications.length > 0 ? (
               <ul className="divide-y divide-cm-border">
                 {allApplications.slice(0, 5).map((app) => (
@@ -200,11 +203,16 @@ export default function ApplicantDashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="p-12 text-center">
-                <FileText className="text-cm-border mx-auto mb-4" size={48} />
-                <p className="text-cm-muted font-medium">Vous n'avez aucune demande de visa pour le moment.</p>
-                <Link to="/applicant/application" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-cm-green text-white rounded-xl font-bold text-sm hover:bg-cm-green-mid transition-colors">
-                  <Plus size={14} /> Créer une demande
+              <div className="p-12 text-center max-w-sm mx-auto">
+                <div className="w-16 h-16 bg-cm-cream rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cm-border/50">
+                   <FileText className="text-cm-muted/30" size={32} />
+                </div>
+                <h3 className="font-display font-bold text-cm-text text-lg mb-1">Aucune demande</h3>
+                <p className="text-cm-muted text-sm leading-relaxed mb-6">
+                  Vous n'avez pas encore soumis de demande de visa. Votre historique apparaîtra ici.
+                </p>
+                <Link to="/applicant/application" className="inline-flex items-center gap-2 px-6 py-2.5 bg-cm-green text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all active:scale-95">
+                  <Plus size={16} /> Commencer une demande
                 </Link>
               </div>
             )}

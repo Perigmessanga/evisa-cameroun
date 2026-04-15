@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: 'Logs Système', path: '/admin/logs', icon: <FileWarning size={20} /> },
           { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
           { name: 'Messages', path: '/admin/messages', icon: <Mail size={20} /> },
-          { name: 'Suivi Entrées/Sorties', path: '/admin/border-tracking', icon: <MapPin size={20} /> },
+          { name: 'Suivi Entrées/Sorties', path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: 'NOUVEAU' },
           { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> }
         ];
       case 'EMBASSY':
@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         <div className="h-20 flex items-center gap-3 px-6 border-b border-cm-border bg-cm-cream/30">
           <CameroonFlag size={32} />
           <div>
-            <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun v2</div>
+            <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun</div>
             <div className="text-[0.6rem] font-bold tracking-widest text-cm-gold">RÉPUBLIQUE DU CAMEROUN</div>
           </div>
           <button 
@@ -145,7 +145,14 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
                 <div className={`${isActive ? 'text-cm-green' : 'text-cm-muted'}`}>
                   {item.icon}
                 </div>
-                {item.name}
+                <div className="flex-1 flex items-center justify-between">
+                  <span>{item.name}</span>
+                  {item.badge && (
+                    <span className="bg-cm-gold text-[9px] text-white px-1.5 py-0.5 rounded shadow-sm font-bold uppercase tracking-tighter animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}
