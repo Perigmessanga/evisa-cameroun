@@ -139,6 +139,22 @@ class BorderCrossing(models.Model):
         default=timezone.now,
         verbose_name="Date et heure"
     )
+    
+    # Nouveaux champs pour le suivi
+    expected_exit_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Date de sortie prévue"
+    )
+    linked_exit = models.OneToOneField(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='linked_entry',
+        verbose_name="Sortie liée"
+    )
+
     notes = models.TextField(
         blank=True,
         verbose_name="Notes"

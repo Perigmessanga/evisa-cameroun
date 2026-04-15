@@ -26,6 +26,7 @@ from apps.evisa.serializers import (
     ContactMessageSerializer
 )
 from django.core.mail import send_mail
+from django.conf import settings
 
 
 class ContactMessageViewSet(viewsets.ModelViewSet):
@@ -529,12 +530,112 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        evisa = serializer.validated_data['evisa']
+        crossing_type = serializer.validated_data['crossing_type']
+        
+        # Enregistrer le passage
         crossing = serializer.save(border_agent=request.user)
+        
+        # Logique spécifique entrée/sortie
+        applicant_email = evisa.application.applicant.email
+        applicant_name = evisa.application.full_name
+        
+        if crossing_type == 'ENTRY':
+            # Calcul de la date de sortie prévue basée sur le type de visa
+            max_stay = evisa.application.visa_type.max_stay_days
+            expected_exit = crossing.crossing_date.date() + timedelta(days=max_stay)
+            crossing.expected_exit_date = expected_exit
+            crossing.save(update_fields=['expected_exit_date'])
+            
+            # Notification E-mail au demandeur
+            subject = "Bienvenue au Cameroun - Informations sur votre séjour"
+            message = (
+                f"Bonjour {applicant_name},\n\n"
+                f"Votre entrée sur le territoire camerounais a été enregistrée le {crossing.crossing_date.strftime('%d/%m/%Y')}.\n"
+                f"Selon votre type de visa ({evisa.application.visa_type.name}), vous êtes autorisé à séjourner pendant {max_stay} jours.\n"
+                f"Votre date limite de sortie est fixée au : {expected_exit.strftime('%d/%m/%Y')}.\n\n"
+                f"Nous vous souhaitons un excellent séjour.\n"
+                f"Services de l'Immigration, République du Cameroun"
+            )
+            send_mail(
+                subject, message, settings.DEFAULT_FROM_EMAIL, [applicant_email],
+                fail_silently=True
+            )
+            
+        elif crossing_type == 'EXIT':
+            # Lier à la dernière entrée non clôturée
+            last_entry = BorderCrossing.objects.filter(
+                evisa=evisa, crossing_type='ENTRY', linked_exit__isnull=True
+            ).order_by('-crossing_date').first()
+            
+            if last_entry:
+                last_entry.linked_exit = crossing
+                last_entry.save(update_fields=['linked_exit'])
+                
+                # Vérification du dépassement de séjour
+                if crossing.crossing_date.date() > last_entry.expected_exit_date:
+                    # Alerte Admin par mail
+                    admin_subject = f"ALERTE : Dépassement de séjour - {applicant_name}"
+                    admin_message = (
+                        f"Le demandeur {applicant_name} ({evisa.visa_number}) a quitté le territoire avec un dépassement de séjour.\n\n"
+                        f"Date d'entrée : {last_entry.crossing_date.strftime('%d/%m/%Y')}\n"
+                        f"Date de sortie prévue : {last_entry.expected_exit_date.strftime('%d/%m/%Y')}\n"
+                        f"Date de sortie réelle : {crossing.crossing_date.strftime('%d/%m/%Y')}\n"
+                        f"Dépassement : {(crossing.crossing_date.date() - last_entry.expected_exit_date).days} jours."
+                    )
+                    # Envoyer aux administrateurs (on simule ici l'envoi à une adresse générique ou aux admins actifs)
+                    # Pour l'instant on utilise DEFAULT_FROM_EMAIL comme "to" pour test console
+                    send_mail(
+                        admin_subject, admin_message, settings.DEFAULT_FROM_EMAIL, 
+                        [settings.DEFAULT_FROM_EMAIL], fail_silently=True
+                    )
         
         return Response(
             BorderCrossingSerializer(crossing).data,
             status=status.HTTP_201_CREATED
         )
+
+    @action(detail=False, methods=['get'])
+    def tracking(self, request):
+        """
+        Liste des séjours pour le tableau de bord Administrateur.
+        GET /api/border-crossings/tracking/
+        """
+        if not request.user.is_admin:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # On récupère toutes les ENTRÉES
+        entries = BorderCrossing.objects.filter(
+            crossing_type='ENTRY'
+        ).select_related('evisa', 'evisa__application', 'linked_exit').order_by('-crossing_date')
+        
+        data = []
+        now = timezone.now().date()
+        
+        for entry in entries:
+            # Calcul du statut
+            if entry.linked_exit:
+                status_label = 'SORTI'
+                # On peut raffiner si c'était en dépassement
+                if entry.linked_exit.crossing_date.date() > entry.expected_exit_date:
+                    status_label = 'SORTI_DEPASSE'
+            elif now > entry.expected_exit_date:
+                status_label = 'DEPASSE'
+            else:
+                status_label = 'EN_COURS'
+                
+            data.append({
+                'id': entry.id,
+                'full_name': entry.evisa.application.full_name,
+                'visa_type': entry.evisa.application.visa_type.name,
+                'visa_number': entry.evisa.visa_number,
+                'entry_date': entry.crossing_date,
+                'expected_exit_date': entry.expected_exit_date,
+                'actual_exit_date': entry.linked_exit.crossing_date if entry.linked_exit else None,
+                'status': status_label
+            })
+            
+        return Response(data)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

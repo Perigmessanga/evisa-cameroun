@@ -49,6 +49,7 @@ import ApplicationReviewPage from './pages/applicant/ApplicationReviewPage';
 import UserFormPage from './pages/admin/UserFormPage';
 import VisaTypeFormPage from './pages/admin/VisaTypeFormPage';
 import RoleManagementPage from './pages/admin/RoleManagementPage';
+import AdminBorderTrackingPage from './pages/admin/AdminBorderTrackingPage';
 
 // newly created Frontiere
 import FrontiereDashboardPage from './pages/frontiere/FrontiereDashboardPage';
@@ -142,6 +143,7 @@ export default function App() {
           <Route path="email-templates/new" element={<EmailTemplateFormPage />} />
           <Route path="email-templates/edit/:id" element={<EmailTemplateFormPage />} />
           <Route path="messages" element={<MessagesManagementPage />} />
+          <Route path="border-tracking" element={<AdminBorderTrackingPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
         </Route>
 

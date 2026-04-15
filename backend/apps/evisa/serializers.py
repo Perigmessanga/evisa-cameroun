@@ -61,7 +61,7 @@ class BorderCrossingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'evisa', 'evisa_number', 'border_agent',
             'agent_name', 'crossing_type', 'location',
-            'crossing_date', 'notes'
+            'crossing_date', 'expected_exit_date', 'linked_exit', 'notes'
         ]
         read_only_fields = ['id', 'crossing_date']
 

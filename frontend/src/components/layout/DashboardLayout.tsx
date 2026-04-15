@@ -47,6 +47,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: 'Logs Système', path: '/admin/logs', icon: <FileWarning size={20} /> },
           { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
           { name: 'Messages', path: '/admin/messages', icon: <Mail size={20} /> },
+          { name: 'Suivi Entrées/Sorties', path: '/admin/border-tracking', icon: <MapPin size={20} /> },
           { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> }
         ];
       case 'EMBASSY':

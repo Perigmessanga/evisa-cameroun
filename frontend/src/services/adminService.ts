@@ -151,6 +151,12 @@ const adminService = {
   updateSystemSettings: async (settingsData: Record<string, any>) => {
     const response = await api.post('/../system-settings/bulk_update/', settingsData);
     return response.data;
+  },
+
+  // ── Suivi des Entrées/Sorties ──
+  getBorderTracking: async () => {
+    const response = await api.get('/../border-crossings/tracking/');
+    return extractList(response.data);
   }
 };
 
