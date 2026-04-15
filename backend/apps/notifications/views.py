@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from django.utils import timezone
 
 from apps.notifications.models import Notification, EmailTemplate
@@ -149,4 +149,29 @@ class EmailTemplateViewSet(viewsets.ModelViewSet):
         if t:
             qs = qs.filter(type=t)
         return qs
+
+from django.core.management import call_command
+from rest_framework.decorators import api_view, permission_classes
+from django.conf import settings
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def trigger_reminders(request):
+    """
+    Webhook sécurisé pour déclencher l'envoi des rappels de séjour par un service externe (CRON).
+    Nécessite le paramètre token=? dans l'URL.
+    """
+    token = request.query_params.get('token')
+    
+    # On utilise SECRET_KEY comme jeton simple de vérification (sécurisé)
+    expected_token = getattr(settings, 'SECRET_KEY', 'fallback')[:20] 
+    
+    if token != expected_token:
+        return Response({'error': 'Jeton invalide ou manquant.'}, status=status.HTTP_403_FORBIDDEN)
+        
+    try:
+        call_command('send_stay_reminders')
+        return Response({'message': 'Rappels envoyés avec succès.'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
