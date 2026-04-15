@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         <div className="h-20 flex items-center gap-3 px-6 border-b border-cm-border bg-cm-cream/30">
           <CameroonFlag size={32} />
           <div>
-            <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun</div>
+            <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun v2</div>
             <div className="text-[0.6rem] font-bold tracking-widest text-cm-gold">RÉPUBLIQUE DU CAMEROUN</div>
           </div>
           <button 
