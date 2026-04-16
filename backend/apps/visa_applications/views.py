@@ -101,7 +101,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             instance.status = 'PENDING_DOCS'
             instance.save(update_fields=['status'])
             
-        serializer = ApplicationDetailSerializer(instance)
+        serializer = ApplicationDetailSerializer(instance, context={'request': request})
         return Response({'data': serializer.data})
 
     @action(detail=False, methods=['get'])
