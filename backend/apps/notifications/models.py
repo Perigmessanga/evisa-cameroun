@@ -142,7 +142,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'DOC_REQUEST', context,
             f'Documents supplémentaires requis — Dossier {application.application_number}',
-            f"Bonjour {context['nom_demandeur']},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\nL'équipe de traitement des visas e-Visa Cameroun"
+            f"Bonjour {user.get_full_name()},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\nL'équipe de traitement des visas e-Visa Cameroun"
         )
         cls._send(user, subject, message, application)
 
