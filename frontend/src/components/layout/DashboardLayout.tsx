@@ -14,7 +14,27 @@ import {
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [newComplementsCount, setNewComplementsCount] = useState(0);
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (user && (user.role === 'AGENT' || user.role === 'EMBASSY' || user.role === 'ADMIN')) {
+        try {
+          const stats = await visaService.getImmigrationStats();
+          if (stats && stats.newComplementsCount !== undefined) {
+            setNewComplementsCount(stats.newComplementsCount);
+          }
+        } catch (error) {
+          console.error('Erreur stats sidebar:', error);
+        }
+      }
+    };
+    fetchStats();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchStats, 300000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (!user) {
     return <Navigate to="/auth/login" replace />;
@@ -35,7 +55,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         return [
           { name: 'Tableau de bord', path: '/agent/dashboard', icon: <Home size={20} /> },
           { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
-          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} /> },
+          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? 'NOUVEAU' : undefined },
           { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
         ];
@@ -54,7 +74,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         return [
           { name: 'Tableau de bord', path: `/agent/dashboard`, icon: <Home size={20} /> },
           { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
-          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} /> },
+          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? 'NOUVEAU' : undefined },
           { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
         ];

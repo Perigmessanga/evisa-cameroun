@@ -91,6 +91,19 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         
         return base_qs.none()
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # Si c'est un agent/ambassade qui consulte et que le statut est DOCS_PROVIDED
+        # On repasse en PENDING_DOCS pour signifier qu'il a "lu" l'ajout.
+        if (request.user.is_agent or request.user.is_embassy or request.user.is_admin) and \
+           instance.status == 'DOCS_PROVIDED':
+            instance.status = 'PENDING_DOCS'
+            instance.save(update_fields=['status'])
+            
+        serializer = ApplicationDetailSerializer(instance)
+        return Response({'data': serializer.data})
+
     @action(detail=False, methods=['get'])
     def dashboard_stats(self, request):
         """
@@ -491,9 +504,9 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             )
             created_docs.append(doc)
             
-        # Optionnel: On peut changer le statut vers 'SUBMITTED' ou 'PROCESSING' 
-        # pour signaler à l'agent que le dossier est à nouveau complet.
-        # Ici on le laisse en PENDING_DOCS mais on ajoute un commentaire.
+        # Signaler à l'agent que le dossier a été complété
+        application.status = 'DOCS_PROVIDED'
+        application.save(update_fields=['status'])
         
         ApplicationComment.objects.create(
             application=application,

@@ -59,6 +59,7 @@ export type ApplicationStatus =
   | 'SUBMITTED'
   | 'PROCESSING'
   | 'PENDING_DOCS'
+  | 'DOCS_PROVIDED'
   | 'PENDING_REVIEW'
   | 'APPROVED'
   | 'REJECTED'

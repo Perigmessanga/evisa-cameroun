@@ -33,7 +33,8 @@ class ImmigrationStatsView(APIView):
             pending=Count('id', filter=Q(status=ApplicationStatus.SUBMITTED)),
             processing=Count('id', filter=Q(status=ApplicationStatus.PROCESSING)),
             approved=Count('id', filter=Q(status=ApplicationStatus.APPROVED)),
-            rejected=Count('id', filter=Q(status=ApplicationStatus.REJECTED))
+            rejected=Count('id', filter=Q(status=ApplicationStatus.REJECTED)),
+            newComplementsCount=Count('id', filter=Q(status=ApplicationStatus.DOCS_PROVIDED))
         )
         
         # Stats pour le profil (Réelles)

@@ -17,7 +17,9 @@ export default function PendingDocsPage() {
     setLoading(true);
     try {
       const data = await visaService.getImmigrationApplications();
-      setApplications(data.filter((app: VisaApplication) => app.status === 'PENDING_DOCS'));
+      setApplications(data.filter((app: VisaApplication) => 
+        app.status === 'PENDING_DOCS' || app.status === 'DOCS_PROVIDED'
+      ));
     } catch (error) {
       console.error('Erreur chargement compléments:', error);
     } finally {
@@ -109,6 +111,11 @@ export default function PendingDocsPage() {
                           {app.full_name?.split(' ').map(n => n[0]).join('')}
                        </div>
                        <div className="font-bold text-cm-text text-sm capitalize">{app.full_name}</div>
+                       {app.status === 'DOCS_PROVIDED' && (
+                         <span className="bg-cm-gold text-[8px] text-white px-1.5 py-0.5 rounded shadow-sm font-bold uppercase tracking-tighter animate-pulse">
+                           Nouveau
+                         </span>
+                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">

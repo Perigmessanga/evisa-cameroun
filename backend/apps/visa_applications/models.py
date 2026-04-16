@@ -14,6 +14,7 @@ class ApplicationStatus(models.TextChoices):
     SUBMITTED       = 'SUBMITTED',       'Soumise'
     PROCESSING      = 'PROCESSING',      'En traitement'
     PENDING_DOCS    = 'PENDING_DOCS',    'Attente documents'
+    DOCS_PROVIDED   = 'DOCS_PROVIDED',   'Compléments fournis'
     PENDING_REVIEW  = 'PENDING_REVIEW',  'Attente avis consulaire'
     APPROVED        = 'APPROVED',        'Approuvée'
     REJECTED        = 'REJECTED',        'Rejetée'
