@@ -87,7 +87,6 @@ class NotificationService:
         base_url = settings.BASE_FRONTEND_URL
         context = {
             'user_name': user.get_full_name(),
-            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
             'lien_demande_visa': f"{base_url}/applicant/tracking/{application.id}",
         }
@@ -120,15 +119,13 @@ class NotificationService:
         user = application.applicant
         context = {
             'user_name': user.get_full_name(),
-            'nom_demandeur': user.get_full_name(),
             'application_number': application.application_number,
             'rejection_reason': getattr(application, 'rejection_reason', 'Non spécifié'),
-            'raison_refus': getattr(application, 'rejection_reason', 'Non spécifié'),
         }
         subject, message = cls._get_template_and_render(
             'APP_REJECT', context,
             f'Demande {application.application_number} — Refusée',
-            f'Bonjour {user.get_full_name()},\n\nNous avons le regret de vous informer que votre demande de visa n° {application.application_number} a été refusée.\n\nMotif : {context["rejection_reason"]}\n\nPour toute question, contactez-nous.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nNous avons le regret de vous informer que votre demande de visa n° {application.application_number} a été refusée.\n\nMotif : {context["rejection_reason"]}\n\nCordialement,\nL\'équipe e-Visa Cameroun'
         )
         cls._send(user, subject, message, application)
 
@@ -137,7 +134,7 @@ class NotificationService:
         user = application.applicant
         base_url = settings.BASE_FRONTEND_URL
         context = {
-            'nom_demandeur': user.get_full_name(),
+            'user_name': user.get_full_name(),
             'application_number': application.application_number,
             'liste_documents_requis': agent_message,
             'lien_soumission_documents': f"{base_url}/applicant/tracking/{application.id}",

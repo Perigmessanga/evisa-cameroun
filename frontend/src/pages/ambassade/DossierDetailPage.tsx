@@ -89,7 +89,8 @@ export default function DossierDetailPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn">
+    <>
+      <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fadeIn">
       
       {/* ── HEADER ── */}
       <div className="flex items-center gap-4 mb-4">
@@ -321,7 +322,7 @@ export default function DossierDetailPage() {
     {/* ── DOC REQUEST MODAL ── */}
     {showDocModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDocModal(null)} />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDocModal(false)} />
         <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-slideUp">
           <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
              <h3 className="font-display font-bold text-lg">Demander des documents</h3>
@@ -353,4 +354,6 @@ export default function DossierDetailPage() {
         </div>
       </div>
     )}
-  </div>
+  </>
+);
+}
