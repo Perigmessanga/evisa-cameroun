@@ -49,7 +49,7 @@ export default function ApplicationDetailPage() {
           setActionLoading(false);
           return;
         }
-        await visaService.addComment(id, note, false); // is_internal = false triggers email
+        await visaService.requestMissingDocs(id, note);
         toast.success('Demande de documents envoyée');
       } else {
         await visaService.submitImmigrationDecision(id, decision as 'APPROVE' | 'REJECT', note);

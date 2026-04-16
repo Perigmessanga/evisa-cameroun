@@ -21,6 +21,13 @@ const visaService = {
     return response.data;
   },
 
+  requestMissingDocs: async (id: string, message: string) => {
+    const response = await api.post(`/visa_applications/applications/${id}/request_missing_docs/`, {
+      message
+    });
+    return response.data;
+  },
+
   // ── EMBASSY ──
   getEmbassyApplications: async () => {
     const response = await api.get('/visa_applications/embassy/applications/');

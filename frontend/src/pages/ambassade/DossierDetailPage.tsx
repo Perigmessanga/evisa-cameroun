@@ -18,6 +18,8 @@ export default function DossierDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [avisAction, setAvisAction] = useState<'FAVORABLE'|'UNFAVORABLE'|null>(null);
   const [comment, setComment] = useState('');
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [docNote, setDocNote] = useState('');
 
   useEffect(() => {
     const fetchDossier = async () => {
@@ -55,6 +57,23 @@ export default function DossierDetailPage() {
       navigate('/ambassade/dossiers');
     } catch (error) {
       console.error('Erreur transmission avis:', error);
+      toast.error('Une erreur est survenue.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRequestDocs = async () => {
+    if (!id || !docNote) return;
+    setActionLoading(true);
+    try {
+      await visaService.requestMissingDocs(id, docNote);
+      toast.success('Demande de documents envoyée.');
+      setShowDocModal(false);
+      setDocNote('');
+      navigate('/ambassade/dossiers');
+    } catch (error) {
+      console.error('Erreur demande documents:', error);
       toast.error('Une erreur est survenue.');
     } finally {
       setActionLoading(false);
@@ -265,6 +284,16 @@ export default function DossierDetailPage() {
                      >
                         {actionLoading && avisAction === 'UNFAVORABLE' ? <Loader2 size={18} className="animate-spin" /> : <><XCircle size={18} /> Avis Défavorable</>}
                      </button>
+
+                     <div className="pt-4 border-t border-cm-border">
+                        <button 
+                           disabled={actionLoading}
+                           onClick={() => setShowDocModal(true)}
+                           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                           <MessageSquare size={18} /> Documents Requis
+                        </button>
+                     </div>
                   </div>
                ) : (
                   <div className={`p-4 rounded-xl border flex gap-3 ${dossier.embassy_opinion === 'FAVORABLE' ? 'bg-cm-green-pale/10 border-cm-green/30' : 'bg-cm-red/5 border-cm-red/20'}`}>
@@ -288,5 +317,40 @@ export default function DossierDetailPage() {
 
       </div>
     </div>
-  );
-}
+
+    {/* ── DOC REQUEST MODAL ── */}
+    {showDocModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDocModal(null)} />
+        <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-slideUp">
+          <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
+             <h3 className="font-display font-bold text-lg">Demander des documents</h3>
+             <button onClick={() => setShowDocModal(false)} className="p-1 hover:bg-white/20 rounded-lg">
+               <XCircle size={24} />
+             </button>
+          </div>
+          <div className="p-8 space-y-4">
+             <p className="text-sm font-semibold text-cm-muted">
+               Précisez au demandeur quels documents manquent ou sont incorrects.
+             </p>
+             <textarea 
+               className="w-full h-32 p-4 bg-cm-cream rounded-2xl border-2 border-cm-border focus:border-cm-green outline-none font-semibold text-sm"
+               placeholder="Ex: Passeport illisible, document périmé..."
+               value={docNote}
+               onChange={(e) => setDocNote(e.target.value)}
+             />
+             <div className="flex gap-3 pt-4">
+                <button className="flex-1 py-3 bg-cm-cream text-cm-text rounded-xl font-bold" onClick={() => setShowDocModal(false)}>Annuler</button>
+                <button 
+                  disabled={actionLoading || !docNote}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                  onClick={handleRequestDocs}
+                >
+                  {actionLoading ? <Loader2 size={20} className="animate-spin" /> : 'Confirmer'}
+                </button>
+             </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
