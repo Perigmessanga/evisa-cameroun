@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────
 //  components/layout/DashboardLayout.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import visaService from '../../services/visaService';
 import CameroonFlag from '../common/CameroonFlag';
 import Footer from './Footer';
 import { 
