@@ -20,29 +20,35 @@ export default function VerificationVisaPage() {
   const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
-    let scanner: any = null;
+    let html5QrCode: any = null;
     if (isScanning) {
       // @ts-ignore
-      scanner = new Html5QrcodeScanner("reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-      }, false);
+      html5QrCode = new Html5Qrcode("reader");
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-      scanner.render((decodedText: string) => {
-        setQuery(decodedText);
+      html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        (decodedText: string) => {
+          setQuery(decodedText);
+          setIsScanning(false);
+          performSearch(decodedText);
+        },
+        (errorMessage: string) => {
+          // ignore error logs
+        }
+      ).catch((err: any) => {
+        console.error("Erreur démarrage scanner:", err);
+        toast.error("Impossible d'accéder à la caméra. Vérifiez les permissions.");
         setIsScanning(false);
-        scanner.clear();
-        // Optionnel: déclencher la recherche immédiatement
-        performSearch(decodedText);
-      }, (error: any) => {
-        // console.warn(error);
       });
     }
 
     return () => {
-      if (scanner) {
-        try { scanner.clear(); } catch(e) {}
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch((e: any) => console.warn(e));
       }
     };
   }, [isScanning]);

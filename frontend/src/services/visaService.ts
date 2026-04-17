@@ -43,12 +43,9 @@ const visaService = {
   },
 
   verifyEVisa: async (query: string) => {
-    // On utilise POST /api/evisas/verify/ (nécessite visa_number ou qr_code_data)
-    // On envoie 'query' aux deux par simplicité
-    const response = await api.post('/../evisas/verify/', { 
-      visa_number: query,
-      qr_code_data: query 
-    });
+    // On utilise la nouvelle route unifiée
+    // visa_number, application_number ou passport_number
+    const response = await api.get(`visa_applications/border/verify/?query=${encodeURIComponent(query)}`);
     return response.data;
   },
 
@@ -64,17 +61,17 @@ const visaService = {
   },
 
   getBorderStats: async () => {
-    const response = await api.get('/visa_applications/border/stats/');
+    const response = await api.get('visa_applications/border/stats/');
     return response.data.data;
   },
 
   getBorderHistory: async () => {
-    const response = await api.get('/visa_applications/border/history/');
+    const response = await api.get('visa_applications/border/history/');
     return response.data.data;
   },
 
   getBorderAlerts: async () => {
-    const response = await api.get('/visa_applications/border/alerts/');
+    const response = await api.get('visa_applications/border/alerts/');
     return response.data.data;
   },
 

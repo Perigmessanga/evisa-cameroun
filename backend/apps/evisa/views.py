@@ -429,12 +429,7 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
 class VerifyEVisaView(generics.GenericAPIView):
     """
     Vérifier la validité d'un e-visa (agents frontières).
-    POST /api/evisas/verify/
-    Body: {
-        "visa_number": "CM-VISA-2026-000001"
-        OU
-        "qr_code_data": "..."
-    }
+    Recherche croisée par numéro de visa, numéro de dossier ou passport.
     """
     permission_classes = [IsAuthenticated]
     serializer_class = EVisaVerifySerializer
@@ -442,7 +437,7 @@ class VerifyEVisaView(generics.GenericAPIView):
     def post(self, request):
         user = request.user
         
-        if not user.is_border_agent:
+        if not (user.is_border_agent or user.is_admin):
             return Response({
                 'error': 'Seuls les agents frontières peuvent vérifier les e-visas.'
             }, status=status.HTTP_403_FORBIDDEN)
@@ -450,29 +445,24 @@ class VerifyEVisaView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        visa_number = serializer.validated_data.get('visa_number')
-        qr_code_data = serializer.validated_data.get('qr_code_data')
+        query = serializer.validated_data.get('visa_number') or serializer.validated_data.get('qr_code_data')
         
-        # Rechercher l'e-visa
-        evisa = None
-        if visa_number:
-            try:
-                evisa = EVisa.objects.get(visa_number=visa_number)
-            except EVisa.DoesNotExist:
-                pass
-        elif qr_code_data:
-            # Le QR code contient le visa_number
-            try:
-                evisa = EVisa.objects.get(visa_number=qr_code_data)
-            except EVisa.DoesNotExist:
-                pass
+        if not query:
+            return Response({'error': 'Numéro ou QR code requis.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Recherche intelligente : Visa Number, App Number ou Passport
+        evisa = EVisa.objects.filter(
+            Q(visa_number=query) | 
+            Q(application__application_number=query) |
+            Q(application__passport_number=query)
+        ).first()
         
         if not evisa:
             return Response({
                 'valid': False,
-                'message': 'e-Visa introuvable.'
+                'message': 'e-Visa introuvable. Vérifiez le numéro ou le scan.'
             }, status=status.HTTP_404_NOT_FOUND)
-        
+            
         # Vérifier la validité
         is_valid = evisa.is_valid
         
