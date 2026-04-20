@@ -594,34 +594,44 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
         if not request.user.is_admin:
             return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
             
-        # On récupère toutes les ENTRÉES
-        entries = BorderCrossing.objects.filter(
-            crossing_type='ENTRY'
-        ).select_related('evisa', 'evisa__application', 'linked_exit').order_by('-crossing_date')
+        # On récupère les ENTRÉES et REFUS
+        entries = BorderCrossing.objects.exclude(
+            crossing_type='EXIT'
+        ).select_related('evisa', 'evisa__application', 'application', 'application__visa_type', 'linked_exit').order_by('-crossing_date')
         
         data = []
         now = timezone.now().date()
         
         for entry in entries:
-            # Calcul du statut
-            if entry.linked_exit:
-                status_label = 'SORTI'
-                # On peut raffiner si c'était en dépassement
-                if entry.linked_exit.crossing_date.date() > entry.expected_exit_date:
-                    status_label = 'SORTI_DEPASSE'
-            elif now > entry.expected_exit_date:
-                status_label = 'DEPASSE'
+            # Récupérer l'application, qu'elle soit liée via evisa ou via le champ application
+            app = entry.application or (entry.evisa.application if entry.evisa else None)
+            if not app:
+                continue
+
+            if entry.crossing_type == 'DENIED':
+                status_label = 'REFUSE'
             else:
-                status_label = 'EN_COURS'
+                expected = entry.expected_exit_date
+                if not expected:
+                    expected = now # Fallback safe
+                    
+                if entry.linked_exit:
+                    status_label = 'SORTI'
+                    if entry.linked_exit.crossing_date.date() > expected:
+                        status_label = 'SORTI_DEPASSE'
+                elif now > expected:
+                    status_label = 'DEPASSE'
+                else:
+                    status_label = 'EN_COURS'
                 
             data.append({
                 'id': entry.id,
-                'full_name': entry.evisa.application.full_name,
-                'visa_type': entry.evisa.application.visa_type.name,
-                'visa_number': entry.evisa.visa_number,
+                'full_name': app.full_name,
+                'visa_type': app.visa_type.name if app.visa_type else 'Inconnu',
+                'visa_number': entry.evisa.visa_number if entry.evisa else 'N/A',
                 'entry_date': entry.crossing_date,
-                'expected_exit_date': entry.expected_exit_date,
-                'actual_exit_date': entry.linked_exit.crossing_date if entry.linked_exit else None,
+                'expected_exit_date': entry.expected_exit_date or entry.crossing_date,
+                'actual_exit_date': entry.linked_exit.crossing_date if getattr(entry, 'linked_exit', None) else None,
                 'status': status_label
             })
             

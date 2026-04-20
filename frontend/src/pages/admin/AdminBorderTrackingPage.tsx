@@ -16,7 +16,7 @@ interface BorderStay {
   entry_date: string;
   expected_exit_date: string;
   actual_exit_date: string | null;
-  status: 'EN_COURS' | 'SORTI' | 'DEPASSE' | 'SORTI_DEPASSE';
+  status: 'EN_COURS' | 'SORTI' | 'DEPASSE' | 'SORTI_DEPASSE' | 'REFUSE';
 }
 
 const AdminBorderTrackingPage: React.FC = () => {
@@ -59,6 +59,8 @@ const AdminBorderTrackingPage: React.FC = () => {
         return <Badge variant="danger" className="flex items-center gap-1 animate-pulse"><AlertTriangle size={12} /> Dépassé</Badge>;
       case 'SORTI_DEPASSE':
         return <Badge variant="warning" className="flex items-center gap-1"><AlertTriangle size={12} /> Sorti (Dépassement)</Badge>;
+      case 'REFUSE':
+        return <Badge variant="danger" className="flex items-center gap-1"><AlertTriangle size={12} /> Refus d'entrée</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -111,6 +113,7 @@ const AdminBorderTrackingPage: React.FC = () => {
             <option value="SORTI">Sortis</option>
             <option value="DEPASSE">Dépassement (Actif)</option>
             <option value="SORTI_DEPASSE">Sortis (Dépassement)</option>
+            <option value="REFUSE">Refus d'entrée</option>
           </select>
         </div>
 
