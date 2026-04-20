@@ -73,15 +73,21 @@ export default function VerificationVisaPage() {
   };
 
   const handleRecordPassage = async (action: 'ENTRY' | 'EXIT' | 'DENIED') => {
-    if (!result) return;
+    if (!result || !result.application) return;
     
     setActionLoading(true);
     try {
-      // result.evisa.id est l'ID de l'e-Visa nécessaire pour le passage
-      await visaService.submitBorderCheckIn(result.evisa.id, action);
-      toast.success(action === 'DENIED' ? "Entrée refusée enregistrée" : "Passage enregistré avec succès");
+      // On utilise l'ID de la demande (application) pour permettre l'enregistrement d'un refus
+      // même sur un dossier non-approuvé.
+      await visaService.submitBorderCheckIn(result.application.id, action);
       
-      // On peut rafraîchir ou vider le résultat
+      if (action === 'DENIED') {
+        toast.error("Entrée refusée et enregistrée dans le système de sécurité");
+      } else {
+        toast.success(action === 'EXIT' ? "Sortie enregistrée" : "Autorisation d'entrée enregistrée");
+      }
+      
+      // On vide le résultat après l'action
       setResult(null);
       setQuery('');
     } catch (error: any) {

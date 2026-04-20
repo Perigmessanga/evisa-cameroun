@@ -49,11 +49,10 @@ const visaService = {
     return response.data;
   },
 
-  submitBorderCheckIn: async (evisaId: string, action: 'ENTRY' | 'EXIT' | 'DENIED', location: string = 'Aéroport International de Douala') => {
-    // On remonte d'un niveau (v1 -> api) pour atteindre /api/border-crossings/
-    const response = await api.post(`/../border-crossings/`, {
-      evisa: evisaId,
-      crossing_type: action,
+  submitBorderCheckIn: async (applicationId: string, action: 'ENTRY' | 'EXIT' | 'DENIED', location: string = 'Poste Frontière') => {
+    // On utilise la nouvelle route unifiée qui gère les dossiers approuvés ET non-approuvés
+    const response = await api.post(`/visa_applications/border/applications/${applicationId}/check-in/`, {
+      action: action,
       location: location,
       notes: ""
     });

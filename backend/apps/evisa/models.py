@@ -109,6 +109,7 @@ class BorderCrossing(models.Model):
     CROSSING_TYPE_CHOICES = [
         ('ENTRY', 'Entrée'),
         ('EXIT',  'Sortie'),
+        ('DENIED', 'Refus Entrée'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -117,7 +118,17 @@ class BorderCrossing(models.Model):
         EVisa,
         on_delete=models.CASCADE,
         related_name='crossings',
+        null=True,
+        blank=True,
         verbose_name="e-Visa"
+    )
+    application = models.ForeignKey(
+        'visa_applications.VisaApplication',
+        on_delete=models.CASCADE,
+        related_name='border_crossings',
+        null=True,
+        blank=True,
+        verbose_name="Demande de visa"
     )
     border_agent = models.ForeignKey(
         'users.User',
@@ -129,7 +140,7 @@ class BorderCrossing(models.Model):
     crossing_type = models.CharField(
         max_length=10,
         choices=CROSSING_TYPE_CHOICES,
-        verbose_name="Type (Entrée/Sortie)"
+        verbose_name="Type (Entrée/Sortie/Refus)"
     )
     location = models.CharField(
         max_length=200,

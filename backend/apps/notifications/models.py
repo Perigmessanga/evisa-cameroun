@@ -130,6 +130,24 @@ class NotificationService:
         cls._send(user, subject, message, application)
 
     @classmethod
+    def send_border_denial_email(cls, application, border_agent, location):
+        """Notifie le demandeur que l'accès au territoire lui a été refusé."""
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'passport_number': application.passport_number,
+            'location': location,
+            'agent_name': border_agent.get_full_name(),
+        }
+        subject, message = cls._get_template_and_render(
+            'BORDER_DENIED', context,
+            f'Alerte de Contrôle — Refus d\'entrée au poste frontière',
+            f'Bonjour {user.get_full_name()},\n\nNous vous informons que l\'accès au territoire vous a été refusé lors de votre contrôle au point de passage suivant : {location}.\n\nRaison : Votre document de voyage ou votre demande de visa (N° {application.application_number}) a été jugé invalide par les autorités compétentes lors du contrôle frontière.\n\nSi vous estimez qu\'il s\'agit d\'une erreur, veuillez contacter nos services consulaires.\n\nCordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+        )
+        cls._send(user, subject, message, application)
+
+    @classmethod
     def send_documents_requested(cls, application, agent_message):
         user = application.applicant
         base_url = settings.BASE_FRONTEND_URL

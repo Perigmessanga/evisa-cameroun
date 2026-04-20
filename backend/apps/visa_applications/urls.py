@@ -36,6 +36,7 @@ urlpatterns = [
     # Border Control
     path('border/stats/', BorderStatsView.as_view(), name='border-stats'),
     path('border/verify/', BorderVerificationView.as_view(), name='border-verify'),
+    path('border/applications/<uuid:pk>/check-in/', BorderCheckInView.as_view(), name='border-check-in'),
     path('border/history/', BorderHistoryListView.as_view(), name='border-history'),
     path('border/alerts/', SecurityAlertListView.as_view(), name='border-alerts'),
 ]

@@ -7,7 +7,7 @@ from .models import (
     VisaApplication, ApplicationStatus, VisaHistory, EmbassyOpinion, 
     BorderCheckStatus, SecurityAlert
 )
-from apps.evisa.models import EVisa
+from apps.evisa.models import EVisa, BorderCrossing
 from .serializers import VisaApplicationSerializer, SecurityAlertSerializer
 from apps.evisa.serializers import EVisaSerializer
 from .services import EVisa_service
@@ -266,20 +266,43 @@ class BorderCheckInView(APIView):
         elif action == 'DENIED':
             application.border_check_status = BorderCheckStatus.DENIED
             msg = "Refus de l'entrée enregistré avec succès"
+            
+            location = request.data.get('location', 'Poste Frontière (Localisation Agent)')
+            
             # Auto-générer une alerte de sécurité
             SecurityAlert.objects.create(
                 application=application,
                 type='HIGH',
                 title=f"Refus d'entrée : {application.full_name}",
                 description=f"L'agent {request.user.get_full_name()} a refusé l'entrée au territoire pour le passeport {application.passport_number}.",
-                location="Poste Frontière (Localisation Agent)"
+                location=location
             )
+            
+            # Envoi de l'email au demandeur
+            try:
+                NotificationService.send_border_denial_email(application, request.user, location)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erreur envoi email refus frontière: {e}", exc_info=True)
+                
         else:
             return api_response(message="Action invalide", status_code=status.HTTP_400_BAD_REQUEST)
             
         application.border_agent = request.user
         application.border_checked_at = timezone.now()
         application.save()
+        
+        # Enregistrer le passage dans le modèle BorderCrossing (Traçabilité Suivi Entrée/Sortie)
+        evisa_obj = getattr(application, 'evisa', None)
+        BorderCrossing.objects.create(
+            application=application,
+            evisa=evisa_obj,
+            border_agent=request.user,
+            crossing_type=action,
+            location=request.data.get('location', 'Poste Frontière'),
+            notes=request.data.get('notes', '')
+        )
         
         VisaHistory.objects.create(
             application=application,
