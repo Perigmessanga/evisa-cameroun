@@ -445,31 +445,28 @@ class VerifyEVisaView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        query = serializer.validated_data.get('visa_number') or serializer.validated_data.get('qr_code_data')
+        query = (serializer.validated_data.get('visa_number') or serializer.validated_data.get('qr_code_data', '')).strip()
         
         if not query:
             return Response({'error': 'Numéro ou QR code requis.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Recherche intelligente : Visa Number, App Number ou Passport
+        # Recherche intelligente (iexact)
         evisa = EVisa.objects.filter(
-            Q(visa_number=query) | 
-            Q(application__application_number=query) |
-            Q(application__passport_number=query)
+            Q(visa_number__iexact=query) | 
+            Q(application__application_number__iexact=query) |
+            Q(application__passport_number__iexact=query)
         ).first()
         
         if not evisa:
             return Response({
                 'valid': False,
-                'message': 'e-Visa introuvable. Vérifiez le numéro ou le scan.'
+                'message': 'e-Visa introuvable. Veuillez vérifier le numéro ou le scan.'
             }, status=status.HTTP_404_NOT_FOUND)
             
-        # Vérifier la validité
-        is_valid = evisa.is_valid
-        
         return Response({
-            'valid': is_valid,
-            'evisa': EVisaSerializer(evisa).data if is_valid else None,
-            'message': self._get_validation_message(evisa)
+            'valid': evisa.is_valid,
+            'message': 'Visa valide' if evisa.is_valid else 'Visa expiré ou révoqué',
+            'evisa': EVisaSerializer(evisa).data
         })
     
     def _get_validation_message(self, evisa):

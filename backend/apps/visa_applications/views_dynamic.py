@@ -9,6 +9,7 @@ from .models import (
 )
 from apps.evisa.models import EVisa
 from .serializers import VisaApplicationSerializer, SecurityAlertSerializer
+from apps.evisa.serializers import EVisaSerializer
 from .services import EVisa_service
 from apps.notifications.models import NotificationService
 from evisa_backend.utils import api_response
@@ -111,9 +112,16 @@ class ImmigrationDecisionView(APIView):
             
             # Générer E-Visa
             try:
-                EVisa_service.generate_evisa(application)
+                evisa = EVisa_service.generate_evisa(application)
+                if not evisa:
+                    raise Exception("L'objet e-Visa n'a pas pu être créé.")
             except Exception as e:
-                print(f"Erreur génération e-visa: {e}")
+                # Si la génération échoue, on logue mais l'application reste APPROVED
+                # Optionnel: On pourrait revert le status si c'est critique
+                print(f"CRITICAL ERROR: Génération e-visa échouée pour {application.application_number}: {e}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erreur génération e-visa: {e}", exc_info=True)
             
             # Notification Email
             NotificationService.send_application_approved(application)
@@ -207,23 +215,31 @@ class BorderVerificationView(APIView):
         if request.user.role != 'BORDER':
             return api_response(message="Accès réservé aux agents frontières", status_code=status.HTTP_403_FORBIDDEN)
             
-        query = request.query_params.get('query') # Numéro visa ou QR code data
+        query = request.query_params.get('query', '').strip() # Numéro visa, Application ou Passport
         if not query:
             return api_response(message="Veuillez fournir un numéro ou un scan QR", status_code=status.HTTP_400_BAD_REQUEST)
             
         try:
-            # Recherche par numéro d'application, numéro de visa, ou numéro de passeport
+            # Recherche robuste (iexact)
             application = VisaApplication.objects.filter(
-                Q(application_number=query) | 
-                Q(evisa__visa_number=query) |
-                Q(passport_number=query)
+                Q(application_number__iexact=query) | 
+                Q(evisa__visa_number__iexact=query) |
+                Q(passport_number__iexact=query)
             ).first()
             
             if not application:
-                return api_response(message="E-Visa introuvable", status_code=status.HTTP_404_NOT_FOUND)
+                return api_response(message="Visa ou Demande introuvable", status_code=status.HTTP_404_NOT_FOUND)
                 
-            serializer = VisaApplicationSerializer(application)
-            return api_response(data=serializer.data)
+            # Vérifier si l'e-visa existe
+            evisa_obj = getattr(application, 'evisa', None)
+            
+            # Formater la réponse comme attendu par le frontend VerificationVisaPage.tsx
+            return Response({
+                'valid': evisa_obj.is_valid if evisa_obj else False,
+                'message': 'Visa valide' if (evisa_obj and evisa_obj.is_valid) else 'e-Visa introuvable ou expiré',
+                'evisa': EVisaSerializer(evisa_obj).data if evisa_obj else None,
+                'application': VisaApplicationSerializer(application).data
+            })
         except Exception as e:
             return api_response(message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

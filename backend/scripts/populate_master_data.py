@@ -57,6 +57,7 @@ def populate_visa_types():
             "processing_time_days": 1,
             "required_documents": ["Passeport Valide", "Visa destination finale", "Billet d'avion continuation"]
         }
+    
     ]
 
     for vt_data in visa_types:

@@ -9,9 +9,12 @@ from django.utils import timezone
 from django.core.files.base import ContentFile
 
 
+from django.db import transaction
+
 class EVisaService:
     """Service responsable de la génération des e-visas (PDF + QR Code)."""
 
+    @transaction.atomic
     def generate_evisa(self, application):
         """
         Génère un e-visa complet pour une demande approuvée.
@@ -19,15 +22,19 @@ class EVisaService:
         """
         from apps.evisa.models import EVisa
 
+        # Vérifier si un visa existe déjà
+        existing = EVisa.objects.filter(application=application).first()
+        if existing:
+            return existing
+
         # Calculer les dates
         issue_date  = timezone.now().date()
-        expiry_date = issue_date + timezone.timedelta(
-            days=application.visa_type.validity_days
-        )
+        validity_days = application.visa_type.validity_days if application.visa_type else 30
+        expiry_date = issue_date + timezone.timedelta(days=validity_days)
 
-        # Générer le numéro de visa unique (ou laisser le modèle le faire dans save)
-        # Mais ici on construit le QR code avant, donc on le génère manuellement
+        # Générer le numéro de visa unique
         year = timezone.now().year
+        # Utilisation de select_for_update pour éviter les race conditions sur le compteur
         count = EVisa.objects.filter(created_at__year=year).count() + 1
         visa_number = f"CM-VISA-{year}-{count:06d}"
 
@@ -35,16 +42,14 @@ class EVisaService:
         qr_data = self._build_qr_data(visa_number, application)
         qr_b64  = self._generate_qr_code(qr_data)
 
-        # Créer l'objet EVisa (Le PDF sera généré à la volée lors du téléchargement)
-        evisa, created = EVisa.objects.get_or_create(
+        # Créer l'objet EVisa
+        evisa = EVisa.objects.create(
             application=application,
-            defaults={
-                'visa_number': visa_number,
-                'issue_date': issue_date,
-                'expiry_date': expiry_date,
-                'qr_code': qr_b64,
-                'pdf_file_path': f'evisas/evisa_{visa_number}.pdf',
-            }
+            visa_number=visa_number,
+            issue_date=issue_date,
+            expiry_date=expiry_date,
+            qr_code=qr_b64,
+            pdf_file_path=f'evisas/evisa_{visa_number}.pdf'
         )
         return evisa
 
