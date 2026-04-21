@@ -129,6 +129,21 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'success', 'updated': len(updates)})
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def status(self, request):
+        """
+        Vérifier le statut public du système (ex: mode maintenance).
+        GET /api/system-settings/status/
+        """
+        maintenance_mode = False
+        setting = SystemSetting.objects.filter(key='maintenanceMode').first()
+        if setting and setting.value == 'true':
+            maintenance_mode = True
+            
+        return Response({
+            'maintenanceMode': maintenance_mode
+        })
+
 
 class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
     """

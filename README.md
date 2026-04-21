@@ -304,3 +304,25 @@ a ce niveau du code , <div>
 
 merci d'avsnce pour l'implementation je sais que tu en es capable et tu me produiras un rendu 100% professionnel et sans erreur stp . ne gate pas le code stp grand maitre 
 
+
+c'est parfait , tu m'as produit un resultat vraiment impeccable merci beaucoup.
+
+je voulais ajouter un truc. du vois dans la sidebar du dashboard administrateurdans l'onglet configuration plus precisement a ce niveau Paramètres Système
+Configurez les services tiers, la sécurité et le comportement global de l'application.
+
+Général
+Serveur Email (SMTP)
+Passerelles de Paiement
+Sécurité & Accès
+Configurations Globales
+Nom de l'application
+Portail E-Visa Cameroun
+Email du support technique
+messangaperig3@gmail.com
+
+Mode Maintenance
+Désactiver l'accès public au site. Seuls les Administrateurs pourront se connecter.
+Sauvegarder les modifications
+
+je veux qu'on s'attarde sur le champs mode maintenance. je souhaiterais vraiment que lorsque l'administrateur active le mode maintenance sur le carre juste a cote de mode maintenance, et clique sur sauvegarder les modifications, ca desactive l'acces public du site a tous les utilisateurs inscrits et qui souhaitent s'inscrire dans la plateforme pour sommetre leurs demandes d'e-visa y compris les agents aux controles frontieres, ambassade, agent d'immigrations et demandeurs de visa pour plus de maintenabilite et amelioration du code si besoin . seuls les adminstrateurs pourront se connecter dans le dashboard lorsque le mode maintenance est active pour pouvoir desactiver le mode maintenance et sauvegarder les modifications pour que le site soit toaccessible publiquement par tous les utilisateurs de la plateforme (inscrits et qui souhaitent s'inscrire pour soumettre leur demande d'e-visa y compris les agents aux controles frontieres, ambassades et agent d'immigration)
+

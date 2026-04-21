@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import MaintenancePage from './pages/MaintenancePage';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -73,13 +74,32 @@ function PlaceholderPage({ title }: { title: string }) {
 }
 
 export default function App() {
-  const { loading } = useAuth();
+  const { loading, user, maintenanceMode, isMaintenanceLoading } = useAuth();
 
-  if (loading) {
+  if (loading || isMaintenanceLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cm-cream">
         <div className="w-12 h-12 border-4 border-cm-gold border-t-transparent rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  // If maintenance is active AND the currently logged user is NOT an admin
+  const showMaintenance = maintenanceMode && (!user || user.role !== 'ADMIN');
+
+  if (showMaintenance) {
+    return (
+      <>
+        <Toaster position="top-right" toastOptions={{
+          className: 'font-body text-sm',
+          success: { iconTheme: { primary: '#2D6A4F', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#CE1126', secondary: '#fff' } },
+        }} />
+        <Routes>
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="*" element={<MaintenancePage />} />
+        </Routes>
+      </>
     );
   }
 
