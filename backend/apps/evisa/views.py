@@ -137,7 +137,7 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
         """
         maintenance_mode = False
         setting = SystemSetting.objects.filter(key='maintenanceMode').first()
-        if setting and setting.value == 'true':
+        if setting and setting.value.lower() == 'true':
             maintenance_mode = True
             
         return Response({

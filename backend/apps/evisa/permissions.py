@@ -31,7 +31,7 @@ class MaintenanceModePermission(BasePermission):
         # 2. Vérifier si le mode maintenance est actif
         try:
             maintenance_setting = SystemSetting.objects.get(key='maintenanceMode')
-            is_maintenance_active = (maintenance_setting.value == 'true')
+            is_maintenance_active = (maintenance_setting.value.lower() == 'true')
         except SystemSetting.DoesNotExist:
             is_maintenance_active = False
 

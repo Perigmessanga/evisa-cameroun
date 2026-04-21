@@ -45,8 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchMaintenanceStatus = useCallback(async () => {
     try {
-      // Direct call to API because this can fail or return 503 if maintenance mode is handled at backend level later
-      const res = await fetch((import.meta.env.VITE_API_URL || 'https://charles237.pythonanywhere.com/api/v1') + '/system-settings/status/');
+      // Direct call to API. On enlève le /v1 car system-settings est sous /api/
+      const apiBase = (import.meta.env.VITE_API_URL || 'https://charles237.pythonanywhere.com/api/v1').replace(/\/v1\/?$/, '');
+      const res = await fetch(apiBase + '/system-settings/status/');
       if (res.ok) {
         const data = await res.json();
         setMaintenanceMode(data.maintenanceMode === true);
