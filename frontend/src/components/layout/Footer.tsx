@@ -25,10 +25,26 @@ export default function Footer() {
         <div>
           <h5 className="font-bold mb-4 text-cm-gold">Légal & Contact</h5>
           <ul className="space-y-2 text-sm text-white/60">
-            <li>Mentions Légales</li>
-            <li>Politique de Confidentialité</li>
-            <li>Conditions Générales d'Utilisation</li>
-            <li className="pt-2 text-white">messangaperig3@gmail.com</li>
+            <li>
+              <Link to="/mentions-legales" className="hover:text-cm-gold transition-colors">
+                Mentions Légales
+              </Link>
+            </li>
+            <li>
+              <Link to="/politique-confidentialite" className="hover:text-cm-gold transition-colors">
+                Politique de Confidentialité
+              </Link>
+            </li>
+            <li>
+              <Link to="/conditions-generales" className="hover:text-cm-gold transition-colors">
+                Conditions Générales d'Utilisation
+              </Link>
+            </li>
+            <li className="pt-2 text-white">
+              <a href="mailto:messangaperig3@gmail.com" className="hover:text-cm-gold transition-colors">
+                messangaperig3@gmail.com
+              </a>
+            </li>
           </ul>
         </div>
       </div>

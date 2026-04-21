@@ -146,6 +146,10 @@ Ce plan vous convient-il ?
 
 
 
+cd \~/evisa/backend
+
+
+
 Walkthrough : Suivi des Entrées/Sorties et Notifications
 
 L'implémentation du système de suivi des frontières et des notifications est maintenant terminée ! Voici un résumé de ce qui a été accompli et comment l'utiliser.
@@ -213,4 +217,90 @@ Pour planifier les rappels de fin de séjour automatiques (1 semaine avant la li
 Prochaines Étapes
 
 Le développement de cette fonctionnalité demandée est 100% achevé. Si vous remarquez quoi que ce soit d'autre à corriger ou désirez un nouvel ajout, faites-le moi savoir !
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bientôt ! Bisous !
+
+
+
+a ce niveau du code ca serait interessant d'integrer ici une carte google Map qui indique exactement ou se trouve le batiment de la direction generale de la surete nationale ou direction de la police aux frontieres a younde <div className="flex gap-4 items-start">
+
+&#x20;                 <div className="w-12 h-12 rounded-xl bg-cm-gold/10 text-cm-gold flex items-center justify-center shrink-0">
+
+&#x20;                   <MapPin size={24} />
+
+&#x20;                 </div>
+
+&#x20;                 <div>
+
+&#x20;                   <h4 className="font-bold text-cm-text text-lg">Direction de la Police aux Frontières</h4>
+
+&#x20;                   <p className="text-cm-muted mt-1 leading-relaxed">
+
+&#x20;                     Quartier Administratif<br />
+
+&#x20;                     Yaoundé, Cameroun
+
+&#x20;                   </p>
+
+&#x20;                 </div>
+
+&#x20;               </div>
+
+
+
+et a ce niveau du code ca serait mieux d'utiliser un composant qui suit la charte graphique du site, et non juste un select par defaut <div>
+
+&#x20;                   <label className="block text-sm font-bold text-cm-text mb-2">Sujet de la demande</label>
+
+&#x20;                   <select name="subject" value={formData.subject} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all text-cm-text">
+
+&#x20;                     <option value="">Sélectionnez un sujet</option>
+
+&#x20;                     <option value="Statut de ma demande de visa">Statut de ma demande de visa</option>
+
+&#x20;                     <option value="Problème de paiement">Problème de paiement</option>
+
+&#x20;                     <option value="Assistance pour les documents">Assistance pour les documents</option>
+
+&#x20;                     <option value="Autre demande">Autre demande</option>
+
+&#x20;                   </select>
+
+&#x20;                 </div>
+
+
+
+a ce niveau du code , <div>
+
+&#x20;         <h5 className="font-bold mb-4 text-cm-gold">Légal \& Contact</h5>
+
+&#x20;         <ul className="space-y-2 text-sm text-white/60">
+
+&#x20;           <li>Mentions Légales</li>
+
+&#x20;           <li>Politique de Confidentialité</li>
+
+&#x20;           <li>Conditions Générales d'Utilisation</li>
+
+&#x20;           <li className="pt-2 text-white">messangaperig3@gmail.com</li>
+
+&#x20;         </ul>
+
+&#x20;       </div> jaimerais qu'a base de ta puissance intellectuelle, tu crees trois pages (mention legales, politique de confidentialite et conditions generale d'utilisation precisant que ces trois phrases du footer doivent etre des liens ou chaque lien  redirigera sur sa page creee pour avoir plus d'informations ) en respectant la charte graphique du site sur toutes les pages. sagissant du contenu de chaque page, je te laisses le soin d'en creer toi-meme du contenu a base de ton intelligence , sers toi surtout du fond et de la forme de cette application pour le produire...
+
+merci d'avsnce pour l'implementation je sais que tu en es capable et tu me produiras un rendu 100% professionnel et sans erreur stp . ne gate pas le code stp grand maitre 
 

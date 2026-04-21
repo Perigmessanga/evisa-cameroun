@@ -1,11 +1,166 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CameroonFlag from '../components/common/CameroonFlag';
 import Footer from '../components/layout/Footer';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
+// ─── Options du select sujet ──────────────────────────────────────────────────
+const SUBJECT_OPTIONS = [
+  { value: 'Statut de ma demande de visa', label: 'Statut de ma demande de visa' },
+  { value: 'Problème de paiement', label: 'Problème de paiement' },
+  { value: 'Assistance pour les documents', label: 'Assistance pour les documents' },
+  { value: 'Autre demande', label: 'Autre demande' },
+];
+
+// ─── Composant Select Stylisé ─────────────────────────────────────────────────
+interface CustomSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+}
+
+function CustomSelect({ value, onChange, required }: CustomSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selected = SUBJECT_OPTIONS.find(o => o.value === value);
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Champ natif caché pour la validation HTML5 */}
+      <select
+        name="subject"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        required={required}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+      >
+        <option value="">Sélectionnez un sujet</option>
+        {SUBJECT_OPTIONS.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
+      {/* Bouton déclencheur visible */}
+      <button
+        type="button"
+        id="subject-select"
+        onClick={() => setOpen(prev => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={[
+          'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all outline-none bg-cm-cream/50 text-left cursor-pointer select-none',
+          open
+            ? 'border-cm-green-mid ring-4 ring-cm-green/10'
+            : 'border-cm-border hover:border-cm-green-mid/50',
+          selected ? 'text-cm-text' : 'text-cm-muted',
+        ].join(' ')}
+      >
+        <span className="text-sm font-medium truncate">
+          {selected ? selected.label : 'Sélectionnez un sujet'}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`text-cm-muted shrink-0 transition-transform duration-200 ${open ? 'rotate-180 text-cm-green-mid' : ''}`}
+        />
+      </button>
+
+      {/* Liste déroulante */}
+      {open && (
+        <div
+          role="listbox"
+          className="absolute z-40 mt-2 w-full bg-white border border-cm-border rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden animate-fadeIn"
+        >
+          {SUBJECT_OPTIONS.map(option => {
+            const isActive = value === option.value;
+            return (
+              <div
+                key={option.value}
+                role="option"
+                aria-selected={isActive}
+                onClick={() => { onChange(option.value); setOpen(false); }}
+                className={[
+                  'flex items-center gap-3 px-4 py-3 cursor-pointer text-sm transition-all border-l-2',
+                  isActive
+                    ? 'bg-cm-green/5 text-cm-green font-bold border-cm-green'
+                    : 'text-cm-text hover:bg-cm-cream border-transparent',
+                ].join(' ')}
+              >
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cm-green shrink-0" />}
+                {option.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Bloc Carte Google Maps ───────────────────────────────────────────────────
+function MapBlock() {
+  return (
+    <div className="rounded-2xl overflow-hidden border border-cm-border shadow-sm">
+      {/* En-tête carte */}
+      <div className="bg-cm-dark text-white px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin size={15} className="text-cm-gold" />
+          <span className="text-sm font-bold">Direction Générale de la Sûreté Nationale</span>
+        </div>
+        <a
+          href="https://maps.google.com/?q=Direction+Generale+de+la+Surete+Nationale+Yaounde+Cameroun"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-white/60 hover:text-cm-gold transition-colors"
+          title="Ouvrir dans Google Maps"
+        >
+          <ExternalLink size={12} />
+          <span className="hidden sm:inline">Google Maps</span>
+        </a>
+      </div>
+
+      {/* Iframe Google Maps — DGSN / Police aux Frontières, Yaoundé */}
+      <div className="relative w-full" style={{ paddingTop: '62%' }}>
+        <iframe
+          title="Localisation Direction Générale de la Sûreté Nationale — Yaoundé"
+          className="absolute inset-0 w-full h-full"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          src="https://maps.google.com/maps?q=Direction+Generale+de+la+Surete+Nationale+Yaounde+Cameroun&output=embed&z=15"
+          style={{ border: 0 }}
+          allowFullScreen
+        />
+      </div>
+
+      {/* Pied de carte */}
+      <div className="bg-cm-cream/60 px-5 py-2.5 flex items-center justify-between border-t border-cm-border">
+        <p className="text-xs text-cm-muted">Quartier Administratif, Yaoundé, Cameroun</p>
+        <a
+          href="https://maps.google.com/dir/?api=1&destination=Direction+Generale+de+la+Surete+Nationale+Yaounde"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-bold text-cm-green-mid hover:underline flex items-center gap-1"
+        >
+          Itinéraire <ExternalLink size={10} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page Principale ──────────────────────────────────────────────────────────
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -14,10 +169,10 @@ export default function ContactPage() {
     last_name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -28,7 +183,7 @@ export default function ContactPage() {
       await api.post('/../contact-messages/', formData);
       setSent(true);
       setTimeout(() => setSent(false), 5000);
-      setFormData({first_name: '', last_name: '', email: '', subject: '', message: ''});
+      setFormData({ first_name: '', last_name: '', email: '', subject: '', message: '' });
     } catch (error) {
       console.error(error);
       toast.error("Erreur lors de l'envoi du message. Veuillez réessayer.");
@@ -39,7 +194,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-cm-cream flex flex-col">
-      {/* Navbar (Static version) */}
+      {/* Navbar */}
       <nav className="bg-white border-b border-cm-border py-4 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3">
@@ -54,7 +209,10 @@ export default function ContactPage() {
             <Link to="/" className="text-sm font-semibold text-cm-muted hover:text-cm-green-mid hidden sm:block">
               Retour à l'accueil
             </Link>
-            <Link to="/auth/login" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-cm-green text-white hover:bg-cm-green-mid transition-all">
+            <Link
+              to="/auth/login"
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-cm-green text-white hover:bg-cm-green-mid transition-all"
+            >
               Connexion
             </Link>
           </div>
@@ -68,24 +226,27 @@ export default function ContactPage() {
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <h1 className="font-display text-4xl lg:text-5xl font-bold mb-4">Contactez-nous</h1>
             <p className="text-white/70 text-lg max-w-2xl leading-relaxed">
-              Vous avez des questions ou besoin d'assistance pour votre demande de visa ? Notre équipe est à votre disposition pour vous accompagner.
+              Vous avez des questions ou besoin d'assistance pour votre demande d'e-visa ?
+              Notre équipe est à votre disposition pour vous accompagner.
             </p>
           </div>
         </div>
 
-        {/* Content Section */}
+        {/* Content */}
         <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-24">
-          
-          {/* Left: Contact Info */}
-          <div className="space-y-12">
+
+          {/* ── Colonne gauche : Informations de contact ── */}
+          <div className="space-y-10">
             <div>
               <h2 className="font-display text-3xl font-bold text-cm-text mb-8">Informations de contact</h2>
+
               <div className="space-y-6">
+                {/* Adresse + Carte */}
                 <div className="flex gap-4 items-start">
                   <div className="w-12 h-12 rounded-xl bg-cm-gold/10 text-cm-gold flex items-center justify-center shrink-0">
                     <MapPin size={24} />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-cm-text text-lg">Direction de la Police aux Frontières</h4>
                     <p className="text-cm-muted mt-1 leading-relaxed">
                       Quartier Administratif<br />
@@ -93,7 +254,11 @@ export default function ContactPage() {
                     </p>
                   </div>
                 </div>
-                
+
+                {/* ── Carte Google Maps ── */}
+                <MapBlock />
+
+                {/* Email */}
                 <div className="flex gap-4 items-start">
                   <div className="w-12 h-12 rounded-xl bg-cm-green/10 text-cm-green flex items-center justify-center shrink-0">
                     <Mail size={24} />
@@ -105,38 +270,43 @@ export default function ContactPage() {
                   </div>
                 </div>
 
+                {/* Téléphone */}
                 <div className="flex gap-4 items-start">
                   <div className="p-4 bg-cm-cream/50 rounded-xl text-cm-green">
                     <Phone size={24} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-cm-text">Téléphone (WhatsApp & Appels)</h3>
+                    <h3 className="font-bold text-lg text-cm-text">Téléphone (WhatsApp &amp; Appels)</h3>
                     <p className="text-cm-muted mt-1 leading-relaxed">+237 690 99 22 59</p>
                   </div>
                 </div>
 
+                {/* Horaires */}
                 <div className="flex gap-4 items-start">
                   <div className="w-12 h-12 rounded-xl bg-cm-cream border border-cm-border text-cm-muted flex items-center justify-center shrink-0">
                     <Clock size={24} />
                   </div>
                   <div>
                     <h4 className="font-bold text-cm-text text-lg">Heures d'ouverture</h4>
-                    <p className="text-cm-muted mt-1 leading-relaxed">Lundi - Vendredi : 08h00 - 15h30</p>
+                    <p className="text-cm-muted mt-1 leading-relaxed">Lundi – Vendredi : 08h00 – 15h30</p>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Encart suivi */}
             <div className="bg-cm-cream/50 rounded-2xl p-6 border border-cm-border shadow-sm">
               <h4 className="font-bold text-cm-text mb-2">Suivi de demande</h4>
-              <p className="text-sm text-cm-muted mb-4">Si votre demande concerne un dossier en cours, veuillez vous munir de votre identifiant de dossier.</p>
+              <p className="text-sm text-cm-muted mb-4">
+                Si votre demande concerne un dossier en cours, veuillez vous munir de votre identifiant de dossier.
+              </p>
               <Link to="/applicant/tracking" className="text-sm font-bold text-cm-green-mid hover:underline">
                 Accéder au suivi &rarr;
               </Link>
             </div>
           </div>
 
-          {/* Right: Contact Form */}
+          {/* ── Colonne droite : Formulaire ── */}
           <div>
             <div className="bg-white rounded-3xl p-8 lg:p-10 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-cm-border">
               <h3 className="font-display text-2xl font-bold text-cm-text mb-2">Envoyez-nous un message</h3>
@@ -155,36 +325,73 @@ export default function ContactPage() {
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-bold text-cm-text mb-2">Prénom</label>
-                      <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Jean" />
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        required
+                        placeholder="Charles"
+                        className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all"
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-cm-text mb-2">Nom</label>
-                      <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="Dupont" />
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        required
+                        placeholder="Messanga"
+                        className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all"
+                      />
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-bold text-cm-text mb-2">Adresse Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all" placeholder="jean.dupont@email.com" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-cm-text mb-2">Sujet de la demande</label>
-                    <select name="subject" value={formData.subject} onChange={handleChange} required className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all text-cm-text">
-                      <option value="">Sélectionnez un sujet</option>
-                      <option value="Statut de ma demande de visa">Statut de ma demande de visa</option>
-                      <option value="Problème de paiement">Problème de paiement</option>
-                      <option value="Assistance pour les documents">Assistance pour les documents</option>
-                      <option value="Autre demande">Autre demande</option>
-                    </select>
+                    <label className="block text-sm font-bold text-cm-text mb-2">Adresse Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      placeholder="messangacharles@icloud.com"
+                      className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* ── Select Stylisé ── */}
+                  <div>
+                    <label htmlFor="subject-select" className="block text-sm font-bold text-cm-text mb-2">
+                      Sujet de la demande
+                    </label>
+                    <CustomSelect
+                      value={formData.subject}
+                      onChange={(val) => setFormData(prev => ({ ...prev, subject: val }))}
+                      required
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-cm-text mb-2">Votre message</label>
-                    <textarea name="message" value={formData.message} onChange={handleChange} required rows={5} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all resize-none" placeholder="Décrivez votre problème en détail..."></textarea>
+                    <textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows={5}
+                      placeholder="Décrivez votre problème en détail..."
+                      className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/10 outline-none transition-all resize-none"
+                    />
                   </div>
 
-                  <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-70">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-cm-green to-cm-green-mid text-white font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-70"
+                  >
                     {loading ? <Loader2 size={18} className="animate-spin" /> : <>Envoyer <Send size={18} /></>}
                   </button>
                 </form>

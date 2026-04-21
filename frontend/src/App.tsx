@@ -5,6 +5,9 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
+import MentionsLegalesPage from './pages/legal/MentionsLegalesPage';
+import PolitiqueConfidentialitePage from './pages/legal/PolitiqueConfidentialitePage';
+import ConditionsGeneralesPage from './pages/legal/ConditionsGeneralesPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -92,6 +95,9 @@ export default function App() {
         {/* ── PUBLIC ROUTES ── */}
         <Route path="/" element={<HomePage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+        <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
+        <Route path="/conditions-generales" element={<ConditionsGeneralesPage />} />
         
         {/* ── AUTH ROUTES ── */}
         <Route path="/auth">

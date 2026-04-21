@@ -107,7 +107,7 @@ export default function LoginPage() {
 
           {error && (
             <div className="bg-cm-red/5 border border-cm-red/10 text-cm-error text-sm px-4 py-3 rounded-xl mb-6 flex items-start gap-2 animate-fadeIn">
-              <span className="shrink-0 mt-0.5">⚠️</span>
+              <span className="shrink-0 mt-0.5"></span>
               <p>{error}</p>
             </div>
           )}

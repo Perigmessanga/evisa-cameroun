@@ -12,7 +12,7 @@ import {
 
 const TRANSLATIONS = {
   fr: {
-    nav: { home: 'Accueil', apply: 'Demander un Visa', tracking: 'Suivi', contact: 'Contact', login: 'Connexion' },
+    nav: { home: 'Accueil', apply: 'Demander un e-Visa', tracking: 'Suivi', contact: 'Contact', login: 'Connexion' },
     hero: {
       badge: 'Plateforme Officielle - République du Cameroun',
       title1: 'Votre e-Visa pour le',
