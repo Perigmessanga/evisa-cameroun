@@ -42,9 +42,10 @@ export default function SystemSettingsPage() {
       if (settingsList && settingsList.length > 0) {
         // Convert [{key: '...', value: '...'}, ...] to { key: value, ... }
         const settingsDict = settingsList.reduce((acc: any, item: any) => {
-          // Parse booleans correctly
-          if (item.value === 'true') acc[item.key] = true;
-          else if (item.value === 'false') acc[item.key] = false;
+          // Parse booleans correctement (insensible à la casse: 'True', 'true', 'False', 'false')
+          const lowerVal = String(item.value).toLowerCase();
+          if (lowerVal === 'true') acc[item.key] = true;
+          else if (lowerVal === 'false') acc[item.key] = false;
           else acc[item.key] = item.value;
           return acc;
         }, {});

@@ -126,7 +126,13 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
         updates = []
         for key, value in data.items():
             setting, created = SystemSetting.objects.get_or_create(key=key)
-            setting.value = str(value)
+            # Normaliser les booléens en 'true'/'false' (minuscule) pour la coherence
+            if isinstance(value, bool):
+                setting.value = 'true' if value else 'false'
+            elif str(value).lower() in ('true', 'false'):
+                setting.value = str(value).lower()
+            else:
+                setting.value = str(value)
             setting.save()
             updates.append(setting)
         
