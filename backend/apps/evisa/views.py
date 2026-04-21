@@ -106,6 +106,9 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def check_permissions(self, request):
+        # L'action 'status' est publique (AllowAny), on ne vérifie pas le rôle admin
+        if self.action == 'status':
+            return
         super().check_permissions(request)
         if not getattr(request.user, 'is_admin', False):
             self.permission_denied(
