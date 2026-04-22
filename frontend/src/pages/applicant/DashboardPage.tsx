@@ -7,10 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
 import { 
   FileText, Plus, Bell, Clock, FileCheck, FileWarning, 
-  ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle
+  ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle, X
 } from 'lucide-react';
 import applicationService from '../../services/applicationService';
 import type { VisaApplication } from '../../types';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 export default function ApplicantDashboard() {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ export default function ApplicantDashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+  // Modal notification
+  const [selectedNotif, setSelectedNotif] = useState<any | null>(null);
 
   useEffect(() => {
     loadData();
@@ -28,15 +31,11 @@ export default function ApplicantDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load applications
       const apps = await applicationService.getApplications();
-      console.log("DASHBOARD DATA:", apps); // Debug pour l'utilisateur
       setAllApplications(apps);
-      
-      // Load notifications
       await loadNotifications();
     } catch (err) {
-      console.error("Error loading dashboard data:", err);
+      console.error('Error loading dashboard data:', err);
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,7 @@ export default function ApplicantDashboard() {
       setNotifications(data.notifications || []);
       setUnreadCount(data.unread_count || 0);
     } catch (err) {
-      console.error("Error loading notifications:", err);
+      console.error('Error loading notifications:', err);
     } finally {
       setLoadingNotifs(false);
     }
@@ -58,27 +57,32 @@ export default function ApplicantDashboard() {
   const handleMarkAsRead = async (id: string) => {
     try {
       await applicationService.markNotificationRead(id);
-      loadNotifications(); // Refresh
+      loadNotifications();
     } catch (err) {
-      console.error("Error marking notification as read:", err);
+      console.error('Error marking notification as read:', err);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await applicationService.markAllNotificationsRead();
-      loadNotifications(); // Refresh
+      loadNotifications();
     } catch (err) {
-      console.error("Error marking all notifications as read:", err);
+      console.error('Error marking all notifications as read:', err);
     }
   };
-  
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'short', year: 'numeric'
-    });
+
+  // Ouvrir une notification et la marquer automatiquement comme lue
+  const openNotif = async (notif: any) => {
+    setSelectedNotif(notif);
+    if (!notif.read_at) {
+      await handleMarkAsRead(notif.id);
+      // Mettre à jour localement pour l'UI du modal
+      setSelectedNotif({ ...notif, read_at: new Date().toISOString() });
+    }
   };
+
+  const closeNotif = () => setSelectedNotif(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -103,6 +107,20 @@ export default function ApplicantDashboard() {
       case 'REJECTED': return <FileWarning className="text-cm-red" size={24} />;
       default: return <FileText className="text-cm-muted" size={24} />;
     }
+  };
+
+  const getNotifIcon = (notif: any) => {
+    if (notif.subject?.includes('APPROUVÉE') || notif.subject?.includes('approuvé')) return <CheckCircle2 size={16} />;
+    if (notif.subject?.includes('Refusée') || notif.subject?.includes('refusé')) return <AlertCircle size={16} />;
+    return <Bell size={16} />;
+  };
+
+  const getNotifColors = (notif: any) => {
+    if (notif.subject?.includes('APPROUVÉE') || notif.subject?.includes('approuvé'))
+      return { icon: 'bg-cm-green/10 text-cm-green', bar: 'bg-cm-green' };
+    if (notif.subject?.includes('Refusée') || notif.subject?.includes('refusé'))
+      return { icon: 'bg-cm-red/10 text-cm-red', bar: 'bg-cm-red' };
+    return { icon: 'bg-cm-gold/10 text-cm-gold', bar: 'bg-cm-gold' };
   };
 
   return (
@@ -137,7 +155,7 @@ export default function ApplicantDashboard() {
               <p className="text-sm font-semibold text-cm-muted mb-1">{stat.title}</p>
               <h3 className="font-display text-2xl font-bold text-cm-text">{stat.value}</h3>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white border border-cm-border/50 shadow-sm`}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white border border-cm-border/50 shadow-sm">
               {stat.icon}
             </div>
           </div>
@@ -231,7 +249,7 @@ export default function ApplicantDashboard() {
                 onClick={handleMarkAllAsRead}
                 className="text-xs font-semibold text-cm-muted hover:text-cm-green-mid transition-colors"
               >
-                Tout marquer comme lu
+                Tout marquer lu
               </button>
             )}
           </div>
@@ -241,34 +259,33 @@ export default function ApplicantDashboard() {
                <div className="flex justify-center p-12"><Loader2 className="text-cm-green-mid animate-spin" size={24} /></div>
              ) : notifications.length > 0 ? (
                <div className="divide-y divide-cm-border max-h-[500px] overflow-y-auto custom-scrollbar">
-                 {notifications.map((notif) => (
-                   <div 
-                    key={notif.id} 
-                    className={`p-4 transition-colors group relative ${!notif.read_at ? 'bg-cm-green-pale/5' : 'hover:bg-cm-cream/20'}`}
-                   >
-                     {!notif.read_at && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cm-green-mid" />}
-                     <div className="flex gap-3">
-                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.subject?.includes('APPROUVÉE') ? 'bg-cm-green/10 text-cm-green' : notif.subject?.includes('Refusée') ? 'bg-cm-red/10 text-cm-red' : 'bg-cm-gold/10 text-cm-gold'}`}>
-                         {notif.subject?.includes('APPROUVÉE') ? <CheckCircle2 size={16} /> : notif.subject?.includes('Refusée') ? <AlertCircle size={16} /> : <Bell size={16} />}
-                       </div>
-                       <div className="flex-1 min-w-0">
-                         <div className="flex justify-between items-start gap-2">
-                           <h4 className={`text-sm font-bold truncate ${!notif.read_at ? 'text-cm-text' : 'text-cm-muted'}`}>{notif.subject}</h4>
-                           <span className="text-[10px] text-cm-muted/60 shrink-0">{formatDate(notif.created_at)}</span>
+                 {notifications.map((notif) => {
+                   const colors = getNotifColors(notif);
+                   return (
+                     <button
+                       key={notif.id}
+                       onClick={() => openNotif(notif)}
+                       className={`w-full text-left p-4 transition-colors group relative hover:bg-cm-cream/30 cursor-pointer ${!notif.read_at ? 'bg-cm-green-pale/5' : ''}`}
+                     >
+                       {!notif.read_at && <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.bar}`} />}
+                       <div className="flex gap-3">
+                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colors.icon}`}>
+                           {getNotifIcon(notif)}
                          </div>
-                         <p className="text-xs text-cm-muted mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
-                         {!notif.read_at && (
-                           <button 
-                            onClick={() => handleMarkAsRead(notif.id)}
-                            className="mt-2 text-[10px] font-bold text-cm-green-mid opacity-0 group-hover:opacity-100 transition-opacity"
-                           >
-                            Marquer comme lu
-                           </button>
-                         )}
+                         <div className="flex-1 min-w-0">
+                           <div className="flex justify-between items-start gap-2">
+                             <h4 className={`text-sm font-bold truncate ${!notif.read_at ? 'text-cm-text' : 'text-cm-muted'}`}>{notif.subject}</h4>
+                             <span className="text-[10px] text-cm-muted/60 shrink-0">{formatDate(notif.created_at)}</span>
+                           </div>
+                           <p className="text-xs text-cm-muted mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                           <p className="text-[10px] font-semibold text-cm-green-mid mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                             Cliquer pour lire le message complet →
+                           </p>
+                         </div>
                        </div>
-                     </div>
-                   </div>
-                 ))}
+                     </button>
+                   );
+                 })}
                </div>
              ) : (
                <div className="p-12 text-center">
@@ -278,12 +295,75 @@ export default function ApplicantDashboard() {
              )}
           </div>
         </div>
+
         <div className="mt-8 pt-4 border-t border-cm-border text-center">
             <p className="text-[10px] text-cm-muted/30 font-mono uppercase tracking-widest">
                 e-Visa Cameroon Platform • Production Build v2.4.1 (Sync RealDB)
             </p>
         </div>
       </div>
+
+      {/* ── MODAL NOTIFICATION ── */}
+      {selectedNotif && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeNotif(); }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full animate-fadeIn overflow-hidden">
+            {/* Header */}
+            <div className={`p-6 flex items-start gap-4 ${
+              selectedNotif.subject?.includes('APPROUVÉE') || selectedNotif.subject?.includes('approuvé')
+                ? 'bg-cm-green-pale/10 border-b border-cm-green-pale/20'
+                : selectedNotif.subject?.includes('Refusée') || selectedNotif.subject?.includes('refusé')
+                ? 'bg-red-50 border-b border-red-100'
+                : 'bg-cm-gold-pale/10 border-b border-cm-gold/20'
+            }`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${getNotifColors(selectedNotif).icon}`}>
+                <div className="scale-150">{getNotifIcon(selectedNotif)}</div>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-cm-text leading-tight">{selectedNotif.subject}</h3>
+                <p className="text-xs text-cm-muted mt-1 flex items-center gap-1">
+                  <Calendar size={11} /> {formatDateTime(selectedNotif.created_at)}
+                </p>
+              </div>
+              <button
+                onClick={closeNotif}
+                className="w-8 h-8 rounded-full bg-cm-cream hover:bg-cm-border/50 flex items-center justify-center transition-colors shrink-0"
+              >
+                <X size={16} className="text-cm-muted" />
+              </button>
+            </div>
+
+            {/* Body — message complet */}
+            <div className="p-6">
+              <p className="text-sm text-cm-text leading-relaxed whitespace-pre-wrap">{selectedNotif.message}</p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex justify-end gap-3">
+              {!selectedNotif.read_at && (
+                <button
+                  onClick={async () => {
+                    await handleMarkAsRead(selectedNotif.id);
+                    closeNotif();
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-cm-green-mid border border-cm-green-pale/50 rounded-xl hover:bg-cm-green-pale/10 transition-colors"
+                >
+                  <CheckCircle2 size={14} className="inline mr-1" /> Marquer comme lu
+                </button>
+              )}
+              <button
+                onClick={closeNotif}
+                className="px-5 py-2 text-sm font-bold text-white bg-linear-to-r from-cm-green to-cm-green-mid rounded-xl hover:shadow-md transition-all"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

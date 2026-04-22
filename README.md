@@ -326,3 +326,37 @@ Sauvegarder les modifications
 
 je veux qu'on s'attarde sur le champs mode maintenance. je souhaiterais vraiment que lorsque l'administrateur active le mode maintenance sur le carre juste a cote de mode maintenance, et clique sur sauvegarder les modifications, ca desactive l'acces public du site a tous les utilisateurs inscrits et qui souhaitent s'inscrire dans la plateforme pour sommetre leurs demandes d'e-visa y compris les agents aux controles frontieres, ambassade, agent d'immigrations et demandeurs de visa pour plus de maintenabilite et amelioration du code si besoin . seuls les adminstrateurs pourront se connecter dans le dashboard lorsque le mode maintenance est active pour pouvoir desactiver le mode maintenance et sauvegarder les modifications pour que le site soit toaccessible publiquement par tous les utilisateurs de la plateforme (inscrits et qui souhaitent s'inscrire pour soumettre leur demande d'e-visa y compris les agents aux controles frontieres, ambassades et agent d'immigration)
 
+
+
+BONJOUR grand IA , JE VIENS aujourdhui pour apporter les modifications sur les etapes de soumission de la demande de visa par l'applicant. enfait jai fait des tests et j'ai remarque des truc a ameliorer :
+
+lorsque jarrive apres avoir televerser les documents de demande de visa au moment de cliquer sur verifier et continuer vers la biometrie on maffiche un message validation echouee: passport expiry date:le passport est expire. je propose que a chaque etape etape il doit avoir une validation automatique du formulaire cest a dire au fure et a mesure que je remplis le formulaire , ou je passe d'une etape a une autre le systeme doit pouvoir le valider. autrement dit , lorque je finis de remplir letape une, avant de me rendre a l'etape deux, je dois massurer que l'etape 1 est propre  parceque cest arriver a la derniere etape de soumission de la demande que le systeme m'affiche un message d'erreur dans l'etape precedente. 
+
+aussi lorsque jarrive sur letape de televersement de document , le message veuillez accepter la declaration sur l'honneur s'affiche directement avant meme que je ne commence a televerser et pourtant ca devrait safficher si et seulement si le demandeur oublie de cocher la declaration a l'honneur  apres avoir cliquer sur le bouton verifier et continuer vers la biometrie donc le message d'erreur ne doit pas s'afficher directement lorsque jarrive sur la page de televersement. ca doit plutot s'afficher lorsque je clique le bouton verifier et continuer vers la biometrie a condition que je naie pas cocher sur la declaration a l'honneur 
+
+aussi au niveau des notifications se trouvant dans le dashboard du demandeur, il faudrait que le demandeur puisse cliquer sur une notification pour pouvoir lire l'integralite du message car actuellement le message est couper.
+
+aussi au niveau de l'onglet mon compte plus precisement ici ac
+ayrthon charles
+Compte Demandeur vérifié
+
+Prénom(s)
+ayrthon
+Nom de famille
+charles
+Adresse Email
+applicant@test.com
+L'adresse email ne peut pas être modifiée car elle sert d'identifiant unique.
+
+Nationalité
+Ex: Français
+Téléphone
++33 6 00 00 00 00
+au niveau de la nationalite je pense qu'il est preferable d'utiliser une liste de tous les pays existant  avec  les hoix predefinis pour eviter les eventuelles fautes d'orthographe. alors en modifiant mon profil lorsque je clique sur sauvegarder , on maffiche une erreur erreur lors de la mise a jour du profil effectivement parceque je nai pas rempli le champs nationalite et jai mis un numero invalide. donc cette erreur n'est pas explicite cest toujours mieux que le message d'erreur precise  ce qui a cause l'erreur et comment la corriger. dans ce cas, le message doit preciser que le numero de telephone  est invalide quil faut le corriger. aussi il faudrait creer un select pour les prefixes telephoniques existantants (+237, +33 etc) et separer les prefixes des numeros. il faut aussi integrer des librairies qui gerent les numeros de telephones internationaux et se chargent de la validation de chaque numero.
+
+aussi, au niveau des montants se trouvant dans la plateforme peu importe ou ca se trouve, il faut separer les chiffres en groupes de 3 pour faciliter la lecture exemple : 200 000.00 XAF 
+
+au niveau du remplissage des informations personnelles, jai omis de remplir un champs au moment de cliquer sur suivant on maffiche un message veuillez remplir tous les champs obligatoires. ici lerreur l'erreur n'est pas informative. generalement pour les erreurs formulaires on ajoute un message d'erreur en rouge a cote du champs qui pose probleme. aussi le systeme doit verifier le formulaire au fur et a mesure qu'il est rempli. pour eviter ainsi a l'etape suivante le message d'erreur indiquant que le passport est expre, et que le de ce fait le formulaire ne peut etre enregistre 
+
+stp resouds moi ces problemes pour que ca soit 100% professionnel et sans erreurs. merci jai confiance en toi. bonne chance pour l'implementation 
+

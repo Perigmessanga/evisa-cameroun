@@ -3,19 +3,20 @@
 // ─────────────────────────────────────────────
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Loader2, Save, FileText, User as UserIcon, MapPin, UploadCloud, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Save, FileText, User as UserIcon, MapPin, UploadCloud, Plus, Trash2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import applicationService from '../../services/applicationService';
+import { formatAmount } from '../../utils/formatters';
 import type { VisaType } from '../../types';
 
 // ─── WORLD COUNTRIES ─────────────────────────
-const COUNTRIES = [
+export const COUNTRIES = [
   'Afghanistan', 'Afrique du Sud', 'Albanie', 'Algérie', 'Allemagne', 'Andorre', 'Angola', 'Antigua-et-Barbuda',
   'Arabie Saoudite', 'Argentine', 'Arménie', 'Australie', 'Autriche', 'Azerbaïdjan',
   'Bahamas', 'Bahreïn', 'Bangladesh', 'Barbade', 'Bélarus', 'Belgique', 'Belize', 'Bénin', 'Bhoutan', 'Bolivie',
   'Bosnie-Herzégovine', 'Botswana', 'Brésil', 'Brunei', 'Bulgarie', 'Burkina Faso', 'Burundi',
   'Cabo Verde', 'Cambodge', 'Cameroun', 'Canada', 'Centrafrique', 'Chili', 'Chine', 'Chypre', 'Colombie',
-  'Comores', 'Congo (Brazzaville)', 'Congo (RDC)', 'Corée du Nord', 'Corée du Sud', 'Costa Rica', 'Côte d\'Ivoire',
+  'Comores', 'Congo (Brazzaville)', 'Congo (RDC)', 'Corée du Nord', 'Corée du Sud', 'Costa Rica', "Côte d'Ivoire",
   'Croatie', 'Cuba', 'Danemark', 'Djibouti', 'Dominique',
   'Égypte', 'Émirats Arabes Unis', 'Équateur', 'Érythrée', 'Espagne', 'Estonie', 'Eswatini', 'Éthiopie',
   'Fidji', 'Finlande', 'France',
@@ -48,12 +49,58 @@ const STEPS = [
 
 const DRAFT_KEY = 'evisa_draft';
 
+// ─── Validation helpers ───────────────────────
+function isPassportExpired(expiryDate: string): boolean {
+  if (!expiryDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(expiryDate) < today;
+}
+
+function validateStep1(data: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!data.visaType) errors.visaType = 'Veuillez sélectionner un type de visa.';
+  return errors;
+}
+
+function validateStep2(data: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!data.firstName.trim()) errors.firstName = 'Le prénom est obligatoire.';
+  if (!data.lastName.trim()) errors.lastName = 'Le nom de famille est obligatoire.';
+  if (!data.birthDate) errors.birthDate = 'La date de naissance est obligatoire.';
+  if (!data.gender) errors.gender = 'Le sexe est obligatoire.';
+  if (!data.nationality) errors.nationality = 'La nationalité est obligatoire.';
+  if (!data.birthCountry) errors.birthCountry = 'Le pays de naissance est obligatoire.';
+  return errors;
+}
+
+function validateStep3(data: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!data.passportNumber.trim()) errors.passportNumber = 'Le numéro de passeport est obligatoire.';
+  if (!data.passportIssuingCountry) errors.passportIssuingCountry = 'Le pays délivrant le passeport est obligatoire.';
+  if (!data.passportIssueDate) errors.passportIssueDate = "La date de délivrance est obligatoire.";
+  if (!data.passportExpiryDate) {
+    errors.passportExpiryDate = "La date d'expiration est obligatoire.";
+  } else if (isPassportExpired(data.passportExpiryDate)) {
+    errors.passportExpiryDate = 'Votre passeport est expiré. Vous devez en obtenir un nouveau avant de faire une demande de visa.';
+  }
+  if (!data.arrivalDate) errors.arrivalDate = "La date d'arrivée prévue est obligatoire.";
+  if (!data.departureDate) errors.departureDate = 'La date de départ prévue est obligatoire.';
+  if (data.arrivalDate && data.departureDate && new Date(data.departureDate) <= new Date(data.arrivalDate)) {
+    errors.departureDate = 'La date de départ doit être postérieure à la date d\'arrivée.';
+  }
+  if (!data.addressInCameroon.trim()) errors.addressInCameroon = "L'adresse de séjour au Cameroun est obligatoire.";
+  return errors;
+}
+
 export default function ApplicationFormPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [visaTypes, setVisaTypes] = useState<VisaType[]>([]);
   const [loadingVisaTypes, setLoadingVisaTypes] = useState(true);
+  // Erreurs inline par champ
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const location = useLocation();
   const editId = location.state?.editId;
@@ -64,7 +111,6 @@ export default function ApplicationFormPage() {
       .catch(() => toast.error('Erreur de chargement des types de visa'))
       .finally(() => setLoadingVisaTypes(false));
 
-    // Si on est en mode édition, charger les données
     if (editId) {
       setLoading(true);
       applicationService.getApplication(editId)
@@ -76,7 +122,9 @@ export default function ApplicationFormPage() {
             firstName: app.full_name?.split(' ').slice(1).join(' ') || '',
             lastName: app.full_name?.split(' ')[0] || '',
             birthDate: app.date_of_birth || '',
+            age: '',
             gender: app.gender || '',
+            maritalStatus: '',
             profession: app.profession || '',
             nationality: app.nationality || '',
             birthCountry: app.place_of_birth || '',
@@ -97,7 +145,7 @@ export default function ApplicationFormPage() {
     }
   }, [editId]);
 
-  const [formData, setFormData] = useState(() => {
+  const [formData, setFormData] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
     return saved ? JSON.parse(saved) : {
       visaType: '',
@@ -129,10 +177,41 @@ export default function ApplicationFormPage() {
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
   const [extraDocs, setExtraDocs] = useState<string[]>([]);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Erreur déclaration — uniquement au submit, pas au chargement
+  const [termsError, setTermsError] = useState(false);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData((prev: Record<string, string>) => ({ ...prev, [e.target.name]: e.target.value }));
-  }, []);
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Effacer l'erreur du champ dès que l'utilisateur le modifie
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
+    }
+  }, [fieldErrors]);
+
+  // Validation onBlur pour un champ individuel
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (!value.trim() && currentStep === 1) {
+      const stepErrors = validateStep2(formData);
+      if (stepErrors[name]) {
+        setFieldErrors(prev => ({ ...prev, [name]: stepErrors[name] }));
+      }
+    }
+    if (!value.trim() && currentStep === 2) {
+      const stepErrors = validateStep3(formData);
+      if (stepErrors[name]) {
+        setFieldErrors(prev => ({ ...prev, [name]: stepErrors[name] }));
+      }
+    }
+    // Validation spéciale passeport expiré
+    if (name === 'passportExpiryDate' && value && isPassportExpired(value)) {
+      setFieldErrors(prev => ({
+        ...prev,
+        passportExpiryDate: 'Votre passeport est expiré. Veuillez le renouveler avant de faire une demande de visa.'
+      }));
+    }
+  }, [formData, currentStep]);
 
   const handleFile = (name: string, file: File | null) => {
     setUploadedFiles(prev => ({ ...prev, [name]: file }));
@@ -157,7 +236,6 @@ export default function ApplicationFormPage() {
         nationality: formData.nationality || '',
         gender: formData.gender || '',
         status: 'DRAFT',
-        // On peut ajouter d'autres champs si on veut
         passport_number: formData.passportNumber || '',
         purpose_of_visit: formData.purpose || '',
         arrival_date: formData.arrivalDate || null,
@@ -174,10 +252,10 @@ export default function ApplicationFormPage() {
         setFormData((prev: any) => ({ ...prev, editId: res.id }));
       }
 
-      localStorage.removeItem(DRAFT_KEY); // On nettoie le local car c'est sur le serveur maintenant
+      localStorage.removeItem(DRAFT_KEY);
       toast.success('Brouillon sauvegardé sur le serveur !');
     } catch (err) {
-      console.error("Draft Save error:", err);
+      console.error('Draft Save error:', err);
       toast.error('Impossible de sauvegarder le brouillon sur le serveur.');
     } finally {
       setLoading(false);
@@ -185,19 +263,25 @@ export default function ApplicationFormPage() {
   };
 
   const handleNext = () => {
-    if (currentStep === 0 && !formData.visaType) {
-      toast.error('Veuillez sélectionner un type de visa.'); return;
+    let errors: Record<string, string> = {};
+
+    if (currentStep === 0) {
+      errors = validateStep1(formData);
+    } else if (currentStep === 1) {
+      errors = validateStep2(formData);
+    } else if (currentStep === 2) {
+      errors = validateStep3(formData);
     }
-    if (currentStep === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.birthDate || !formData.nationality || !formData.birthCountry || !formData.gender) {
-        toast.error('Veuillez remplir tous les champs obligatoires.'); return;
-      }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      // Scroller vers le premier champ en erreur
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast.error('Veuillez corriger les erreurs indiquées avant de continuer.', { duration: 3000 });
+      return;
     }
-    if (currentStep === 2) {
-      if (!formData.passportNumber || !formData.passportIssueDate || !formData.passportExpiryDate || !formData.passportIssuingCountry || !formData.arrivalDate || !formData.departureDate || !formData.addressInCameroon) {
-        toast.error('Veuillez remplir tous les champs obligatoires.'); return;
-      }
-    }
+
+    setFieldErrors({});
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -205,24 +289,33 @@ export default function ApplicationFormPage() {
   };
 
   const handlePrev = () => {
-    if (currentStep > 0) setCurrentStep(s => s - 1);
+    if (currentStep > 0) {
+      setFieldErrors({});
+      setCurrentStep(s => s - 1);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validation déclaration d'honneur — uniquement ici, au moment du submit
     if (!termsAccepted) {
-      toast.error('Veuillez accepter la déclaration sur l\'honneur.'); return;
+      setTermsError(true);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      return;
     }
+    setTermsError(false);
+
     const requiredDocs = selectedVisaType?.required_documents || [];
     const missingDocs = requiredDocs.filter(d => !uploadedFiles[d]);
     if (missingDocs.length > 0) {
-      toast.error(`Veuillez téléverser : ${missingDocs[0]}`); return;
+      toast.error(`Document manquant : "${missingDocs[0]}". Veuillez le téléverser avant de continuer.`);
+      return;
     }
+
     setLoading(true);
     try {
-      // Create Application matching backend fields
       const payload: any = {
-        visa_type: formData.visaType, 
+        visa_type: formData.visaType,
         full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`,
         date_of_birth: formData.birthDate,
         place_of_birth: formData.birthCountry,
@@ -239,7 +332,7 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate,
         departure_date: formData.departureDate,
         address_in_cameroon: formData.addressInCameroon,
-        residence_country: formData.nationality, // Fallback to nationality if not explicit
+        residence_country: formData.nationality,
         emergency_contact_name: formData.emergencyName || '',
         emergency_contact_phone: formData.emergencyPhone || '',
       };
@@ -251,13 +344,11 @@ export default function ApplicationFormPage() {
         newApp = await applicationService.createApplication(payload);
       }
 
-      // Upload files
       toast.success('Demande enregistrée. Téléversement des documents...');
       const uploadPromises = Object.entries(uploadedFiles).map(async ([docName, file]) => {
         if (!file) return;
         const formDataPayload = new FormData();
-        
-        // Map common French document names to backend enums
+
         let docType = 'OTHER';
         const nameLower = docName.toLowerCase();
         if (nameLower.includes('passeport') || nameLower.includes('passport')) docType = 'PASSPORT';
@@ -266,7 +357,7 @@ export default function ApplicationFormPage() {
         else if (nameLower.includes('hébergement') || nameLower.includes('hotel') || nameLower.includes('hôtel')) docType = 'ACCOMMODATION_PROOF';
         else if (nameLower.includes('financier') || nameLower.includes('banque') || nameLower.includes('revenus')) docType = 'FINANCIAL_PROOF';
         else if (nameLower.includes('invitation')) docType = 'INVITATION_LETTER';
-        
+
         formDataPayload.append('document_type', docType);
         formDataPayload.append('file', file);
         return applicationService.uploadDocument(newApp.id, formDataPayload);
@@ -278,27 +369,38 @@ export default function ApplicationFormPage() {
       toast.success('Documents téléversés avec succès. Redirection vers la capture biométrique...');
       setTimeout(() => navigate('/applicant/biometric', { state: { applicationId: newApp.id } }), 1500);
     } catch (err: any) {
-      console.error("Application Submission Error:", err);
+      console.error('Application Submission Error:', err);
       const errData = err.response?.data;
       let msg = 'Erreur lors de la création de la demande.';
-      
+
       if (errData) {
-        // Handle DRF specialized error formats
         if (typeof errData === 'object') {
           const errors = errData.errors || errData;
+          // Traduction des noms de champs backend → français
+          const fieldTranslations: Record<string, string> = {
+            passport_expiry_date: "Date d'expiration du passeport",
+            passport_issue_date: "Date de délivrance du passeport",
+            passport_number: "Numéro de passeport",
+            date_of_birth: "Date de naissance",
+            arrival_date: "Date d'arrivée",
+            departure_date: "Date de départ",
+            full_name: "Nom complet",
+            nationality: "Nationalité",
+            gender: "Sexe",
+          };
           const errorMessages = Object.entries(errors).map(([field, error]: [string, any]) => {
-            const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+            const fieldName = fieldTranslations[field] || (field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' '));
             const message = Array.isArray(error) ? error[0] : error;
-            return `${fieldName}: ${message}`;
+            return `${fieldName} : ${message}`;
           });
           if (errorMessages.length > 0) {
-            msg = `Validation échouée : ${errorMessages.join(' | ')}`;
+            msg = `Erreur de validation :\n${errorMessages.join('\n')}`;
           }
         } else if (typeof errData === 'string') {
           msg = errData;
         }
       }
-      toast.error(msg, { duration: 6000 });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setLoading(false);
     }
@@ -325,7 +427,7 @@ export default function ApplicationFormPage() {
                     <input type="radio" name="visaType" value={v.id.toString()} checked={formData.visaType === v.id.toString()} onChange={handleChange} className="sr-only" />
                     <div className="font-bold text-cm-text text-sm leading-tight">{v.name}</div>
                     <div className="text-xs text-cm-muted mt-1">{v.description} — max {v.max_stay_days} j.</div>
-                    <div className="text-xs font-bold text-cm-green-mid mt-2">{v.fee} XAF</div>
+                    <div className="text-xs font-bold text-cm-green-mid mt-2">{formatAmount(v.fee)}</div>
                     {formData.visaType === v.id.toString() && (
                       <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cm-green-mid flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -334,6 +436,7 @@ export default function ApplicationFormPage() {
                   </label>
                 ))}
               </div>
+              {fieldErrors.visaType && <FieldError message={fieldErrors.visaType} />}
             </div>
 
             {selectedVisaType && (
@@ -343,7 +446,7 @@ export default function ApplicationFormPage() {
                 </div>
                 <div>
                   <div className="font-bold text-cm-text text-sm">{selectedVisaType.name} — {selectedVisaType.code}</div>
-                  <div className="text-xs text-cm-muted mt-1">Durée max : <strong>{selectedVisaType.max_stay_days} jours</strong> • Frais : <strong>{selectedVisaType.fee} XAF</strong></div>
+                  <div className="text-xs text-cm-muted mt-1">Durée max : <strong>{selectedVisaType.max_stay_days} jours</strong> • Frais : <strong>{formatAmount(selectedVisaType.fee)}</strong></div>
                 </div>
               </div>
             )}
@@ -373,19 +476,26 @@ export default function ApplicationFormPage() {
         return (
           <div className="space-y-6 animate-fadeIn">
             <h2 className="text-xl font-bold text-cm-text">Informations Personnelles</h2>
+            {Object.keys(fieldErrors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 font-medium">Certains champs obligatoires sont incomplets ou invalides. Veuillez les corriger avant de continuer.</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Field label="Prénom(s)" name="firstName" value={formData.firstName} onChange={handleChange} required />
-              <Field label="Nom de famille" name="lastName" value={formData.lastName} onChange={handleChange} required />
-              <Field label="Date de naissance" name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} required />
+              <Field label="Prénom(s)" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.firstName} />
+              <Field label="Nom de famille" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.lastName} />
+              <Field label="Date de naissance" name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.birthDate} />
               <Field label="Âge" name="age" type="number" value={formData.age} onChange={handleChange} placeholder="Ex: 32" />
 
               <div>
                 <label className="block text-sm font-semibold text-cm-text mb-2">Sexe <span className="text-cm-red">*</span></label>
-                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
+                <select name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.gender ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionner</option>
                   <option value="MALE">Masculin</option>
                   <option value="FEMALE">Féminin</option>
                 </select>
+                {fieldErrors.gender && <FieldError message={fieldErrors.gender} />}
               </div>
 
               <div>
@@ -404,25 +514,27 @@ export default function ApplicationFormPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-cm-text mb-2">Nationalité actuelle <span className="text-cm-red">*</span></label>
-                <select name="nationality" value={formData.nationality} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
+                <select name="nationality" value={formData.nationality} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.nationality ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {fieldErrors.nationality && <FieldError message={fieldErrors.nationality} />}
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-cm-text mb-2">Pays de naissance <span className="text-cm-red">*</span></label>
-                <select name="birthCountry" value={formData.birthCountry} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
+                <select name="birthCountry" value={formData.birthCountry} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.birthCountry ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {fieldErrors.birthCountry && <FieldError message={fieldErrors.birthCountry} />}
               </div>
 
               <div className="md:col-span-2 border-t border-cm-border/50 pt-4">
                 <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-4">Contact d'urgence</p>
                 <div className="grid md:grid-cols-2 gap-4">
                   <Field label="Nom complet" name="emergencyName" value={formData.emergencyName} onChange={handleChange} placeholder="Nom du contact d'urgence" />
-                  <Field label="Téléphone" name="emergencyPhone" type="tel" value={formData.emergencyPhone} onChange={handleChange} placeholder="+33 6 00 00 00 00" />
+                  <Field label="Téléphone" name="emergencyPhone" type="tel" value={formData.emergencyPhone} onChange={handleChange} placeholder="+237 6 00 00 00 00" />
                 </div>
               </div>
             </div>
@@ -433,24 +545,48 @@ export default function ApplicationFormPage() {
         return (
           <div className="space-y-6 animate-fadeIn">
             <h2 className="text-xl font-bold text-cm-text">Passeport et Détails de Voyage</h2>
+            {Object.keys(fieldErrors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 font-medium">Certains champs obligatoires sont incomplets ou invalides. Veuillez les corriger avant de continuer.</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
-                <Field label="Numéro de passeport" name="passportNumber" value={formData.passportNumber} onChange={handleChange} required placeholder="Ex: AB1234567" />
+                <Field label="Numéro de passeport" name="passportNumber" value={formData.passportNumber} onChange={handleChange} onBlur={handleBlur} required placeholder="Ex: AB1234567" error={fieldErrors.passportNumber} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-cm-text mb-2">Pays délivrant le passeport <span className="text-cm-red">*</span></label>
-                <select name="passportIssuingCountry" value={formData.passportIssuingCountry} onChange={handleChange} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none">
+                <select name="passportIssuingCountry" value={formData.passportIssuingCountry} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.passportIssuingCountry ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {fieldErrors.passportIssuingCountry && <FieldError message={fieldErrors.passportIssuingCountry} />}
               </div>
-              <Field label="Date de délivrance" name="passportIssueDate" type="date" value={formData.passportIssueDate} onChange={handleChange} required />
-              <Field label="Date d'expiration" name="passportExpiryDate" type="date" value={formData.passportExpiryDate} onChange={handleChange} required />
-              <Field label="Date prévue d'arrivée au Cameroun" name="arrivalDate" type="date" value={formData.arrivalDate} onChange={handleChange} required />
-              <Field label="Date prévue de départ" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} required />
+              <Field label="Date de délivrance" name="passportIssueDate" type="date" value={formData.passportIssueDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.passportIssueDate} />
+              <div className="md:col-span-2">
+                <Field
+                  label="Date d'expiration"
+                  name="passportExpiryDate"
+                  type="date"
+                  value={formData.passportExpiryDate}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  required
+                  error={fieldErrors.passportExpiryDate}
+                />
+                {formData.passportExpiryDate && !fieldErrors.passportExpiryDate && (
+                  <p className="text-xs text-cm-muted mt-1">
+                    ✓ Le passeport est valide jusqu'au {new Date(formData.passportExpiryDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+              <Field label="Date prévue d'arrivée au Cameroun" name="arrivalDate" type="date" value={formData.arrivalDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.arrivalDate} />
+              <Field label="Date prévue de départ" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.departureDate} />
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-cm-text mb-2">Adresse de séjour au Cameroun (Hôtel ou Hôte) <span className="text-cm-red">*</span></label>
-                <textarea name="addressInCameroon" value={formData.addressInCameroon} onChange={handleChange} rows={3} className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none resize-none" placeholder="Nom de l'hôtel, ville, quartier..." />
+                <textarea name="addressInCameroon" value={formData.addressInCameroon} onChange={handleChange} onBlur={handleBlur} rows={3} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none resize-none ${fieldErrors.addressInCameroon ? 'border-red-400 bg-red-50' : 'border-cm-border'}`} placeholder="Nom de l'hôtel, ville, quartier..." />
+                {fieldErrors.addressInCameroon && <FieldError message={fieldErrors.addressInCameroon} />}
               </div>
             </div>
           </div>
@@ -548,14 +684,28 @@ export default function ApplicationFormPage() {
               </button>
             </div>
 
-            {/* Terms */}
-            <div className="bg-cm-green-pale/10 border border-cm-green-pale/30 rounded-2xl p-5 mt-6">
+            {/* Terms — affiché toujours, erreur UNIQUEMENT après tentative de soumission */}
+            <div className={`border rounded-2xl p-5 mt-6 transition-colors ${termsError ? 'bg-red-50 border-red-300' : 'bg-cm-green-pale/10 border-cm-green-pale/30'}`}>
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} className="mt-1 shrink-0 text-cm-green-mid focus:ring-cm-green w-4 h-4 rounded" />
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={e => {
+                    setTermsAccepted(e.target.checked);
+                    if (e.target.checked) setTermsError(false);
+                  }}
+                  className="mt-1 shrink-0 text-cm-green-mid focus:ring-cm-green w-4 h-4 rounded"
+                />
                 <span className="text-sm font-medium text-cm-text leading-relaxed">
                   Je certifie sur l'honneur que les informations fournies dans ce formulaire sont exactes et véridiques. Je reconnais que toute fausse déclaration peut entraîner le rejet de ma demande ou l'annulation de mon visa.
                 </span>
               </label>
+              {termsError && (
+                <div className="mt-3 flex items-center gap-2 text-red-600">
+                  <AlertCircle size={15} />
+                  <p className="text-sm font-semibold">Vous devez accepter la déclaration sur l'honneur pour soumettre votre demande.</p>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -632,18 +782,49 @@ export default function ApplicationFormPage() {
   );
 }
 
-// ── Helper Field component ──
-function Field({ label, name, value, onChange, type = 'text', required = false, placeholder = '' }: {
-  label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: string; required?: boolean; placeholder?: string;
+// ── Helper composants ──────────────────────────
+
+/** Message d'erreur inline rouge sous un champ */
+function FieldError({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <AlertCircle size={13} className="text-red-500 shrink-0" />
+      <p className="text-xs text-red-600 font-medium">{message}</p>
+    </div>
+  );
+}
+
+/** Composant Field générique avec support des erreurs inline */
+function Field({
+  label, name, value, onChange, onBlur, type = 'text', required = false, placeholder = '', error
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+  error?: string;
 }) {
   return (
     <div>
       <label className="block text-sm font-semibold text-cm-text mb-2">
         {label} {required && <span className="text-cm-red">*</span>}
       </label>
-      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
-        className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" />
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none transition-colors ${
+          error ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-cm-border'
+        }`}
+      />
+      {error && <FieldError message={error} />}
     </div>
   );
 }
