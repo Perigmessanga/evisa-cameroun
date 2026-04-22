@@ -130,6 +130,54 @@ class NotificationService:
         cls._send(user, subject, message, application)
 
     @classmethod
+    def send_border_entry(cls, application, crossing):
+        """Notifie le demandeur que son entrée sur le territoire a été enregistrée."""
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'passport_number': application.passport_number,
+            'location': crossing.location,
+            'entry_date': crossing.crossing_date.strftime('%d/%m/%Y à %H:%M'),
+            'expected_exit_date': crossing.expected_exit_date.strftime('%d/%m/%Y') if crossing.expected_exit_date else "Non spécifiée",
+            'visa_type': application.visa_type.name if application.visa_type else 'Visa',
+        }
+        subject, message = cls._get_template_and_render(
+            'BORDER_ENTRY', context,
+            f'Bienvenue au Cameroun — Entrée enregistrée ({application.application_number})',
+            f'Bonjour {user.get_full_name()},\n\n'
+            f'Nous vous confirmons que votre entrée sur le territoire camerounais a été enregistrée avec succès.\n\n'
+            f'Détails du passage :\n'
+            f'- Point de passage : {context["location"]}\n'
+            f'- Date et heure : {context["entry_date"]}\n'
+            f'- Date de sortie recommandée : {context["expected_exit_date"]}\n\n'
+            f'Nous vous souhaitons un excellent séjour au Cameroun.\n\n'
+            f'Cordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+        )
+        cls._send(user, subject, message, application)
+
+    @classmethod
+    def send_border_exit(cls, application, crossing):
+        """Notifie le demandeur que sa sortie du territoire a été enregistrée."""
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'passport_number': application.passport_number,
+            'location': crossing.location,
+            'exit_date': crossing.crossing_date.strftime('%d/%m/%Y à %H:%M'),
+        }
+        subject, message = cls._get_template_and_render(
+            'BORDER_EXIT', context,
+            f'Confirmation de sortie du territoire — e-Visa Cameroun',
+            f'Bonjour {user.get_full_name()},\n\n'
+            f'Nous vous informons que votre sortie du territoire camerounais a été enregistrée le {context["exit_date"]} au point de passage : {context["location"]}.\n\n'
+            f'Nous espérons que votre séjour s\'est bien déroulé et vous remercions d\'avoir utilisé nos services.\n\n'
+            f'Cordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+        )
+        cls._send(user, subject, message, application)
+
+    @classmethod
     def send_border_denial_email(cls, application, border_agent, location):
         """Notifie le demandeur que l'accès au territoire lui a été refusé."""
         user = application.applicant

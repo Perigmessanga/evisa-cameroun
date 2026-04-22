@@ -256,7 +256,10 @@ class BorderCheckInView(APIView):
             return api_response(message="Demande introuvable", status_code=status.HTTP_404_NOT_FOUND)
             
         action = request.data.get('action') # 'ENTRY', 'EXIT', or 'DENIED'
+        location = request.data.get('location', 'Poste Frontière')
+        notes = request.data.get('notes', '')
         
+        # 1. Mise à jour du statut simplifié sur la demande
         if action == 'ENTRY':
             application.border_check_status = BorderCheckStatus.ENTERED
             msg = "Entrée enregistrée avec succès"
@@ -266,9 +269,57 @@ class BorderCheckInView(APIView):
         elif action == 'DENIED':
             application.border_check_status = BorderCheckStatus.DENIED
             msg = "Refus de l'entrée enregistré avec succès"
+        else:
+            return api_response(message="Action invalide", status_code=status.HTTP_400_BAD_REQUEST)
             
-            location = request.data.get('location', 'Poste Frontière (Localisation Agent)')
+        application.border_agent = request.user
+        application.border_checked_at = timezone.now()
+        application.save()
+
+        # 2. Création de l'enregistrement détaillé (Traçabilité BorderCrossing)
+        evisa_obj = getattr(application, 'evisa', None)
+        crossing = BorderCrossing.objects.create(
+            application=application,
+            evisa=evisa_obj,
+            border_agent=request.user,
+            crossing_type=action,
+            location=location,
+            notes=notes
+        )
+
+        # 3. Logique spécifique et Notifications
+        if action == 'ENTRY':
+            # Calcul de la date de sortie prévisionnelle (base: max_stay_days du type de visa)
+            from datetime import timedelta
+            max_stay = application.visa_type.max_stay_days if application.visa_type else 30
+            crossing.expected_exit_date = crossing.crossing_date.date() + timedelta(days=max_stay)
+            crossing.save(update_fields=['expected_exit_date'])
             
+            # Notification
+            try:
+                NotificationService.send_border_entry(application, crossing)
+            except Exception as e:
+                print(f"Error sending entry notification: {e}")
+
+        elif action == 'EXIT':
+            # Tenter de lier à la dernière entrée non clôturée
+            last_entry = BorderCrossing.objects.filter(
+                application=application, 
+                crossing_type='ENTRY', 
+                linked_exit__isnull=True
+            ).order_by('-crossing_date').first()
+            
+            if last_entry:
+                last_entry.linked_exit = crossing
+                last_entry.save(update_fields=['linked_exit'])
+                
+            # Notification
+            try:
+                NotificationService.send_border_exit(application, crossing)
+            except Exception as e:
+                print(f"Error sending exit notification: {e}")
+
+        elif action == 'DENIED':
             # Auto-générer une alerte de sécurité
             SecurityAlert.objects.create(
                 application=application,
@@ -285,30 +336,13 @@ class BorderCheckInView(APIView):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Erreur envoi email refus frontière: {e}", exc_info=True)
-                
-        else:
-            return api_response(message="Action invalide", status_code=status.HTTP_400_BAD_REQUEST)
             
-        application.border_agent = request.user
-        application.border_checked_at = timezone.now()
-        application.save()
-        
-        # Enregistrer le passage dans le modèle BorderCrossing (Traçabilité Suivi Entrée/Sortie)
-        evisa_obj = getattr(application, 'evisa', None)
-        BorderCrossing.objects.create(
-            application=application,
-            evisa=evisa_obj,
-            border_agent=request.user,
-            crossing_type=action,
-            location=request.data.get('location', 'Poste Frontière'),
-            notes=request.data.get('notes', '')
-        )
-        
+        # 4. Historique
         VisaHistory.objects.create(
             application=application,
             user=request.user,
             action=f"Frontière: {action}",
-            details=f"Action: {action}. Statut mis à jour."
+            details=f"Passage {action} enregistré à {location}."
         )
         
         return api_response(message=msg)
