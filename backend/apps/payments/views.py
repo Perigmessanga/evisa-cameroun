@@ -198,6 +198,9 @@ class PaymentWebhookView(generics.GenericAPIView):
                 application.submitted_at = timezone.now()
                 application.save()
                 
+                # Assignation automatique d'un agent/ambassade
+                application.assign_best_agent()
+                
                 # Notification
                 from apps.notifications.models import NotificationService
                 NotificationService.send_application_submitted(application)
@@ -227,7 +230,19 @@ class ConfirmPaymentMockView(generics.GenericAPIView):
             payment.status = 'COMPLETED'
             payment.paid_at = timezone.now()
             payment.save()
-            return Response({'message': 'Paiement confirmé (mock)', 'payment': PaymentSerializer(payment).data})
+            
+            # Mise à jour de la demande
+            application = payment.application
+            if application.status == 'DRAFT':
+                application.status = 'SUBMITTED'
+                application.submitted_at = timezone.now()
+                application.save()
+                application.assign_best_agent()
+                
+                from apps.notifications.models import NotificationService
+                NotificationService.send_application_submitted(application)
+                
+            return Response({'message': 'Paiement confirmé et demande assignée', 'payment': PaymentSerializer(payment).data})
         except Payment.DoesNotExist:
             return Response({'error': 'Paiement introuvable'}, status=status.HTTP_404_NOT_FOUND)
 
