@@ -513,7 +513,7 @@ export default function ApplicationFormPage() {
               <Field label="Profession / Fonction" name="profession" value={formData.profession} onChange={handleChange} placeholder="Ex: Ingénieur, Médecin..." />
 
               <div>
-                <label className="block text-sm font-semibold text-cm-text mb-2">Nationalité actuelle <span className="text-cm-red">*</span></label>
+                <label className="block text-sm font-semibold text-cm-text mb-2">Pays de résidence actuel / Nationalité <span className="text-cm-red">*</span></label>
                 <select name="nationality" value={formData.nationality} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.nationality ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
