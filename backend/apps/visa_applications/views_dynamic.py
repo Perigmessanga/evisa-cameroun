@@ -168,18 +168,30 @@ class EmbassyListView(APIView):
         from django.db.models import Q
         
         user = request.user
-        # L'ambassade voit les dossiers qui lui sont assignés
         query = Q(assigned_agent=user)
         
-        if user.embassy_country:
-            # On récupère toutes les variantes linguistiques du pays de l'ambassade
-            country_variants = get_country_variants(user.embassy_country)
-            # On cherche les demandes dont la nationalité OU le pays de résidence correspond à l'une de ces variantes
-            query |= Q(residence_country__in=country_variants)
-            query |= Q(nationality__in=country_variants)
+        # 1. Déterminer le pays de l'ambassade (Priorité au champ dédié, sinon déduction par l'email)
+        embassy_country = user.embassy_country
+        if not embassy_country and user.email:
+            # Fallback : si le champ est vide, on tente de deviner via l'email (ex: ambassade.belgium@...)
+            email_part = user.email.split('@')[0].split('.')[-1]
+            if email_part:
+                embassy_country = email_part.capitalize()
+
+        if embassy_country:
+            # On récupère toutes les variantes linguistiques (Fr/En)
+            country_variants = get_country_variants(embassy_country)
             
-        # Filtrer et exclure les brouillons
-        queryset = VisaApplication.objects.filter(query).exclude(status='DRAFT').order_by('-submitted_at')
+            # Recherche ultra-robuste : on teste chaque variante
+            variant_query = Q()
+            for variant in country_variants:
+                # Match insensible à la casse pour la nationalité OU le pays de résidence
+                variant_query |= Q(nationality__icontains=variant)
+                variant_query |= Q(residence_country__icontains=variant)
+            query |= variant_query
+            
+        # Filtrer, exclure les brouillons et trier (les plus récents en premier)
+        queryset = VisaApplication.objects.filter(query).exclude(status='DRAFT').order_by('-created_at')
         serializer = VisaApplicationSerializer(queryset, many=True)
         return api_response(data=serializer.data)
 
