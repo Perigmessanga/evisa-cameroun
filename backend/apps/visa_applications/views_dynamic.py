@@ -164,12 +164,22 @@ class EmbassyListView(APIView):
         if request.user.role != 'EMBASSY':
             return api_response(message="Accès réservé aux ambassades", status_code=status.HTTP_403_FORBIDDEN)
             
-        country = request.user.embassy_country
-        if not country:
-            return api_response(message="Configuration ambassade manquante pour l'utilisateur", status_code=status.HTTP_400_BAD_REQUEST)
+        from apps.users.utils import get_country_variants
+        from django.db.models import Q
+        
+        user = request.user
+        # L'ambassade voit les dossiers qui lui sont assignés
+        query = Q(assigned_agent=user)
+        
+        if user.embassy_country:
+            # On récupère toutes les variantes linguistiques du pays de l'ambassade
+            country_variants = get_country_variants(user.embassy_country)
+            # On cherche les demandes dont la nationalité OU le pays de résidence correspond à l'une de ces variantes
+            query |= Q(residence_country__in=country_variants)
+            query |= Q(nationality__in=country_variants)
             
-        # Filtrer par pays de résidence (comme demandé)
-        queryset = VisaApplication.objects.filter(residence_country=country)
+        # Filtrer et exclure les brouillons
+        queryset = VisaApplication.objects.filter(query).exclude(status='DRAFT').order_by('-submitted_at')
         serializer = VisaApplicationSerializer(queryset, many=True)
         return api_response(data=serializer.data)
 
