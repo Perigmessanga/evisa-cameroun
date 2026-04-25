@@ -189,12 +189,23 @@ class VisaApplication(models.Model):
         from apps.users.models import User, UserRole
         from django.db.models import Count, Q
         
-        # 1. Récupérer toutes les variantes linguistiques pour la nationalité
-        search_names = get_country_variants(self.nationality)
+        # 1. Préparation de la liste des pays à tester (Nationalité + Résidence)
+        countries_to_test = []
+        if self.nationality: countries_to_test.append(self.nationality)
+        if self.residence_country: countries_to_test.append(self.residence_country)
+        
+        # Récupérer toutes les variantes linguistiques pour ces pays
+        search_names = []
+        for c in countries_to_test:
+            search_names.extend(get_country_variants(c))
+        
+        # Nettoyage
+        search_names = list(set([n.strip() for n in search_names if n]))
 
-        # Chercher si une ambassade existe pour l'un de ces noms (match exact d'abord)
+        # Chercher si une ambassade (ou un compte dédié à un pays) existe pour l'un de ces noms
+        # On cherche d'abord par le champ embassy_country
         embassy = User.objects.filter(
-            role=UserRole.EMBASSY, 
+            Q(role=UserRole.EMBASSY) | Q(embassy_country__isnull=False),
             embassy_country__in=search_names,
             is_active=True
         ).first()
@@ -204,7 +215,7 @@ class VisaApplication(models.Model):
             query = Q()
             for name in search_names:
                 query |= Q(embassy_country__iexact=name)
-            embassy = User.objects.filter(Q(role=UserRole.EMBASSY) & query & Q(is_active=True)).first()
+            embassy = User.objects.filter((Q(role=UserRole.EMBASSY) | Q(embassy_country__isnull=False)) & query & Q(is_active=True)).first()
         
         if embassy:
             self.assigned_agent = embassy
