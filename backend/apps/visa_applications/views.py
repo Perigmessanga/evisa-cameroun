@@ -6,6 +6,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 import qrcode
 from apps.visa_applications.serializers import DocumentSerializer
+from apps.users.utils import get_country_variants
 
 from apps.visa_applications.models import VisaType, VisaApplication, ApplicationComment
 from apps.visa_applications.serializers import (
@@ -86,7 +87,11 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         elif user.is_embassy:
             query = Q(assigned_agent=user)
             if user.embassy_country:
-                query |= Q(residence_country=user.embassy_country)
+                # On récupère toutes les variantes linguistiques du pays de l'ambassade
+                country_variants = get_country_variants(user.embassy_country)
+                # On cherche les demandes dont la nationalité OU le pays de résidence correspond à l'une de ces variantes
+                query |= Q(residence_country__in=country_variants)
+                query |= Q(nationality__in=country_variants)
             return base_qs.filter(query).exclude(status='DRAFT')
         
         return base_qs.none()

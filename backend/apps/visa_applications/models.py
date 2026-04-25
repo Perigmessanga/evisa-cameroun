@@ -4,6 +4,8 @@ Modèles — App visa_applications
 import uuid
 from django.db import models
 from django.conf import settings
+from pathlib import Path
+from apps.users.utils import get_country_variants
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -187,13 +189,22 @@ class VisaApplication(models.Model):
         from apps.users.models import User, UserRole
         from django.db.models import Count, Q
         
-        # 1. Chercher si une ambassade existe pour la nationalité du demandeur
-        # On compare la nationalité avec le champ embassy_country de l'utilisateur
+        # 1. Récupérer toutes les variantes linguistiques pour la nationalité
+        search_names = get_country_variants(self.nationality)
+
+        # Chercher si une ambassade existe pour l'un de ces noms (match exact d'abord)
         embassy = User.objects.filter(
             role=UserRole.EMBASSY, 
-            embassy_country__iexact=self.nationality,
+            embassy_country__in=search_names,
             is_active=True
         ).first()
+        
+        # Match flou (insensible à la casse) si non trouvé
+        if not embassy:
+            query = Q()
+            for name in search_names:
+                query |= Q(embassy_country__iexact=name)
+            embassy = User.objects.filter(Q(role=UserRole.EMBASSY) & query & Q(is_active=True)).first()
         
         if embassy:
             self.assigned_agent = embassy
