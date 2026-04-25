@@ -66,6 +66,11 @@ const adminService = {
     return response.data;
   },
 
+  getAnalyticsStats: async () => {
+    const response = await api.get('/visa_applications/admin/analytics/');
+    return response.data;
+  },
+
   downloadDashboardReportPDF: async () => {
     const response = await api.get('/visa_applications/applications/export_pdf_report/', { responseType: 'blob' });
     return response.data;

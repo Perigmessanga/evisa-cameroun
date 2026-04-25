@@ -2,17 +2,20 @@
 //  components/layout/DashboardLayout.tsx
 // ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import visaService from '../../services/visaService';
 import CameroonFlag from '../common/CameroonFlag';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import Footer from './Footer';
 import { 
   LogOut, Menu, X, Home, FileText, Settings, User, 
-  MapPin, ShieldCheck, Mail, Users, FileWarning, BarChart, BookOpen, Plus
+  MapPin, ShieldCheck, ShieldAlert, Mail, Users, FileWarning, BarChart, BookOpen, Plus
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newComplementsCount, setNewComplementsCount] = useState(0);
@@ -46,11 +49,11 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     switch (user.role) {
       case 'APPLICANT':
         return [
-          { name: 'Tableau de bord', path: '/applicant/dashboard', icon: <Home size={20} /> },
-          { name: 'Nouvelle Demande', path: '/applicant/application', icon: <Plus size={20} /> },
-          { name: 'Mes demandes', path: '/applicant/tracking', icon: <FileText size={20} /> },
+          { name: t('nav.dashboard'), path: '/applicant/dashboard', icon: <Home size={20} /> },
+          { name: t('nav.apply'), path: '/applicant/application', icon: <Plus size={20} /> },
+          { name: t('nav.tracking'), path: '/applicant/tracking', icon: <FileText size={20} /> },
           { name: 'Brouillons', path: '/applicant/drafts', icon: <BookOpen size={20} /> },
-          { name: 'Mon compte', path: '/applicant/profile', icon: <User size={20} /> }
+          { name: t('nav.profile'), path: '/applicant/profile', icon: <User size={20} /> }
         ];
       case 'AGENT':
         return [
@@ -69,7 +72,9 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
           { name: 'Messages', path: '/admin/messages', icon: <Mail size={20} /> },
           { name: 'Suivi Entrées/Sorties', path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: 'NOUVEAU' },
-          { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> }
+          { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> },
+          { name: 'Vigilance (Watchlist)', path: '/admin/watchlist', icon: <ShieldAlert size={20} />, badge: 'SÉCURITÉ' },
+          { name: 'Mon profil', path: '/admin/profile', icon: <User size={20} /> }
         ];
       case 'EMBASSY':
         return [
@@ -81,7 +86,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         ];
       case 'BORDER':
         return [
-          { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <MapPin size={20} /> },
+          { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <Home size={20} /> },
+          { name: 'Vigilance (Watchlist)', path: '/admin/watchlist', icon: <ShieldAlert size={20} /> },
           { name: 'Scan & Vérification', path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
           { name: 'Historique', path: '/frontiere/historique', icon: <FileText size={20} /> },
           { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> },
@@ -123,12 +129,15 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
             <div className="font-display font-bold text-cm-text text-lg leading-tight">e-Visa Cameroun</div>
             <div className="text-[0.6rem] font-bold tracking-widest text-cm-gold">RÉPUBLIQUE DU CAMEROUN</div>
           </div>
-          <button 
-            className="lg:hidden ml-auto p-2 text-cm-muted hover:text-cm-text"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={20} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
+            <button 
+              className="lg:hidden p-2 text-cm-muted hover:text-cm-text"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* PROFILE AREA */}

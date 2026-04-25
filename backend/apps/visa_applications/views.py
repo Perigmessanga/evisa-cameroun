@@ -9,6 +9,7 @@ from apps.visa_applications.serializers import DocumentSerializer
 from apps.users.utils import get_country_variants
 
 from apps.visa_applications.models import VisaType, VisaApplication, ApplicationComment
+from apps.evisa.models import Watchlist
 from apps.visa_applications.serializers import (
     VisaTypeSerializer,
     ApplicationDetailSerializer,
@@ -219,6 +220,39 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = 'attachment; filename="rapport_evisa.pdf"'
         return response
 
+    @action(detail=False, methods=['get'])
+    def export_csv_report(self, request):
+        """
+        Génère un export CSV des demandes (Admin/Agent).
+        """
+        if not getattr(request.user, 'is_admin', False) and not getattr(request.user, 'is_agent', False):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Vous n'avez pas accès aux exports CSV.")
+
+        import csv
+        from django.http import HttpResponse
+        from django.utils.timezone import now
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="applications_export_{now().strftime("%Y%m%d")}.csv"'
+
+        writer = csv.writer(response)
+        # Header
+        writer.writerow(['N° Dossier', 'Nom Complet', 'Nationalité', 'Type Visa', 'Statut', 'Date Soumission'])
+
+        queryset = self.get_queryset().exclude(status='DRAFT')
+        for app in queryset:
+            writer.writerow([
+                app.application_number,
+                app.full_name,
+                app.nationality,
+                app.visa_type.name if app.visa_type else 'N/A',
+                app.status,
+                app.submitted_at.strftime('%d/%m/%Y %H:%M') if app.submitted_at else 'N/A'
+            ])
+
+        return response
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ApplicationListSerializer
@@ -292,7 +326,22 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Document introuvable.'}, status=status.HTTP_404_NOT_FOUND)
             
         doc.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def _check_watchlist(self, application):
+        """Vérifie si le demandeur est sur la liste de surveillance."""
+        match = Watchlist.objects.filter(
+            Q(full_name__iexact=application.full_name) |
+            Q(passport_number__iexact=application.passport_number)
+        ).filter(is_active=True).first()
+
+        if match:
+            application.is_flagged = True
+            application.security_risk = match.risk_level
+            application.security_notes = f"ALERTE WATCHLIST : {match.reason}"
+            application.save(update_fields=['is_flagged', 'security_risk', 'security_notes'])
+            return True
+        return False
 
     @action(detail=True, methods=['post'])
     def submit(self, request, id=None):
@@ -323,6 +372,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         # Soumettre la demande
         application.status = 'SUBMITTED'
         application.submitted_at = timezone.now()
+        
+        # Contrôle Watchlist avant sauvegarde finale
+        self._check_watchlist(application)
+        
         application.save()
         
         # Assignation automatique d'un agent

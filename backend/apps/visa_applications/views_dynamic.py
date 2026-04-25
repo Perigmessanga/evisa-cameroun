@@ -126,6 +126,17 @@ class ImmigrationDecisionView(APIView):
             # Notification Email
             NotificationService.send_application_approved(application)
 
+            # Journal d'audit (Sécurité)
+            from apps.audit.utils import log_action
+            log_action(
+                user=request.user,
+                application=application,
+                action="APPROVE_VISA",
+                description=f"Visa approuvé pour {application.full_name}",
+                data_after={"status": application.status},
+                request=request
+            )
+
             VisaHistory.objects.create(
                 application=application,
                 user=request.user,
@@ -147,11 +158,22 @@ class ImmigrationDecisionView(APIView):
             # Notification Email
             NotificationService.send_application_rejected(application)
 
+            # Journal d'audit (Sécurité)
+            from apps.audit.utils import log_action
+            log_action(
+                user=request.user,
+                application=application,
+                action="REJECT_VISA",
+                description=f"Visa rejeté pour {application.full_name}. Motif: {reason}",
+                data_after={"status": application.status, "reason": reason},
+                request=request
+            )
+
             VisaHistory.objects.create(
                 application=application,
                 user=request.user,
                 action="Rejet",
-                details=f"Motif: {reason}"
+                details=f"Demande rejetée : {reason}"
             )
             return api_response(message="Demande rejetée avec succès")
             

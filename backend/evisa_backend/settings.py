@@ -133,6 +133,15 @@ TIME_ZONE = 'Africa/Douala'
 USE_I18N = True
 USE_TZ = True
 
+LANGUAGES = [
+    ('fr', 'Français'),
+    ('en', 'English'),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+
 # ─────────────────────────────────────────
 # FICHIERS STATIQUES & MÉDIAS
 # ─────────────────────────────────────────

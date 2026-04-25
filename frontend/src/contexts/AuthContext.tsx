@@ -9,7 +9,7 @@ import authService from '../services/authService';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, otp_code?: string) => Promise<void>;
   register: (data: { email: string; password: string; confirm_password : string; first_name: string; last_name: string; phone?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -64,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, [refreshUser, fetchMaintenanceStatus]);
 
-  const login = async (email: string, password: string) => {
-    const { tokens, user: userData } = await authService.login({ email, password });
+  const login = async (email: string, password: string, otp_code?: string) => {
+    const { tokens, user: userData } = await authService.login(email, password, otp_code);
     
     // Check maintenance restrictions : ONLY Admins can log in during maintenance
     if (maintenanceMode && userData.role !== 'ADMIN') {

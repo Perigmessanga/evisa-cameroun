@@ -1,0 +1,22 @@
+{
+  "short_name": "e-Visa CMR",
+  "name": "e-Visa République du Cameroun",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#007A5E",
+  "background_color": "#ffffff",
+  "description": "Portail officiel de demande de visa en ligne pour la République du Cameroun."
+}

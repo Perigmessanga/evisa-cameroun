@@ -2,6 +2,7 @@
 //  pages/applicant/ApplicationFormPage.tsx
 // ─────────────────────────────────────────────
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2, Save, FileText, User as UserIcon, MapPin, UploadCloud, Plus, Trash2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -38,13 +39,6 @@ export const COUNTRIES = [
   'Turkménistan', 'Turquie', 'Tuvalu',
   'Ukraine', 'Uruguay', 'États-Unis', 'Vatican', 'Venezuela', 'Vietnam',
   'Yémen', 'Zambie', 'Zimbabwe',
-];
-
-const STEPS = [
-  { id: 'type', title: 'Type de Visa', icon: <FileText size={20} /> },
-  { id: 'personal', title: 'Infos Personnelles', icon: <UserIcon size={20} /> },
-  { id: 'passport', title: 'Passeport & Voyage', icon: <MapPin size={20} /> },
-  { id: 'documents', title: 'Documents', icon: <UploadCloud size={20} /> },
 ];
 
 const DRAFT_KEY = 'evisa_draft';
@@ -94,7 +88,16 @@ function validateStep3(data: Record<string, string>): Record<string, string> {
 }
 
 export default function ApplicationFormPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const STEPS = [
+    { id: 'type', title: t('form.travel_info'), icon: <FileText size={20} /> },
+    { id: 'personal', title: t('form.personal_info'), icon: <UserIcon size={20} /> },
+    { id: 'passport', title: t('form.passport_info'), icon: <MapPin size={20} /> },
+    { id: 'documents', title: t('form.documents'), icon: <UploadCloud size={20} /> },
+  ];
+
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [visaTypes, setVisaTypes] = useState<VisaType[]>([]);
@@ -104,6 +107,7 @@ export default function ApplicationFormPage() {
 
   const location = useLocation();
   const editId = location.state?.editId;
+  const groupReferenceFromState = location.state?.groupReference;
 
   useEffect(() => {
     applicationService.getVisaTypes()
@@ -335,6 +339,8 @@ export default function ApplicationFormPage() {
         residence_country: formData.nationality,
         emergency_contact_name: formData.emergencyName || '',
         emergency_contact_phone: formData.emergencyPhone || '',
+        group_reference: groupReferenceFromState || null,
+        is_group_primary: !groupReferenceFromState, // Si pas de groupRef passé, c'est le 1er membre
       };
 
       let newApp;
@@ -414,11 +420,11 @@ export default function ApplicationFormPage() {
       case 0:
         return (
           <div className="space-y-8 animate-fadeIn">
-            <h2 className="text-xl font-bold text-cm-text">Informations sur la demande</h2>
+            <h2 className="text-xl font-bold text-cm-text">{t('form.travel_info')}</h2>
 
             {/* Visa Type Picker */}
             <div>
-              <label className="block text-sm font-semibold text-cm-text mb-3">Type de visa demandé <span className="text-cm-red">*</span></label>
+              <label className="block text-sm font-semibold text-cm-text mb-3">{t('form.visa_required_type')} <span className="text-cm-red">*</span></label>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {loadingVisaTypes ? (
                   <div className="col-span-full flex justify-center py-8"><Loader2 size={24} className="text-cm-green-mid animate-spin" /></div>
@@ -453,7 +459,7 @@ export default function ApplicationFormPage() {
 
             {/* Entry Type */}
             <div>
-              <label className="block text-sm font-semibold text-cm-text mb-3">Type d'entrée</label>
+              <label className="block text-sm font-semibold text-cm-text mb-3">{t('form.entry_type')}</label>
               <div className="flex gap-4">
                 {[{ val: 'SINGLE', label: 'Entrée simple' }, { val: 'MULTIPLE', label: 'Entrées multiples' }].map(et => (
                   <label key={et.val} className={`flex-1 flex items-center gap-3 px-4 py-3 border-2 rounded-xl cursor-pointer transition-all ${formData.entryType === et.val ? 'border-cm-green-mid bg-cm-green-pale/10' : 'border-cm-border hover:border-cm-green-pale'}`}>
@@ -485,13 +491,13 @@ export default function ApplicationFormPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Prénom(s)" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.firstName} />
               <Field label="Nom de famille" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.lastName} />
-              <Field label="Date de naissance" name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.birthDate} />
+              <Field label={t('form.birth_date')} name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.birthDate} />
               <Field label="Âge" name="age" type="number" value={formData.age} onChange={handleChange} placeholder="Ex: 32" />
 
               <div>
-                <label className="block text-sm font-semibold text-cm-text mb-2">Sexe <span className="text-cm-red">*</span></label>
+                <label className="block text-sm font-semibold text-cm-text mb-2">{t('form.gender')} <span className="text-cm-red">*</span></label>
                 <select name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.gender ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
-                  <option value="">Sélectionner</option>
+                  <option value="">{t('form.placeholder_select')}</option>
                   <option value="MALE">Masculin</option>
                   <option value="FEMALE">Féminin</option>
                 </select>
@@ -513,7 +519,7 @@ export default function ApplicationFormPage() {
               <Field label="Profession / Fonction" name="profession" value={formData.profession} onChange={handleChange} placeholder="Ex: Ingénieur, Médecin..." />
 
               <div>
-                <label className="block text-sm font-semibold text-cm-text mb-2">Pays de résidence actuel / Nationalité <span className="text-cm-red">*</span></label>
+                <label className="block text-sm font-semibold text-cm-text mb-2">{t('form.nationality')} <span className="text-cm-red">*</span></label>
                 <select name="nationality" value={formData.nationality} onChange={handleChange} onBlur={handleBlur} className={`w-full px-4 py-3 bg-cm-cream/50 border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none ${fieldErrors.nationality ? 'border-red-400 bg-red-50' : 'border-cm-border'}`}>
                   <option value="">Sélectionnez un pays</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -717,11 +723,11 @@ export default function ApplicationFormPage() {
 
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-cm-text">Nouvelle Demande de Visa</h1>
-          <p className="text-cm-muted mt-1">Remplissez soigneusement chaque étape de votre dossier.</p>
+          <h1 className="font-display text-3xl font-bold text-cm-text">{t('form.title')}</h1>
+          <p className="text-cm-muted mt-1">{t('form.step_indicator', { current: currentStep + 1, total: STEPS.length })} : {STEPS[currentStep].title}</p>
         </div>
         <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 bg-white border border-cm-border text-cm-text rounded-xl font-bold text-sm hover:bg-cm-cream transition-colors">
-          <Save size={16} /> Sauvegarder (Brouillon)
+          <Save size={16} /> {t('common.save')} (Brouillon)
         </button>
       </div>
 
@@ -762,17 +768,17 @@ export default function ApplicationFormPage() {
           <div className="pt-8 mt-8 border-t border-cm-border flex justify-between items-center">
             {currentStep > 0 ? (
               <button type="button" onClick={handlePrev} className="flex items-center gap-2 px-6 py-3 bg-cm-cream text-cm-text rounded-xl font-bold hover:bg-cm-border/50 transition-colors">
-                <ArrowLeft size={18} /> Précédent
+                <ArrowLeft size={18} /> {t('common.previous')}
               </button>
             ) : <div />}
 
             {currentStep < STEPS.length - 1 ? (
               <button type="button" onClick={handleNext} className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-xl font-bold hover:shadow-lg transition-all">
-                Suivant <ArrowRight size={18} />
+                {t('common.next')} <ArrowRight size={18} />
               </button>
             ) : (
               <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 px-8 py-3 bg-linear-to-r from-cm-gold to-cm-gold-light text-cm-dark rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0">
-                {loading ? <Loader2 size={18} className="animate-spin" /> : 'Vérifier et Continuer vers la Biométrie'}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : t('form.submit_application')}
               </button>
             )}
           </div>

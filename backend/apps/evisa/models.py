@@ -271,3 +271,43 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.subject} par {self.email} ({self.status})"
+
+
+class Watchlist(models.Model):
+    """
+    Liste de surveillance pour la sécurité nationale.
+    Détecte automatiquement les individus à risque lors de la soumission.
+    """
+    RISK_LEVEL_CHOICES = [
+        ('LOW', 'Faible'),
+        ('MEDIUM', 'Moyen'),
+        ('HIGH', 'Critique / Interdiction'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Identifiants
+    full_name = models.CharField(max_length=255, verbose_name="Nom complet")
+    passport_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Numéro de passeport")
+    nationality = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nationalité")
+    birth_date = models.DateField(blank=True, null=True, verbose_name="Date de naissance")
+
+    # Détails du risque
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVEL_CHOICES, default='MEDIUM')
+    reason = models.TextField(verbose_name="Motif de mise sous surveillance")
+    
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'watchlist'
+        verbose_name = 'Liste de surveillance'
+        verbose_name_plural = 'Liste de surveillance'
+        indexes = [
+            models.Index(fields=['full_name']),
+            models.Index(fields=['passport_number']),
+        ]
+
+    def __str__(self):
+        return f"[{self.risk_level}] {self.full_name}"

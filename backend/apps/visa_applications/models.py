@@ -7,20 +7,22 @@ from django.conf import settings
 from pathlib import Path
 from apps.users.utils import get_country_variants
 
+from django.utils.translation import gettext_lazy as _
+
 
 # ─────────────────────────────────────────────────────────────────
 # CHOIX (Enums)
 # ─────────────────────────────────────────────────────────────────
 class ApplicationStatus(models.TextChoices):
-    DRAFT           = 'DRAFT',           'Brouillon'
-    SUBMITTED       = 'SUBMITTED',       'Soumise'
-    PROCESSING      = 'PROCESSING',      'En traitement'
-    PENDING_DOCS    = 'PENDING_DOCS',    'Attente documents'
-    DOCS_PROVIDED   = 'DOCS_PROVIDED',   'Compléments fournis'
-    PENDING_REVIEW  = 'PENDING_REVIEW',  'Attente avis consulaire'
-    APPROVED        = 'APPROVED',        'Approuvée'
-    REJECTED        = 'REJECTED',        'Rejetée'
-    CANCELLED       = 'CANCELLED',       'Annulée'
+    DRAFT           = 'DRAFT',           _('Brouillon')
+    SUBMITTED       = 'SUBMITTED',       _('Soumise')
+    PROCESSING      = 'PROCESSING',      _('En traitement')
+    PENDING_DOCS    = 'PENDING_DOCS',    _('Attente documents')
+    DOCS_PROVIDED   = 'DOCS_PROVIDED',   _('Compléments fournis')
+    PENDING_REVIEW  = 'PENDING_REVIEW',  _('Attente avis consulaire')
+    APPROVED        = 'APPROVED',        _('Approuvée')
+    REJECTED        = 'REJECTED',        _('Rejetée')
+    CANCELLED       = 'CANCELLED',       _('Annulée')
 
 class EmbassyOpinion(models.TextChoices):
     NONE         = 'NONE',         'Aucun avis'
@@ -96,6 +98,10 @@ class VisaApplication(models.Model):
         null=True, blank=True, related_name='assigned_applications',
         verbose_name='Agent assigné'
     )
+    
+    # ── Groupes / Familles ───────────────────────────────────────
+    group_reference    = models.CharField(max_length=50, blank=True, null=True, verbose_name='Référence de groupe')
+    is_group_primary   = models.BooleanField(default=False, verbose_name='Demandeur principal du groupe')
     processed_by       = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='processed_applications',
@@ -160,6 +166,11 @@ class VisaApplication(models.Model):
     submitted_at     = models.DateTimeField(null=True, blank=True, verbose_name='Soumis le')
     processed_at     = models.DateTimeField(null=True, blank=True, verbose_name='Traité le')
     rejection_reason = models.TextField(blank=True, verbose_name='Motif de rejet')
+    
+    # ── Sécurité & Vigilance ─────────────────────────────────────
+    is_flagged       = models.BooleanField(default=False, verbose_name='Signalé (Watchlist)')
+    security_notes   = models.TextField(blank=True, verbose_name='Notes de sécurité')
+    security_risk    = models.CharField(max_length=20, default='LOW', verbose_name='Niveau de risque')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

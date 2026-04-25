@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage
+from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage, Watchlist
+
+class WatchlistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Watchlist
+        fields = '__all__'
 
 class EVisaSerializer(serializers.ModelSerializer):
     """

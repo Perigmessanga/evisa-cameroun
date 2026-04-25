@@ -15,7 +15,7 @@ import base64
 import tempfile
 import os
 
-from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage
+from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage, Watchlist
 from apps.evisa.serializers import (
     EVisaSerializer,
     EVisaRevokeSerializer,
@@ -23,8 +23,23 @@ from apps.evisa.serializers import (
     BorderCrossingCreateSerializer,
     EVisaVerifySerializer,
     SystemSettingSerializer,
-    ContactMessageSerializer
+    ContactMessageSerializer,
+    WatchlistSerializer
 )
+
+class WatchlistViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la gestion de la Watchlist nationale par les administrateurs de sécurité.
+    """
+    queryset = Watchlist.objects.all().order_by('-created_at')
+    serializer_class = WatchlistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        # Seuls les admins ou des rôles sécurité spécifiques peuvent voir la watchlist
+        if request.user.role not in ['ADMIN', 'BORDER']:
+             self.permission_denied(request, message="Accès réservé aux autorités de sécurité.")
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -297,11 +312,16 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             p.setFont("Helvetica", 8)
             p.drawCentredString(photo_rect[0]+55, photo_rect[1]+60, "PHOTO")
 
-        # QR Code
+        # QR Code sécurisé avec URL de vérification signée
         try:
-            qr_data = f"evisa://{evisa.visa_number}"
+            from django.core.signing import Signer
+            signer = Signer()
+            # On signe le numéro de visa pour créer un lien infalsifiable
+            signed_token = signer.sign(evisa.visa_number)
+            verify_url = f"https://evisa.cm/verify?token={signed_token}"
+            
             qr = qrcode.QRCode(version=1, border=1)
-            qr.add_data(qr_data)
+            qr.add_data(verify_url)
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white")
             qr_buffer = io.BytesIO()
@@ -312,8 +332,9 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             p.setFont("Helvetica", 6)
             p.drawCentredString(width - 105, y_pos - 210, "[QR Error]")
             print(f"QR Error: {e}")
+        
         p.setFont("Helvetica-Bold", 7)
-        p.drawCentredString(width - 105, y_pos - 275, f"{evisa.visa_number.split('-')[-1]}")
+        p.drawCentredString(width - 105, y_pos - 275, f"SECURED-VERIFY")
 
         # ── INFORMATION FIELDS (LEFT) ──
         def draw_field(title, value, x, y):
@@ -492,14 +513,43 @@ class VerifyEVisaView(generics.GenericAPIView):
             'message': 'Visa valide' if evisa.is_valid else 'Visa expiré ou révoqué',
             'evisa': EVisaSerializer(evisa).data
         })
-    
-    def _get_validation_message(self, evisa):
-        if evisa.is_revoked:
-            return 'e-Visa révoqué.'
-        elif evisa.expiry_date < timezone.now().date():
-            return 'e-Visa expiré.'
-        else:
-            return 'e-Visa valide.'
+
+
+class PublicVerifyEVisaView(generics.GenericAPIView):
+    """
+    Vérification publique via QR Token signé (Point 6).
+    Accessible sans authentification pour les compagnies aériennes/autorités.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        token = request.query_params.get('token')
+        if not token:
+            return Response({'error': 'Token de vérification manquant.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            from django.core.signing import Signer, BadSignature
+            signer = Signer()
+            visa_number = signer.unsign(token)
+            
+            evisa = EVisa.objects.filter(visa_number=visa_number).first()
+            if not evisa:
+                return Response({'valid': False, 'message': 'Visa introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            
+            return Response({
+                'valid': evisa.is_valid,
+                'status': 'VALID' if evisa.is_valid else 'INVALID',
+                'applicant': evisa.application.full_name,
+                'visa_type': evisa.application.visa_type.name,
+                'expiry_date': evisa.expiry_date,
+                'is_revoked': evisa.is_revoked
+            })
+            
+        except BadSignature:
+            return Response({
+                'valid': False,
+                'message': 'Signature invalide. Ce document a été falsifié.'
+            }, status=status.HTTP_403_FORBIDDEN)
 
 
 class BorderCrossingViewSet(viewsets.ModelViewSet):

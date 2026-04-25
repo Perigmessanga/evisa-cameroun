@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
 import { 
@@ -10,10 +11,12 @@ import {
   ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle, X
 } from 'lucide-react';
 import applicationService from '../../services/applicationService';
+import GroupWidget from '../../components/dashboard/GroupWidget';
 import type { VisaApplication } from '../../types';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 
 export default function ApplicantDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   
   const [allApplications, setAllApplications] = useState<VisaApplication[]>([]);
@@ -129,9 +132,9 @@ export default function ApplicantDashboard() {
       {/* ── HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-cm-text">Tableau de Bord</h1>
+          <h1 className="font-display text-3xl font-bold text-cm-text">{t('nav.dashboard')}</h1>
           <p className="text-cm-muted mt-1">
-            Bienvenue, <span className="font-semibold text-cm-text">{user?.first_name} {user?.last_name}</span>
+            {t('dashboard.welcome', { name: `${user?.first_name} ${user?.last_name}` })}
           </p>
         </div>
         <Link 
@@ -168,7 +171,7 @@ export default function ApplicantDashboard() {
         {/* RECENT APPLICATIONS LIST */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-display text-xl font-bold text-cm-text">Demandes Récentes</h2>
+            <h2 className="font-display text-xl font-bold text-cm-text">{t('dashboard.recent_apps')}</h2>
             <Link to="/applicant/tracking" className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors flex items-center gap-1">
               Voir tout <ChevronRight size={16} />
             </Link>
@@ -237,11 +240,29 @@ export default function ApplicantDashboard() {
           </div>
         </div>
 
-        {/* NOTIFICATIONS WIDGET */}
-        <div className="space-y-4">
+        {/* ── SIDE COLUMN (NOTIFS + GROUP) ── */}
+        <div className="space-y-8">
+          
+          {/* GROUP WIDGET */}
+          <GroupWidget 
+            groupReference={allApplications.find(a => a.group_reference)?.group_reference || null}
+            members={allApplications
+              .filter(a => a.group_reference && a.group_reference === allApplications.find(x => x.group_reference)?.group_reference)
+              .map(a => ({
+                id: a.id,
+                full_name: a.full_name,
+                application_number: a.application_number,
+                is_primary: a.is_group_primary,
+                status: a.status
+              }))
+            }
+          />
+
+          {/* NOTIFICATIONS WIDGET */}
+          <div className="space-y-4">
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-display text-xl font-bold text-cm-text flex items-center gap-2">
-              Notifications 
+              {t('nav.notifications') || 'Notifications'} 
               {unreadCount > 0 && <span className="bg-cm-red text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
             </h2>
             {unreadCount > 0 && (
@@ -295,12 +316,13 @@ export default function ApplicantDashboard() {
              )}
           </div>
         </div>
+      </div>
 
-        <div className="mt-8 pt-4 border-t border-cm-border text-center">
-            <p className="text-[10px] text-cm-muted/30 font-mono uppercase tracking-widest">
-                e-Visa Cameroon Platform • Production Build v2.4.1 (Sync RealDB)
-            </p>
-        </div>
+      <div className="mt-8 pt-4 border-t border-cm-border text-center">
+          <p className="text-[10px] text-cm-muted/30 font-mono uppercase tracking-widest">
+              e-Visa Cameroon Platform • Production Build v2.4.1 (Sync RealDB)
+          </p>
+      </div>
       </div>
 
       {/* ── MODAL NOTIFICATION ── */}

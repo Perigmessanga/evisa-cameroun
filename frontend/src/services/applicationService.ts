@@ -109,6 +109,11 @@ const applicationService = {
   async markAllNotificationsRead(): Promise<void> {
     await api.post('/notifications/mark_all_read/');
   },
+  
+  async getGroupApplications(groupReference: string): Promise<VisaApplication[]> {
+    const { data } = await api.get(`/visa_applications/applications/?group_reference=${groupReference}`);
+    return data.results || data.data || data;
+  },
 };
 
 export default applicationService;

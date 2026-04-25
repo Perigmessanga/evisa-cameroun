@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import visaService from '../../services/visaService';
-import { User, Lock, CheckCircle2, Loader2, Save, Users, Clock, ShieldCheck } from 'lucide-react';
+import { User, Lock, CheckCircle2, Loader2, Save, Users, Clock, ShieldCheck, Shield } from 'lucide-react';
+import TwoFactorWidget from '../../components/security/TwoFactorWidget';
 import toast from 'react-hot-toast';
 
 export default function AgentProfilePage() {
@@ -185,52 +186,56 @@ export default function AgentProfilePage() {
           )}
 
           {activeTab === 'SECURITY' && (
-            <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-cm-border p-6 sm:p-8 animate-fadeIn">
-              <h2 className="font-display text-xl font-bold text-cm-text mb-6">Modifier le mot de passe</h2>
-              <p className="text-sm text-cm-muted mb-6">En tant qu'agent administratif, votre mot de passe doit respecter des normes strictes de sécurité (12 caractères, Maj/Min, Chiffres, Spéciaux).</p>
+            <div className="space-y-8 animate-fadeIn">
+              <TwoFactorWidget />
               
-              <form onSubmit={handleSecuritySubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-cm-text mb-2">Mot de passe actuel</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={securityData.currentPassword} 
-                    onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
-                    className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-cm-text mb-2">Nouveau mot de passe</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={securityData.newPassword} 
-                    onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
-                    className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-cm-text mb-2">Confirmer le nouveau mot de passe</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={securityData.confirmPassword} 
-                    onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
-                    className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
-                  />
-                </div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-cm-border p-6 sm:p-8">
+                <h2 className="font-display text-xl font-bold text-cm-text mb-6">Modifier le mot de passe</h2>
+                <p className="text-sm text-cm-muted mb-6">En tant qu'agent administratif, votre mot de passe doit respecter des normes strictes de sécurité (12 caractères, Maj/Min, Chiffres, Spéciaux).</p>
+                
+                <form onSubmit={handleSecuritySubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-cm-text mb-2">Mot de passe actuel</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={securityData.currentPassword} 
+                      onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
+                      className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-cm-text mb-2">Nouveau mot de passe</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={securityData.newPassword} 
+                      onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
+                      className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-cm-text mb-2">Confirmer le nouveau mot de passe</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={securityData.confirmPassword} 
+                      onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
+                      className="w-full px-4 py-3 bg-cm-cream/50 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none" 
+                    />
+                  </div>
 
-                <div className="pt-6 text-right">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-xl font-bold min-w-[160px] justify-center hover:shadow-lg transition-all disabled:opacity-70"
-                  >
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : 'Changer le mot de passe'}
-                  </button>
-                </div>
-              </form>
+                  <div className="pt-6 text-right">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-linear-to-r from-cm-green to-cm-green-mid text-white rounded-xl font-bold min-w-[160px] justify-center hover:shadow-lg transition-all disabled:opacity-70"
+                    >
+                      {loading ? <Loader2 size={18} className="animate-spin" /> : 'Changer le mot de passe'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

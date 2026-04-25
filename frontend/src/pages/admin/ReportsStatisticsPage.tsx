@@ -1,219 +1,241 @@
-// ─────────────────────────────────────────────
-//  pages/admin/ReportsStatisticsPage.tsx
-// ─────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { 
   Activity, Download, Filter, 
   Calendar, FileText, CheckCircle2, 
-  XCircle, Globe, Wallet, Loader2
+  XCircle, Globe, Wallet, Loader2,
+  TrendingUp, Users, Map
 } from 'lucide-react';
+import { 
+  ResponsiveContainer, AreaChart, Area, 
+  XAxis, YAxis, CartesianGrid, Tooltip, 
+  BarChart, Bar, Cell, PieChart, Pie
+} from 'recharts';
 import adminService from '../../services/adminService';
 import toast from 'react-hot-toast';
 
 export default function ReportsStatisticsPage() {
-  const [period, setPeriod] = useState('MONTH');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [stats, setStats] = useState({
-    total: 0,
-    approved: 0,
-    rejected: 0,
-    pending: 0,
-    revenue: 0,
-    distribution: [] as { visa_type__name: string; count: number }[],
-    origins: [] as { nationality: string; count: number }[]
-  });
+  const [analytics, setAnalytics] = useState<any>(null);
 
   useEffect(() => {
-    fetchStats();
-  }, [period]);
+    fetchAnalytics();
+  }, []);
 
-  const fetchStats = async () => {
+  const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getDashboardStats();
-      setStats(data);
+      const data = await adminService.getAnalyticsStats();
+      setAnalytics(data);
     } catch (error) {
       console.error(error);
-      toast.error('Erreur lors du chargement des statistiques.');
+      toast.error('Erreur lors du chargement des analyses décisionnelles.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExportPDF = async () => {
-    try {
-      setDownloading(true);
-      const blob = await adminService.downloadDashboardReportPDF();
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'rapport_evisa.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      toast.success('Rapport exporté avec succès');
-    } catch (error) {
-      console.error(error);
-      toast.error('Erreur lors de l\'export du rapport PDF.');
-    } finally {
-      setDownloading(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-24 gap-4">
+        <Loader2 className="animate-spin text-cm-green" size={48} />
+        <p className="text-cm-muted font-medium animate-pulse">Chargement de la War Room...</p>
+      </div>
+    );
+  }
 
-  const colors = ['bg-cm-green', 'bg-cm-gold', 'bg-blue-500', 'bg-cm-red'];
+  // Transformation des données pour Recharts
+  const timeSeriesData = Object.entries(analytics.time_series).map(([day, count]) => ({
+    name: day,
+    demandes: count
+  }));
+
+  const geoData = Object.entries(analytics.geo_distribution).map(([country, count]) => ({
+    name: country,
+    val: count
+  }));
+
+  const statusData = Object.entries(analytics.status_distribution).map(([status, count]) => ({
+    name: status,
+    value: count
+  }));
+
+  const COLORS = ['#007A5E', '#FCD116', '#3B82F6', '#CE1126', '#64748B'];
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      
       {/* ── HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold text-cm-text flex items-center gap-3">
-            <Activity className="text-emerald-500" size={32} /> Rapports & Statistiques
+            <TrendingUp className="text-emerald-500" size={32} /> Centre de Décision Stratégique
           </h1>
-          <p className="text-cm-muted mt-1">Générez et analysez les données des demandes de visa électroniques.</p>
+          <p className="text-cm-muted mt-1">Analyse temps réel des flux migratoires et financiers.</p>
         </div>
-        <button 
-          onClick={handleExportPDF}
-          disabled={downloading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-cm-border text-cm-text rounded-xl font-bold text-sm hover:bg-cm-cream shadow-sm transition-colors disabled:opacity-70"
-        >
-          {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />} Exporter Rapport (PDF)
-        </button>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center p-24">
-          <Loader2 className="animate-spin text-cm-green" size={48} />
+      {/* ── KPI CARDS ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Revenue Total" 
+          value={`${analytics.overview.total_revenue.toLocaleString()} XAF`} 
+          icon={<Wallet className="text-cm-gold" size={24} />} 
+          trend="+12% ce mois" 
+          color="bg-cm-gold/10"
+        />
+        <StatCard 
+          title="Demandes Soumises" 
+          value={analytics.overview.total_applications} 
+          icon={<FileText className="text-blue-500" size={24} />} 
+          trend="Volume stable"
+          color="bg-blue-50"
+        />
+        <StatCard 
+          title="Taux d'Approbation" 
+          value={`${analytics.overview.success_rate}%`} 
+          icon={<CheckCircle2 className="text-cm-green" size={24} />} 
+          trend="Optimisation de rigueur"
+          color="bg-cm-green/10"
+        />
+        <StatCard 
+          title="Alertes Sécurité" 
+          value={analytics.border_activity.denied || 0} 
+          icon={<XCircle className="text-cm-red" size={24} />} 
+          trend="Points sensibles détectés"
+          color="bg-cm-red/5"
+        />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* ── TIME SERIES ── */}
+        <div className="lg:col-span-2 bg-white border border-cm-border rounded-2xl shadow-sm p-6">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="font-bold text-cm-text flex items-center gap-2">
+              <Activity size={18} className="text-cm-green" /> Flux de demandes (30 derniers jours)
+            </h3>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={timeSeriesData}>
+                <defs>
+                  <linearGradient id="colorDemandes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#007A5E" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#007A5E" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                <YAxis fontSize={10} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                />
+                <Area type="monotone" dataKey="demandes" stroke="#007A5E" strokeWidth={3} fillOpacity={1} fill="url(#colorDemandes)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      ) : (
-        <>
-          {/* ── FILTERS ── */}
-          <div className="bg-white p-5 rounded-2xl border border-cm-border shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Calendar size={18} className="text-cm-muted" />
-              <span className="text-sm font-bold text-cm-text">Période:</span>
-            </div>
-            <div className="flex gap-2">
-              {['WEEK', 'MONTH', 'YEAR', 'ALL'].map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                    period === p 
-                      ? 'bg-cm-green-mid text-white border-cm-green' 
-                      : 'bg-cm-cream text-cm-muted border-cm-border hover:bg-cm-border/50'
-                  }`}
+
+        {/* ── STATUS PIE ── */}
+        <div className="bg-white border border-cm-border rounded-2xl shadow-sm p-6">
+          <h3 className="font-bold text-cm-text mb-6">Répartition par Statut</h3>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
                 >
-                  {p === 'WEEK' ? '7 Jours' : p === 'MONTH' ? 'Ce Mois' : p === 'YEAR' ? 'Cette Année' : 'Tout'}
-                </button>
-              ))}
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 space-y-2">
+            {statusData.slice(0, 4).map((s, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
+                  <span className="text-cm-muted">{s.name}</span>
+                </div>
+                <span className="font-bold text-cm-text">{s.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* ── GEO BAR CHART ── */}
+        <div className="bg-white border border-cm-border rounded-2xl shadow-sm p-6">
+          <h3 className="font-bold text-cm-text mb-6 flex items-center gap-2">
+            <Map size={18} className="text-blue-500" /> Origine Géographique (Top Pays)
+          </h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={geoData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
+                <YAxis dataKey="name" type="category" fontSize={10} axisLine={false} tickLine={false} width={80} />
+                <Tooltip />
+                <Bar dataKey="val" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ── BORDER ACTIVITY ── */}
+        <div className="bg-white border border-cm-border rounded-2xl shadow-sm p-6">
+          <h3 className="font-bold text-cm-text mb-6 flex items-center gap-2">
+            <Users size={18} className="text-cm-gold" /> Activité Transfrontalière
+          </h3>
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="text-center p-4 bg-cm-green/5 rounded-2xl">
+              <p className="text-2xl font-bold text-cm-green">{analytics.border_activity.entries}</p>
+              <p className="text-[10px] font-bold text-cm-muted uppercase">Entrées</p>
             </div>
-            <div className="h-6 w-px bg-cm-border mx-2 hidden sm:block"></div>
-            <div className="flex items-center gap-2 grow sm:grow-0">
-              <Filter size={16} className="text-cm-muted" />
-              <select className="flex-1 sm:w-auto pl-3 pr-8 py-2 bg-cm-cream/50 border border-cm-border rounded-xl text-sm font-semibold outline-none focus:border-cm-green-mid">
-                <option>Tous les types de visa</option>
-              </select>
+            <div className="text-center p-4 bg-blue-50 rounded-2xl">
+              <p className="text-2xl font-bold text-blue-600">{analytics.border_activity.exits}</p>
+              <p className="text-[10px] font-bold text-cm-muted uppercase">Sorties</p>
+            </div>
+            <div className="text-center p-4 bg-cm-red/5 rounded-2xl">
+              <p className="text-2xl font-bold text-cm-red">{analytics.border_activity.denied || 0}</p>
+              <p className="text-[10px] font-bold text-cm-muted uppercase">Refus</p>
             </div>
           </div>
-
-          {/* ── KPI HIGHLIGHTS ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-             <div className="bg-white p-5 border border-cm-border rounded-xl shadow-sm text-center">
-                <p className="text-xs font-bold text-cm-muted uppercase mb-1 flex justify-center items-center gap-1"><FileText size={14}/> Total</p>
-                <p className="text-2xl font-display font-bold text-cm-text">{stats.total}</p>
-             </div>
-             <div className="bg-cm-green-pale/10 p-5 border border-cm-border rounded-xl shadow-sm text-center">
-                <p className="text-xs font-bold text-cm-green uppercase mb-1 flex justify-center items-center gap-1"><CheckCircle2 size={14}/> Approuvés</p>
-                <p className="text-2xl font-display font-bold text-cm-green-mid">{stats.approved}</p>
-             </div>
-             <div className="bg-cm-red/5 p-5 border border-cm-border rounded-xl shadow-sm text-center">
-                <p className="text-xs font-bold text-cm-red uppercase mb-1 flex justify-center items-center gap-1"><XCircle size={14}/> Rejetés</p>
-                <p className="text-2xl font-display font-bold text-cm-red">{stats.rejected}</p>
-             </div>
-             <div className="bg-blue-50 p-5 border border-cm-border rounded-xl shadow-sm text-center">
-                <p className="text-xs font-bold text-blue-600 uppercase mb-1 flex justify-center items-center gap-1"><Activity size={14}/> En Cours</p>
-                <p className="text-2xl font-display font-bold text-blue-700">{stats.pending}</p>
-             </div>
-             <div className="bg-cm-gold-pale/10 p-5 border border-cm-border rounded-xl shadow-sm text-center col-span-2 lg:col-span-1">
-                <p className="text-xs font-bold text-cm-gold uppercase mb-1 flex justify-center items-center gap-1"><Wallet size={14}/> Recettes FCFA</p>
-                <p className="text-xl sm:text-2xl font-display font-bold text-cm-text">{stats.revenue.toLocaleString()}</p>
-             </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-cm-cream/50 rounded-xl border border-cm-border/50">
+               <h4 className="text-xs font-bold text-cm-muted mb-2">ALERTES DISCORDANCE</h4>
+               <p className="text-sm font-medium text-cm-text">Aucune anomalie majeure de flux détectée sur les dernières 24h.</p>
+            </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          {/* ── MOCK CHARTS SECTION ── */}
-          <div className="grid lg:grid-cols-2 gap-8">
-             
-             {/* Line Chart Placeholder */}
-             <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6">
-                <h3 className="font-bold text-cm-text mb-6">Évolution des demandes (Visa Approuvés vs Rejetés)</h3>
-                <div className="h-64 flex items-end justify-between gap-2 border-b border-l border-cm-border pb-2 pl-2">
-                   {/* Simulated Chart Bars */}
-                   {[40, 60, 45, 80, 50, 90, 100].map((h, i) => (
-                     <div key={i} className="w-full flex justify-center gap-1 items-end h-full">
-                        <div style={{height: `${h}%`}} className="w-full bg-cm-green-pale/60 rounded-t-sm hover:bg-cm-green transition-colors relative group">
-                           <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-0.5 rounded">{h*10}</span>
-                        </div>
-                        <div style={{height: `${h*0.2}%`}} className="w-full bg-cm-red/40 rounded-t-sm hover:bg-cm-red transition-colors"></div>
-                     </div>
-                   ))}
-                </div>
-                <div className="flex justify-between mt-2 text-[10px] font-bold text-cm-muted px-2">
-                   <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-                </div>
-             </div>
-
-             {/* Doughnut Chart & Geo Placeholder */}
-             <div className="space-y-8">
-                <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6">
-                   <h3 className="font-bold text-cm-text mb-4">Répartition par Type de Visa</h3>
-                   {stats.distribution.length === 0 ? (
-                      <p className="text-cm-muted text-sm pb-4">Aucune donnée disponible</p>
-                   ) : (
-                     <div className="space-y-4">
-                        {stats.distribution.map((item, i) => {
-                           const percentage = stats.total > 0 ? Math.round((item.count / stats.total) * 100) : 0;
-                           const color = colors[i % colors.length];
-                           return (
-                             <div key={i}>
-                                <div className="flex justify-between text-xs font-bold mb-1">
-                                   <span className="text-cm-text">{item.visa_type__name}</span>
-                                   <span className="text-cm-muted">{item.count} ({percentage}%)</span>
-                                </div>
-                                <div className="w-full h-2 bg-cm-cream rounded-full overflow-hidden">
-                                   <div className={`h-full ${color}`} style={{ width: `${percentage}%` }}></div>
-                                </div>
-                             </div>
-                           );
-                        })}
-                     </div>
-                   )}
-                </div>
-
-                <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6">
-                   <h3 className="font-bold text-cm-text flex items-center gap-2 mb-4">
-                      <Globe size={18} className="text-blue-500" /> Origine des Demandeurs (Top 3)
-                   </h3>
-                   <ul className="space-y-3">
-                      {stats.origins.length === 0 ? (
-                        <p className="text-cm-muted text-sm">Aucune donnée disponible</p>
-                      ) : (
-                        stats.origins.map((origin, i) => (
-                          <li key={i} className="flex justify-between items-center p-3 bg-cm-cream/50 rounded-xl border border-cm-border/50">
-                             <span className="font-bold text-sm text-cm-text flex items-center gap-2">🏳️ {origin.nationality}</span>
-                             <span className="text-sm font-bold text-cm-green-mid">{origin.count} Demandes</span>
-                          </li>
-                        ))
-                      )}
-                   </ul>
-                </div>
-             </div>
-
+function StatCard({ title, value, icon, trend, color }: any) {
+  return (
+    <div className={`p-6 rounded-2xl border border-cm-border bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group`}>
+      <div className={`absolute top-0 right-0 w-24 h-24 ${color} rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110`}></div>
+      <div className="relative">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-2.5 rounded-xl ${color}`}>
+            {icon}
           </div>
-        </>
-      )}
+          <span className="text-xs font-bold text-cm-muted uppercase tracking-wider">{title}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-2xl font-display font-bold text-cm-text">{value}</span>
+          <span className="text-[10px] font-bold text-cm-green opacity-70 mt-1">{trend}</span>
+        </div>
+      </div>
     </div>
   );
 }

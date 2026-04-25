@@ -99,6 +99,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'visa_type_name', 'status', 'full_name',
             'nationality', 'submitted_at', 'assigned_agent_name',
             'processed_by_name', 'created_at', 'last_completed_step',
+            'group_reference', 'is_group_primary',
         ]
 
     def get_assigned_agent_name(self, obj):
@@ -142,6 +143,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'documents', 'comments', 'evisa',
             'has_biometrics', 'biometric_photos', 'payment_status',
             'created_at', 'updated_at', 'last_completed_step',
+            'group_reference', 'is_group_primary',
         ]
 
     def get_comments(self, obj):
@@ -215,6 +217,8 @@ class CreateApplicationSerializer(serializers.ModelSerializer):
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
             # Emergency
             'emergency_contact_name', 'emergency_contact_phone',
+            # Group
+            'group_reference', 'is_group_primary',
         ]
         read_only_fields = ['id']
 
@@ -301,6 +305,7 @@ class VisaApplicationUpdateSerializer(serializers.ModelSerializer):
             'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
             'emergency_contact_name', 'emergency_contact_phone',
+            'group_reference', 'is_group_primary',
         ]
 
     def validate(self, attrs):

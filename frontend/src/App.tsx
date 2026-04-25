@@ -9,6 +9,7 @@ import ContactPage from './pages/ContactPage';
 import MentionsLegalesPage from './pages/legal/MentionsLegalesPage';
 import PolitiqueConfidentialitePage from './pages/legal/PolitiqueConfidentialitePage';
 import ConditionsGeneralesPage from './pages/legal/ConditionsGeneralesPage';
+import PublicVerificationPage from './pages/PublicVerificationPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -35,6 +36,8 @@ import SystemLogsPage from './pages/admin/SystemLogsPage';
 import EmailTemplatesPage from './pages/admin/EmailTemplatesPage';
 import EmailTemplateFormPage from './pages/admin/EmailTemplateFormPage';
 import MessagesManagementPage from './pages/admin/MessagesManagementPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
+import WatchlistManagementPage from './pages/admin/WatchlistManagementPage';
 import AmbassadeDashboardPage from './pages/ambassade/AmbassadeDashboardPage';
 
 import DossiersListPage from './pages/ambassade/DossiersListPage';
@@ -118,6 +121,7 @@ export default function App() {
         <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
         <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
         <Route path="/conditions-generales" element={<ConditionsGeneralesPage />} />
+        <Route path="/public-verify" element={<PublicVerificationPage />} />
         
         {/* ── AUTH ROUTES ── */}
         <Route path="/auth">
@@ -171,6 +175,8 @@ export default function App() {
           <Route path="messages" element={<MessagesManagementPage />} />
           <Route path="border-tracking" element={<AdminBorderTrackingPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
+          <Route path="watchlist" element={<WatchlistManagementPage />} />
         </Route>
 
         {/* ── EMBASSY ROUTES ── */}

@@ -223,6 +223,24 @@ class LoginView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
+        # ── 2FA CHECK ──
+        if user.two_factor_enabled:
+            otp_code = request.data.get('otp_code')
+            if not otp_code:
+                return api_response(
+                    message='2FA_REQUIRED',
+                    data={'require_2fa': True},
+                    status_code=status.HTTP_403_FORBIDDEN
+                )
+            
+            import pyotp
+            totp = pyotp.TOTP(user.two_factor_secret)
+            if not totp.verify(otp_code):
+                return api_response(
+                    message='Code de sécurité 2FA invalide.',
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
         # Mettre à jour la dernière connexion
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])

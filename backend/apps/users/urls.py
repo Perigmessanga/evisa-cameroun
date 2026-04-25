@@ -12,6 +12,12 @@ from apps.users.views import (
     ResetPasswordView,
 )
 
+from apps.users.two_factor_views import (
+    TwoFactorSetupView,
+    TwoFactorVerifyView,
+    TwoFactorDisableView
+)
+
 router = DefaultRouter()
 router.register(r'', UserViewSet, basename='user')
 
@@ -27,6 +33,11 @@ urlpatterns = [
     # Profil utilisateur
     path('profile/', MyProfileView.as_view(), name='profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+
+    # 2FA
+    path('2fa/setup/', TwoFactorSetupView.as_view(), name='2fa-setup'),
+    path('2fa/verify/', TwoFactorVerifyView.as_view(), name='2fa-verify'),
+    path('2fa/disable/', TwoFactorDisableView.as_view(), name='2fa-disable'),
 
     # Gestion des utilisateurs (admin)
     path('', include(router.urls)),

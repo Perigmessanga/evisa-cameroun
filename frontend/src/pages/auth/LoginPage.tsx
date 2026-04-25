@@ -19,6 +19,8 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState<'LOGIN' | '2FA'>('LOGIN');
+  const [otpCode, setOtpCode] = useState('');
   
   // Custom Validation (not touching library if valid simple check works)
   const validateEmail = (e: string) => /\S+@\S+\.\S+/.test(e);
@@ -27,33 +29,37 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!email.trim() || !validateEmail(email)) {
-      setError('Veuillez entrer une adresse email valide.');
-      return;
-    }
-    if (!password) {
-      setError('Le mot de passe est requis.');
-      return;
+    if (step === 'LOGIN') {
+      if (!email.trim() || !validateEmail(email)) {
+        setError('Veuillez entrer une adresse email valide.');
+        return;
+      }
+      if (!password) {
+        setError('Le mot de passe est requis.');
+        return;
+      }
+    } else {
+      if (!otpCode || otpCode.length < 6) {
+        setError('Veuillez entrer votre code de sécurité à 6 chiffres.');
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, otpCode);
       toast.success('Connexion réussie');
       navigate(from, { replace: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.errors?.non_field_errors?.[0] ||
-        'Email ou mot de passe incorrect.';
-      
-      // Handle 2FA redirect logic when the backend supports it
-      if (msg.includes('OTP') || msg.includes('2FA')) {
-         toast.success('Veuillez entrer le code de sécurité.');
-         // setStep('2fa'); -> Will be implemented completely when backend endpoints match
-         setError('2FA requis (Veuillez implémenter l\'OTP dans cette app Vite)');
+      if (err.response?.status === 403 && err.response?.data?.message === '2FA_REQUIRED') {
+         setStep('2FA');
+         toast.success('Veuillez entrer votre code de sécurité 2FA.');
       } else {
+         const msg =
+           err.response?.data?.message ||
+           err.response?.data?.errors?.non_field_errors?.[0] ||
+           (err.message === 'No response from server' ? 'Serveur indisponible.' : 'Email ou mot de passe incorrect.');
          setError(msg);
       }
     } finally {
@@ -102,8 +108,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h1 className="font-display text-3xl font-bold text-cm-text mb-2">Bienvenue</h1>
-          <p className="text-cm-muted text-sm mb-8">Connectez-vous à votre espace personnel.</p>
+          <h1 className="font-display text-3xl font-bold text-cm-text mb-2">
+            {step === 'LOGIN' ? 'Bienvenue' : 'Sécurité 2FA'}
+          </h1>
+          <p className="text-cm-muted text-sm mb-8">
+            {step === 'LOGIN' ? 'Connectez-vous à votre espace personnel.' : 'Votre compte est protégé. Veuillez entrer le code de votre application.'}
+          </p>
 
           {error && (
             <div className="bg-cm-red/5 border border-cm-red/10 text-cm-error text-sm px-4 py-3 rounded-xl mb-6 flex items-start gap-2 animate-fadeIn">
@@ -113,50 +123,74 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleLogin} noValidate className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-cm-text mb-2">Adresse email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="votre@email.com"
-                autoComplete="email"
-                className="w-full px-4 py-3.5 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
-              />
-            </div>
+            {step === 'LOGIN' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-cm-text mb-2">Adresse email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setError(''); }}
+                    placeholder="votre@email.com"
+                    autoComplete="email"
+                    className="w-full px-4 py-3.5 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
+                  />
+                </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-semibold text-cm-text">Mot de passe</label>
-                <Link to="/auth/forgot-password" className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors">
-                  Mot de passe oublié ?
-                </Link>
-              </div>
-              <div className="relative">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-cm-text">Mot de passe</label>
+                    <Link to="/auth/forgot-password" className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors">
+                      Mot de passe oublié ?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => { setPassword(e.target.value); setError(''); }}
+                      placeholder="Votre mot de passe"
+                      autoComplete="current-password"
+                      className="w-full pl-4 pr-12 py-3.5 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-cm-muted hover:text-cm-text transition-colors"
+                    >
+                      {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-bold text-center text-cm-muted mb-4">Code de sécurité à 6 chiffres</label>
                 <input
-                  type={showPwd ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setError(''); }}
-                  placeholder="Votre mot de passe"
-                  autoComplete="current-password"
-                  className="w-full pl-4 pr-12 py-3.5 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text font-medium text-sm transition-all focus:border-cm-green-mid focus:ring-4 focus:ring-cm-green/5 outline-none"
+                  type="text"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={e => { setOtpCode(e.target.value.replace(/\D/g, '')); setError(''); }}
+                  placeholder="000000"
+                  autoFocus
+                  className="w-full text-center text-4xl font-display font-bold tracking-[0.5em] py-4 bg-cm-cream border-2 border-cm-border rounded-2xl focus:border-cm-green outline-none transition-all"
                 />
-                <button
+                <button 
                   type="button"
-                  onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-cm-muted hover:text-cm-text transition-colors"
+                  onClick={() => setStep('LOGIN')}
+                  className="w-full text-center mt-4 text-xs font-bold text-cm-muted hover:text-cm-text uppercase tracking-widest transition-colors"
                 >
-                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                  Retour à la connexion classique
                 </button>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-8 flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-linear-to-r from-cm-green to-cm-green-mid text-white font-bold text-sm transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : 'Se connecter'}
+              {loading ? <Loader2 size={18} className="animate-spin" /> : (step === 'LOGIN' ? 'Se connecter' : 'Vérifier & Se connecter')}
             </button>
           </form>
 

@@ -4,6 +4,7 @@ from apps.visa_applications.views import (
     VisaTypeViewSet,
     VisaApplicationViewSet
 )
+from apps.visa_applications.analytics_views import AnalyticsStatsView
 from apps.visa_applications.views_dynamic import (
     ImmigrationStatsView,
     ImmigrationListView,
@@ -28,6 +29,7 @@ urlpatterns = [
     path('immigration/stats/', ImmigrationStatsView.as_view(), name='immigration-stats'),
     path('immigration/applications/', ImmigrationListView.as_view(), name='immigration-list'),
     path('immigration/applications/<uuid:pk>/decision/', ImmigrationDecisionView.as_view(), name='immigration-decision'),
+    path('admin/analytics/', AnalyticsStatsView.as_view(), name='admin-analytics'),
     
     # Embassy
     path('embassy/applications/', EmbassyListView.as_view(), name='embassy-list'),
