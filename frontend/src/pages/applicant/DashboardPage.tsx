@@ -252,7 +252,7 @@ export default function ApplicantDashboard() {
                 id: a.id,
                 full_name: a.full_name,
                 application_number: a.application_number,
-                is_primary: a.is_group_primary,
+                is_primary: a.is_group_primary || false,
                 status: a.status
               }))
             }

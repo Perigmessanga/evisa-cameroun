@@ -4,12 +4,13 @@
 
 interface CameroonFlagProps {
   size?: number;
+  className?: string;
 }
 
-export default function CameroonFlag({ size = 32 }: CameroonFlagProps) {
+export default function CameroonFlag({ size = 32, className = '' }: CameroonFlagProps) {
   const h = size * 0.67;
   return (
-    <svg width={size} height={h} viewBox="0 0 3 2" style={{ borderRadius: 2, display: 'block', flexShrink: 0 }}>
+    <svg className={className} width={size} height={h} viewBox="0 0 3 2" style={{ borderRadius: 2, display: 'block', flexShrink: 0 }}>
       <rect width="1" height="2" x="0" fill="#007A5E" />
       <rect width="1" height="2" x="1" fill="#CE1126" />
       <rect width="1" height="2" x="2" fill="#FCD116" />

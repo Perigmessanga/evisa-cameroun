@@ -114,6 +114,8 @@ export interface VisaApplication {
   // Traçabilité & Biométrie
   processed_by_name?: string;
   assigned_agent_name?: string;
+  group_reference?: string;
+  is_group_primary?: boolean;
   biometric_photos?: {
     face_image: string | null;
     passport_photo: string | null;

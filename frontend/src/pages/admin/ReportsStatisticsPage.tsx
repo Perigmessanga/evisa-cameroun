@@ -57,7 +57,7 @@ export default function ReportsStatisticsPage() {
 
   const statusData = Object.entries(analytics.status_distribution).map(([status, count]) => ({
     name: status,
-    value: count
+    value: count as number
   }));
 
   const COLORS = ['#007A5E', '#FCD116', '#3B82F6', '#CE1126', '#64748B'];
