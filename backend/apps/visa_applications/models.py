@@ -113,27 +113,27 @@ class VisaApplication(models.Model):
     )
 
     # ── Informations personnelles ──────────────────────────────
-    full_name        = models.CharField(max_length=200, verbose_name='Nom complet')
-    date_of_birth    = models.DateField(verbose_name='Date de naissance')
-    place_of_birth   = models.CharField(max_length=100, verbose_name='Lieu de naissance')
-    nationality      = models.CharField(max_length=100, verbose_name='Nationalité')
-    residence_country = models.CharField(max_length=100, verbose_name='Pays de résidence', default='Autre')
-    gender           = models.CharField(max_length=10, choices=Gender.choices, verbose_name='Genre')
+    full_name        = models.CharField(max_length=200, blank=True, null=True, verbose_name='Nom complet')
+    date_of_birth    = models.DateField(blank=True, null=True, verbose_name='Date de naissance')
+    place_of_birth   = models.CharField(max_length=100, blank=True, null=True, verbose_name='Lieu de naissance')
+    nationality      = models.CharField(max_length=100, blank=True, null=True, verbose_name='Nationalité')
+    residence_country = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays de résidence', default='Autre')
+    gender           = models.CharField(max_length=10, choices=Gender.choices, blank=True, null=True, verbose_name='Genre')
     marital_status   = models.CharField(max_length=50, blank=True, null=True, verbose_name='Situation matrimoniale')
     profession       = models.CharField(max_length=100, blank=True, null=True, verbose_name='Profession')
     birth_country    = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays de naissance')
 
     # ── Informations passeport ─────────────────────────────────
-    passport_number      = models.CharField(max_length=50, verbose_name='Numéro passeport')
-    passport_issue_date  = models.DateField(verbose_name='Date émission passeport')
-    passport_expiry_date = models.DateField(verbose_name='Date expiration passeport')
-    passport_country     = models.CharField(max_length=100, verbose_name='Pays émission')
+    passport_number      = models.CharField(max_length=50, blank=True, null=True, verbose_name='Numéro passeport')
+    passport_issue_date  = models.DateField(blank=True, null=True, verbose_name='Date émission passeport')
+    passport_expiry_date = models.DateField(blank=True, null=True, verbose_name='Date expiration passeport')
+    passport_country     = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays émission')
 
     # ── Informations voyage ────────────────────────────────────
-    purpose_of_visit    = models.TextField(verbose_name='Motif de visite')
-    arrival_date        = models.DateField(verbose_name='Date d\'arrivée prévue')
-    departure_date      = models.DateField(verbose_name='Date de départ prévue')
-    address_in_cameroon = models.TextField(verbose_name='Adresse au Cameroun')
+    purpose_of_visit    = models.TextField(blank=True, null=True, verbose_name='Motif de visite')
+    arrival_date        = models.DateField(blank=True, null=True, verbose_name='Date d\'arrivée prévue')
+    departure_date      = models.DateField(blank=True, null=True, verbose_name='Date de départ prévue')
+    address_in_cameroon = models.TextField(blank=True, null=True, verbose_name='Adresse au Cameroun')
 
     # ── Contact d'urgence ──────────────────────────────────────
     emergency_contact_name  = models.CharField(max_length=200, blank=True, null=True, verbose_name='Contact d\'urgence (Nom)')

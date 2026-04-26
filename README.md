@@ -486,3 +486,24 @@ Sécurité : Correction des erreurs de syntaxe et validation de la logique de si
 IMPORTANT
 
 La plateforme est maintenant prête pour une utilisation intensive par les services de la DGSN et du MINREX avec un niveau de confiance "State-Grade".
+
+
+
+Bien sûr ! La fonctionnalité des demandes de visa groupées (ou en famille) permet de gérer des voyages à plusieurs (une famille, une équipe sportive, des touristes, une délégation) sans avoir à traiter chaque personne indépendamment.
+
+Voici concrètement comment la plateforme est structurée et comment ça fonctionne en coulisses :
+
+1. La Référence Commune (group_reference)
+Lorsque vous initiez une demande pour plusieurs personnes, le système ne crée pas un seul gros "super-visa". Il crée plusieurs demandes individuelles (car chaque personne aura son propre document visa final). Mais pour que le système comprenne qu'elles sont liées, il attribue à toutes ces demandes un code secret unique appelé Référence de Groupe (group_reference). Exemple : La demande du père, de la mère et du fils auront tous le même code "GRP-X89J".
+
+2. Le Chef de Groupe (is_group_primary)
+Parmi toutes les personnes de ce groupe, le système enregistre une seule personne comme étant le Demandeur Principal (marqué is_group_primary dans la base de données).
+
+Rôle : C'est généralement la personne qui a initié la démarche, rempli le formulaire pour les autres, et c'est son compte de connexion qui gérera le dossier centralisé. Les conjoints ou enfants sont enregistrés avec un statut "secondaire" pour cette procédure.
+3. Les avantages concrets dans l'application
+Côté Demandeur : Au lieu de forcer la création d'un compte e-mail/mot de passe pour un bébé, ses informations sont ajoutées sous le compte du Demandeur Principal. Ils peuvent potentiellement payer les frais de tout le monde en un seul paiement au lieu de 4 transactions.
+Côté Agent Consulaire (Ambassade) : C'est là que cette fonctionnalité est la plus utile ! Lorsqu'un agent ouvre le dossier de "Monsieur X", il verra immédiatement via la base de données que cette demande appartient à un groupe. Il pourra alors traiter en même temps le dossier de "Madame Y" et de "l'Enfant Z" avec le même contexte de voyage, et s'assurer qu'ils sont tous approuvés ensemble pour ne pas séparer les familles.
+En résumé :
+Le système traite toujours 1 demande = 1 visa potentiel = 1 passeport, mais il utilise une pince virtuelle (la référence de groupe) pour attacher ces dossiers ensemble tout au long du processus, du paiement jusqu'à l'octroi par l'ambassade.
+
+Est-ce que c'est plus clair présenté de cette façon ?

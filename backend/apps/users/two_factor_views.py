@@ -50,6 +50,7 @@ class TwoFactorVerifyView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        
         user = request.user
         code = request.data.get('code')
         

@@ -246,6 +246,8 @@ export default function ApplicationFormPage() {
         departure_date: formData.departureDate || null,
         address_in_cameroon: formData.addressInCameroon || '',
         last_completed_step: currentStep,
+        group_reference: groupReferenceFromState || null,
+        is_group_primary: !groupReferenceFromState,
       };
 
       let res: any;
