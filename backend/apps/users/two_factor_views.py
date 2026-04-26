@@ -45,12 +45,12 @@ class TwoFactorSetupView(views.APIView):
 
 class TwoFactorVerifyView(views.APIView):
     """
-    Vérifie le code et active définitivement le 2FA.
+    Vérifie le code et active definitivement le 2FA.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        
+
         user = request.user
         code = request.data.get('code')
         
