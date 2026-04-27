@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import visaService from '../../services/visaService';
 import Badge from '../../components/common/Badge';
 import { 
@@ -10,6 +11,7 @@ import {
 import { VisaApplication } from '../../types';
 
 export default function AgentDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [stats, setStats] = useState({
     pending: 0,
@@ -41,12 +43,12 @@ export default function AgentDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'APPROVED': return <Badge variant="success">Approuvé</Badge>;
-      case 'SUBMITTED': return <Badge variant="info">Nouveau</Badge>;
-      case 'PROCESSING': return <Badge variant="warning">En cours</Badge>;
-      case 'REJECTED': return <Badge variant="danger">Rejeté</Badge>;
-      case 'PENDING_DOCS': return <Badge variant="warning">Documents requis</Badge>;
-      case 'PENDING_REVIEW': return <Badge variant="info">Avis consulaire</Badge>;
+      case 'APPROVED': return <Badge variant="success">{t('agent_dashboard.badges.approved')}</Badge>;
+      case 'SUBMITTED': return <Badge variant="info">{t('agent_dashboard.badges.new')}</Badge>;
+      case 'PROCESSING': return <Badge variant="warning">{t('agent_dashboard.badges.processing')}</Badge>;
+      case 'REJECTED': return <Badge variant="danger">{t('agent_dashboard.badges.rejected')}</Badge>;
+      case 'PENDING_DOCS': return <Badge variant="warning">{t('agent_dashboard.badges.docs_required')}</Badge>;
+      case 'PENDING_REVIEW': return <Badge variant="info">{t('agent_dashboard.badges.review_required')}</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
@@ -73,21 +75,21 @@ export default function AgentDashboard() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold text-cm-text">
-              {user?.role === 'EMBASSY' ? `Ambassade : ${user?.embassy_country}` : 'Tableau de Bord Agent'}
+              {user?.role === 'EMBASSY' ? t('agent_dashboard.title_embassy', { country: user?.embassy_country }) : t('agent_dashboard.title')}
             </h1>
             <p className="text-cm-muted mt-0.5 flex items-center gap-2">
               <ShieldCheck size={16} className="text-cm-green-mid" /> 
-              {user?.role === 'EMBASSY' ? 'Représentation Diplomatique' : 'Agent d\'immigration'}
+              {user?.role === 'EMBASSY' ? t('agent_dashboard.role_embassy') : t('agent_dashboard.role_agent')}
             </p>
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
           <div className="flex-1 md:flex-none text-center px-4 py-2 bg-cm-cream rounded-xl border border-cm-border">
-            <p className="text-xs text-cm-muted font-bold uppercase mb-1">En cours</p>
+            <p className="text-xs text-cm-muted font-bold uppercase mb-1">{t('agent_dashboard.stats.processing')}</p>
             <p className="text-lg font-bold text-cm-text">{stats.processing}</p>
           </div>
           <div className="flex-1 md:flex-none text-center px-4 py-2 bg-cm-cream rounded-xl border border-cm-border">
-            <p className="text-xs text-cm-muted font-bold uppercase mb-1">Aujourd'hui</p>
+            <p className="text-xs text-cm-muted font-bold uppercase mb-1">{t('agent_dashboard.stats.today')}</p>
             <p className="text-lg font-bold text-cm-text">{stats.processedToday || 0}</p>
           </div>
         </div>
@@ -96,10 +98,10 @@ export default function AgentDashboard() {
       {/* ── STATS GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'À Traiter (Total)', value: stats.pending, icon: <Clock className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: 'En Traitement', value: stats.processing, icon: <FileSearch className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
-          { title: 'Approuvées', value: stats.approved, icon: <CheckCircle2 className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'Rejetées', value: stats.rejected, icon: <XCircle className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
+          { title: t('agent_dashboard.stats.total_pending'), value: stats.pending, icon: <Clock className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
+          { title: t('agent_dashboard.stats.in_processing'), value: stats.processing, icon: <FileSearch className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: t('agent_dashboard.stats.approved'), value: stats.approved, icon: <CheckCircle2 className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: t('agent_dashboard.stats.rejected'), value: stats.rejected, icon: <XCircle className="text-cm-red" size={24} />, bg: 'bg-cm-red/5' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between`}>
             <div>
@@ -120,10 +122,10 @@ export default function AgentDashboard() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-display text-xl font-bold text-cm-text flex items-center gap-2">
-              <FileSearch size={20} className="text-cm-green-mid" /> Demandes Récentes
+              <FileSearch size={20} className="text-cm-green-mid" /> {t('agent_dashboard.recent_apps')}
             </h2>
             <Link to="/agent/applications" className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors flex items-center gap-1">
-              Voir tout <ChevronRight size={16} />
+              {t('agent_dashboard.view_all')} <ChevronRight size={16} />
             </Link>
           </div>
 
@@ -132,11 +134,11 @@ export default function AgentDashboard() {
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-cm-cream/50 border-b border-cm-border text-[10px] uppercase tracking-wider text-cm-muted font-bold">
-                    <th className="p-4">Dossier</th>
-                    <th className="p-4">Demandeur</th>
-                    <th className="p-4">Type / Date</th>
-                    <th className="p-4">Statut</th>
-                    <th className="p-4 text-right">Action</th>
+                    <th className="p-4">{t('agent_dashboard.table.file')}</th>
+                    <th className="p-4">{t('agent_dashboard.table.applicant')}</th>
+                    <th className="p-4">{t('agent_dashboard.table.type_date')}</th>
+                    <th className="p-4">{t('agent_dashboard.table.status')}</th>
+                    <th className="p-4 text-right">{t('agent_dashboard.table.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cm-border/50">
@@ -161,14 +163,14 @@ export default function AgentDashboard() {
                           to={`/agent/applications/${app.id}`}
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-cm-cream text-cm-text rounded-lg text-xs font-bold hover:bg-cm-green-mid hover:text-white transition-colors border border-cm-border hover:border-cm-green-mid"
                         >
-                          Examiner <ChevronRight size={14} />
+                          {t('agent_dashboard.table.examine')} <ChevronRight size={14} />
                         </Link>
                       </td>
                     </tr>
                   )) : (
                     <tr>
                       <td colSpan={5} className="p-8 text-center text-cm-muted text-sm italic">
-                        Aucune demande récente à afficher.
+                        {t('agent_dashboard.table.no_data')}
                       </td>
                     </tr>
                   )}
@@ -182,11 +184,11 @@ export default function AgentDashboard() {
           
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="font-display text-xl font-bold text-cm-text">Activité Récente</h2>
+              <h2 className="font-display text-xl font-bold text-cm-text">{t('agent_dashboard.activity.title')}</h2>
             </div>
             <div className="bg-white border border-cm-border rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-5">
               <div className="text-center py-4 text-cm-muted text-sm italic">
-                Bientôt disponible : Historique en temps réel.
+                {t('agent_dashboard.activity.coming_soon')}
               </div>
             </div>
           </div>
@@ -195,9 +197,9 @@ export default function AgentDashboard() {
           <div className="bg-cm-red/5 border border-cm-red/20 rounded-2xl p-5 flex items-start gap-3">
             <AlertCircle className="text-cm-red shrink-0" size={20} />
             <div>
-              <h4 className="text-sm font-bold text-cm-red mb-1">Mise à jour requise</h4>
+              <h4 className="text-sm font-bold text-cm-red mb-1">{t('agent_dashboard.alert.title')}</h4>
               <p className="text-xs text-cm-red/80 leading-relaxed">
-                Les directives d'approbation pour les visas touristes en provenance d'Europe ont été mises à jour. Veuillez consulter la documentation interne.
+                {t('agent_dashboard.alert.message')}
               </p>
             </div>
           </div>

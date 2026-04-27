@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import adminService from '../../services/adminService';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, Activity, ShieldCheck, ChevronRight, 
   Settings, FolderKanban, Server, Banknote, AlertTriangle, FileText
@@ -12,6 +13,7 @@ import {
 import Badge from '../../components/common/Badge';
 
 export default function AdminDashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [stats, setStats] = useState({
     activeUsers: 0,
@@ -45,9 +47,9 @@ export default function AdminDashboardPage() {
 
   const getLogStatusBadge = (status: string) => {
     switch (status) {
-      case 'SUCCESS': return <Badge variant="success">Succès</Badge>;
-      case 'WARNING': return <Badge variant="warning">Alerte</Badge>;
-      case 'ERROR': return <Badge variant="danger">Erreur</Badge>;
+      case 'SUCCESS': return <Badge variant="success">{t('admin_dashboard.logs.success')}</Badge>;
+      case 'WARNING': return <Badge variant="warning">{t('admin_dashboard.logs.warning')}</Badge>;
+      case 'ERROR': return <Badge variant="danger">{t('admin_dashboard.logs.error')}</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
@@ -78,9 +80,9 @@ export default function AdminDashboardPage() {
              {user?.first_name[0]}{user?.last_name[0]}
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold text-cm-text">Console Administration</h1>
+            <h1 className="font-display text-2xl font-bold text-cm-text">{t('admin_dashboard.title')}</h1>
             <p className="text-cm-muted mt-0.5 flex items-center gap-2">
-              <ShieldCheck size={16} className="text-cm-gold" /> Super Administrateur E-Visa
+              <ShieldCheck size={16} className="text-cm-gold" /> {t('admin_dashboard.role')}
             </p>
           </div>
         </div>
@@ -89,10 +91,10 @@ export default function AdminDashboardPage() {
       {/* ── STATS GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Utilisateurs Actifs', value: (stats?.activeUsers || 0).toLocaleString('fr-FR'), desc: `Sur ${stats?.totalUsers || 0} inscrits`, icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: 'Visas Traités (Total)', value: (stats?.totalApplications || 0).toLocaleString('fr-FR'), desc: 'Depuis le lancement', icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
-          { title: 'Recettes Est. (FCFA)', value: stats?.revenueAfc || '0 FCFA', desc: 'Année en cours', icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
-          { title: 'Santé du Système', value: stats?.systemHealth || '100%', desc: 'Toutes les APIs OK', icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
+          { title: t('admin_dashboard.stats.active_users'), value: (stats?.activeUsers || 0).toLocaleString('fr-FR'), desc: t('admin_dashboard.stats.active_users_desc', { count: stats?.totalUsers || 0 }), icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
+          { title: t('admin_dashboard.stats.total_visas'), value: (stats?.totalApplications || 0).toLocaleString('fr-FR'), desc: t('admin_dashboard.stats.total_visas_desc'), icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: t('admin_dashboard.stats.revenue'), value: stats?.revenueAfc || '0 FCFA', desc: t('admin_dashboard.stats.revenue_desc'), icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
+          { title: t('admin_dashboard.stats.health'), value: stats?.systemHealth || '100%', desc: t('admin_dashboard.stats.health_desc'), icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between`}>
             <div className="flex justify-between items-start mb-4">
@@ -115,7 +117,7 @@ export default function AdminDashboardPage() {
         {/* QUICK ACTIONS BOARD */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-display text-xl font-bold text-cm-text">Administration Rapide</h2>
+            <h2 className="font-display text-xl font-bold text-cm-text">{t('admin_dashboard.actions.title')}</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -124,8 +126,8 @@ export default function AdminDashboardPage() {
                    <Users size={24} />
                 </div>
                 <div>
-                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">Gestion Utilisateurs</h3>
-                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">Gérez les accès, rôles (Agents, Ambassades) et désactivez les comptes frauduleux.</p>
+                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">{t('admin_dashboard.actions.users')}</h3>
+                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">{t('admin_dashboard.actions.users_desc')}</p>
                 </div>
              </Link>
              
@@ -134,8 +136,8 @@ export default function AdminDashboardPage() {
                    <FileText size={24} />
                 </div>
                 <div>
-                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">Types de Visas</h3>
-                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">Ajoutez, modifiez les tarifs sociaux et conditions des documents requis.</p>
+                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">{t('admin_dashboard.actions.visa_types')}</h3>
+                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">{t('admin_dashboard.actions.visa_types_desc')}</p>
                 </div>
              </Link>
 
@@ -144,8 +146,8 @@ export default function AdminDashboardPage() {
                    <Settings size={24} />
                 </div>
                 <div>
-                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">Paramètres Système</h3>
-                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">Configuration des serveurs SMTP, clés API de paiement, et maintenance.</p>
+                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">{t('admin_dashboard.actions.settings')}</h3>
+                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">{t('admin_dashboard.actions.settings_desc')}</p>
                 </div>
              </Link>
 
@@ -154,8 +156,8 @@ export default function AdminDashboardPage() {
                    <Activity size={24} />
                 </div>
                 <div>
-                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">Rapports & Stats</h3>
-                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">Générez des rapports d'activité détaillés sur l'immigration.</p>
+                   <h3 className="font-bold text-cm-text group-hover:text-cm-green-mid transition-colors">{t('admin_dashboard.actions.reports')}</h3>
+                   <p className="text-xs text-cm-muted mt-1 leading-relaxed">{t('admin_dashboard.actions.reports_desc')}</p>
                 </div>
              </Link>
           </div>
@@ -164,9 +166,9 @@ export default function AdminDashboardPage() {
         {/* SYSTEM LOGS WIDGET */}
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-display text-xl font-bold text-cm-text">Journal Système</h2>
+            <h2 className="font-display text-xl font-bold text-cm-text">{t('admin_dashboard.logs.title')}</h2>
             <Link to="/admin/logs" className="text-sm font-semibold text-cm-green-mid hover:text-cm-green transition-colors flex items-center gap-1">
-              Voir tout <ChevronRight size={16} />
+              {t('admin_dashboard.logs.view_all')} <ChevronRight size={16} />
             </Link>
           </div>
 
@@ -180,19 +182,19 @@ export default function AdminDashboardPage() {
                    <div className="flex-1">
                       <div className="flex justify-between items-start">
                          <p className={`text-sm font-bold ${log.status === 'WARNING' || log.status === 'ERROR' ? 'text-cm-red' : 'text-cm-text'}`}>
-                            {log.module || log.action_type || 'Système'}
+                            {log.module || log.action_type || t('admin_dashboard.logs.system')}
                          </p>
                          {getLogStatusBadge(log.status || 'INFO')}
                       </div>
                       <p className="text-xs text-cm-muted mt-1 mb-2 leading-relaxed">{log.action || log.description}</p>
                       <div className="flex justify-between items-center text-[10px] text-cm-muted font-medium uppercase tracking-wide">
-                         <span>{log.user_email || log.user || 'Système'}</span>
+                         <span>{log.user_email || log.user || t('admin_dashboard.logs.system')}</span>
                          <span>{formatDate(log.created_at || log.time)}</span>
                       </div>
                    </div>
                  </div>
                )) : (
-                 <div className="p-4 text-center text-sm text-cm-muted">Aucun journal récent.</div>
+                 <div className="p-4 text-center text-sm text-cm-muted">{t('admin_dashboard.logs.no_logs')}</div>
                )}
              </div>
           </div>

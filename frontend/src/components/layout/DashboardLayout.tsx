@@ -57,41 +57,41 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         ];
       case 'AGENT':
         return [
-          { name: 'Tableau de bord', path: '/agent/dashboard', icon: <Home size={20} /> },
-          { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
-          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? 'NOUVEAU' : undefined },
-          { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
-          { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
+          { name: t('nav_agent.dashboard'), path: '/agent/dashboard', icon: <Home size={20} /> },
+          { name: t('nav_agent.applications'), path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: t('nav_agent.pending_docs'), path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? t('badges.new') : undefined },
+          { name: t('nav_agent.payments'), path: '/agent/payments', icon: <BarChart size={20} /> },
+          { name: t('nav.profile'), path: '/agent/profile', icon: <User size={20} /> }
         ];
       case 'ADMIN':
         return [
-          { name: 'Superviseur', path: '/admin/dashboard', icon: <BarChart size={20} /> },
-          { name: 'Utilisateurs', path: '/admin/users', icon: <Users size={20} /> },
-          { name: 'Types de visa', path: '/admin/visa-types', icon: <FileText size={20} /> },
-          { name: 'Logs Système', path: '/admin/logs', icon: <FileWarning size={20} /> },
-          { name: 'Email Templates', path: '/admin/email-templates', icon: <Mail size={20} /> },
-          { name: 'Messages', path: '/admin/messages', icon: <Mail size={20} /> },
-          { name: 'Suivi Entrées/Sorties', path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: 'NOUVEAU' },
-          { name: 'Configuration', path: '/admin/settings', icon: <Settings size={20} /> },
-          { name: 'Vigilance (Watchlist)', path: '/admin/watchlist', icon: <ShieldAlert size={20} />, badge: 'SÉCURITÉ' },
-          { name: 'Mon profil', path: '/admin/profile', icon: <User size={20} /> }
+          { name: t('nav_admin.supervisor'), path: '/admin/dashboard', icon: <BarChart size={20} /> },
+          { name: t('nav_admin.users'), path: '/admin/users', icon: <Users size={20} /> },
+          { name: t('nav_admin.visa_types'), path: '/admin/visa-types', icon: <FileText size={20} /> },
+          { name: t('nav_admin.logs'), path: '/admin/logs', icon: <FileWarning size={20} /> },
+          { name: t('nav_admin.email_templates'), path: '/admin/email-templates', icon: <Mail size={20} /> },
+          { name: t('nav_admin.messages'), path: '/admin/messages', icon: <Mail size={20} /> },
+          { name: t('nav_admin.border_tracking'), path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: t('badges.new') },
+          { name: t('nav_admin.settings'), path: '/admin/settings', icon: <Settings size={20} /> },
+          { name: t('nav_admin.watchlist'), path: '/admin/watchlist', icon: <ShieldAlert size={20} />, badge: t('badges.security') },
+          { name: t('nav.profile'), path: '/admin/profile', icon: <User size={20} /> }
         ];
       case 'EMBASSY':
         return [
-          { name: 'Tableau de bord', path: `/agent/dashboard`, icon: <Home size={20} /> },
-          { name: 'Dossiers', path: '/agent/applications', icon: <FileText size={20} /> },
-          { name: 'Compléments', path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? 'NOUVEAU' : undefined },
-          { name: 'Paiements', path: '/agent/payments', icon: <BarChart size={20} /> },
-          { name: 'Mon profil', path: '/agent/profile', icon: <User size={20} /> }
+          { name: t('nav_agent.dashboard'), path: `/agent/dashboard`, icon: <Home size={20} /> },
+          { name: t('nav_agent.applications'), path: '/agent/applications', icon: <FileText size={20} /> },
+          { name: t('nav_agent.pending_docs'), path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? t('badges.new') : undefined },
+          { name: t('nav_agent.payments'), path: '/agent/payments', icon: <BarChart size={20} /> },
+          { name: t('nav.profile'), path: '/agent/profile', icon: <User size={20} /> }
         ];
       case 'BORDER':
         return [
-          { name: 'Poste Frontière', path: '/frontiere/dashboard', icon: <Home size={20} /> },
-          { name: 'Vigilance (Watchlist)', path: '/admin/watchlist', icon: <ShieldAlert size={20} /> },
-          { name: 'Scan & Vérification', path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
-          { name: 'Historique', path: '/frontiere/historique', icon: <FileText size={20} /> },
-          { name: 'Alertes', path: '/frontiere/alertes', icon: <FileWarning size={20} /> },
-          { name: 'Mon profil', path: '/frontiere/profile', icon: <User size={20} /> }
+          { name: t('nav_border.dashboard'), path: '/frontiere/dashboard', icon: <Home size={20} /> },
+          { name: t('nav_admin.watchlist'), path: '/admin/watchlist', icon: <ShieldAlert size={20} /> },
+          { name: t('nav_border.verification'), path: '/frontiere/verification', icon: <ShieldCheck size={20} /> },
+          { name: t('nav_border.history'), path: '/frontiere/historique', icon: <FileText size={20} /> },
+          { name: t('nav_border.alerts'), path: '/frontiere/alertes', icon: <FileWarning size={20} /> },
+          { name: t('nav.profile'), path: '/frontiere/profile', icon: <User size={20} /> }
         ];
       default:
         return [];
@@ -151,8 +151,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
               <div className="text-xs text-cm-muted">{user.email}</div>
             </div>
           </div>
-          <div className="inline-flex items-center px-2.5 py-1 bg-cm-gold-pale/20 text-cm-gold rounded-md text-[0.65rem] font-bold tracking-wider">
-            ESPACE {user.role === 'APPLICANT' ? 'DEMANDEUR' : user.role}
+          <div className="inline-flex items-center px-2.5 py-1 bg-cm-gold-pale/20 text-cm-gold rounded-md text-[0.65rem] font-bold tracking-wider uppercase">
+            {t(`roles.${user.role.toLowerCase()}`)}
           </div>
         </div>
 
