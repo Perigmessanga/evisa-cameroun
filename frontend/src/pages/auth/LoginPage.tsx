@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 //  pages/auth/LoginPage.tsx
 // ─────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import CameroonFlag from '../../components/common/CameroonFlag';
@@ -21,6 +21,24 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [step, setStep] = useState<'LOGIN' | '2FA'>('LOGIN');
   const [otpCode, setOtpCode] = useState('');
+  const [currentBg, setCurrentBg] = useState(0);
+
+  // 1: Aile de l'avion (maintenu), le reste: images locales pour vos captures
+  const bgImages = [
+    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2674&auto=format&fit=crop", 
+    "/bg-1.jpg",
+    "/bg-2.jpg",
+    "/bg-3.jpg",
+    "/bg-4.jpg",
+    "/bg-5.jpg"
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBg(c => (c + 1) % bgImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
   
   // Custom Validation (not touching library if valid simple check works)
   const validateEmail = (e: string) => /\S+@\S+\.\S+/.test(e);
@@ -71,9 +89,20 @@ export default function LoginPage() {
     <div className="min-h-screen flex bg-cm-cream">
       {/* ── LEFT PANEL (Decoration) ── */}
       <div className="hidden lg:flex flex-1 flex-col justify-center items-center p-12 relative overflow-hidden shrink-0">
-        <div className="absolute inset-0 bg-linear-to-br from-cm-dark via-cm-green to-cm-green-mid" />
+        
+        {/* Animated Background Slider (using div for clean failover on missing images) */}
+        {bgImages.map((src, i) => (
+          <div 
+            key={src} 
+            className={`absolute inset-0 w-full h-full transition-all duration-1000 bg-cover bg-center ${i === currentBg ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`} 
+            style={{ backgroundImage: `url(${src})` }}
+          />
+        ))}
+        
+        {/* Gradient Overlay for Readability */}
+        <div className="absolute inset-0 bg-linear-to-br from-cm-dark/80 via-cm-green/75 to-cm-green-mid/80" />
         <div className="absolute inset-0 geo-pattern opacity-10 blur-[1px]" />
-        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-cm-gold/20 rounded-full blur-[100px] animate-pulse-ring" />
+        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-cm-gold/30 rounded-full blur-[100px] animate-pulse-ring" />
         
         <div className="relative z-10 max-w-md text-center">
           <div className="flex justify-center mb-8">

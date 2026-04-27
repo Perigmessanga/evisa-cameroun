@@ -151,20 +151,28 @@ export default function HomePage() {
       })
       .catch(err => console.error("Could not fetch public stats", err));
 
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-      const reveals = document.querySelectorAll('.reveal');
-      reveals.forEach(element => {
-        const windowHeight = window.innerHeight;
-        const elementTop = element.getBoundingClientRect().top;
-        if (elementTop < windowHeight - 100) {
-          element.classList.add('visible');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
         }
       });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    const reveals = document.querySelectorAll('.reveal');
+    reveals.forEach(element => observer.observe(element));
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
     };
+    
     window.addEventListener('scroll', handleScroll);
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      reveals.forEach(element => observer.unobserve(element));
+    };
   }, []);
 
   return (
