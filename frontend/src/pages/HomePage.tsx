@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import visaService from '../services/visaService';
 import CameroonFlag from '../components/common/CameroonFlag';
 import {
   ShieldCheck, Clock, Globe, ArrowRight, CheckCircle2,
@@ -140,15 +141,15 @@ export default function HomePage() {
   const [publicStats, setPublicStats] = useState({ approved: 0, time: '48h', support: '100%' });
 
   useEffect(() => {
-    import('../services/visaService').then(m => {
-      m.default.getPublicStats().then(data => {
+    visaService.getPublicStats()
+      .then(data => {
         setPublicStats({
-          approved: data.approved_visas,
-          time: data.avg_processing_time,
-          support: data.support_rate
+          approved: data.approved_visas || 0,
+          time: data.avg_processing_time || '48h',
+          support: data.support_rate || '100%'
         });
-      });
-    }).catch(err => console.error("Could not fetch public stats", err));
+      })
+      .catch(err => console.error("Could not fetch public stats", err));
 
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'evisa-cm-cache-v2';
+const CACHE_NAME = 'evisa-cm-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -30,20 +30,13 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Network-first for HTML pages to ensure we always get the latest JS bundles
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
-    );
+  // Ignorer les requêtes d'API
+  if (event.request.url.includes('/api/')) {
     return;
   }
 
-  // Cache-first for other assets
+  // Toujours Network-first pour pouvoir charger les mises à jour
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) return response;
-        return fetch(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request).then(res => res || null))
   );
 });
