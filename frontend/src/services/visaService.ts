@@ -75,6 +75,11 @@ const visaService = {
   },
 
   // ── GENERAL ──
+  getPublicStats: async () => {
+    const response = await api.get('/visa_applications/applications/public_stats/');
+    return response.data;
+  },
+
   getApplicationById: async (id: string): Promise<VisaApplication> => {
     const response = await api.get(`/visa_applications/applications/${id}/`);
     return response.data.data || response.data;

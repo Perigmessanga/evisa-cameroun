@@ -189,7 +189,13 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
         </nav>
 
         {/* LOGOUT BUTTON */}
-        <div className="p-4 border-t border-cm-border">
+        <div className="p-4 border-t border-cm-border space-y-2">
+          <Link
+            to="/"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-cm-muted rounded-xl hover:bg-cm-cream hover:text-cm-text transition-colors"
+          >
+            <Home size={20} /> Accueil
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-cm-red rounded-xl hover:bg-cm-red/5 transition-colors"

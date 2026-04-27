@@ -109,6 +109,26 @@ const TRANSLATIONS = {
   }
 };
 
+function AnimatedStat({ target, suffix = '' }: { target: number, suffix?: string }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / 2000, 1);
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setCount(Math.floor(easeProgress * target));
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [target]);
+
+  return <>{count.toLocaleString('fr-FR')}{suffix}</>;
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -117,8 +137,19 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [publicStats, setPublicStats] = useState({ approved: 0, time: '48h', support: '100%' });
 
   useEffect(() => {
+    import('../services/visaService').then(m => {
+      m.default.getPublicStats().then(data => {
+        setPublicStats({
+          approved: data.approved_visas,
+          time: data.avg_processing_time,
+          support: data.support_rate
+        });
+      });
+    }).catch(err => console.error("Could not fetch public stats", err));
+
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
       const reveals = document.querySelectorAll('.reveal');
@@ -184,9 +215,25 @@ export default function HomePage() {
             <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className={`text-xs font-bold px-2 py-1 rounded border ${scrolled ? 'border-cm-border text-cm-text hover:bg-cm-green/5' : 'border-white/30 text-white hover:bg-white/10'}`}>
               {lang.toUpperCase()}
             </button>
-            <Link to={user ? "/applicant/dashboard" : "/auth/login"} className={`hidden sm:flex px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid' : 'bg-white text-cm-green hover:bg-cm-cream'} whitespace-nowrap`}>
-              {user ? 'Mon Tableau de bord' : t.nav.login}
-            </Link>
+            {user ? (
+              <div className="hidden sm:flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full ${scrolled ? 'bg-cm-green text-white' : 'bg-white text-cm-green'} flex items-center justify-center font-bold text-sm shadow-inner`}>
+                    {user.first_name[0]}{user.last_name[0]}
+                  </div>
+                  <span className={`text-sm font-bold ${scrolled ? 'text-cm-text' : 'text-white'}`}>
+                    {user.first_name} {user.last_name}
+                  </span>
+                </div>
+                <Link to={user.role === 'APPLICANT' ? "/applicant/dashboard" : ["AGENT", "EMBASSY"].includes(user.role) ? "/agent/dashboard" : user.role === 'ADMIN' ? "/admin/dashboard" : "/frontiere/dashboard"} className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid border border-transparent' : 'bg-white text-cm-green hover:bg-cm-cream border border-transparent'} whitespace-nowrap`}>
+                  Mon Tableau de bord
+                </Link>
+              </div>
+            ) : (
+              <Link to="/auth/login" className={`hidden sm:flex px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${scrolled ? 'bg-cm-green text-white hover:bg-cm-green-mid border border-transparent' : 'bg-white text-cm-green hover:bg-cm-cream border border-transparent'} whitespace-nowrap`}>
+                {t.nav.login}
+              </Link>
+            )}
             <button
               className={`lg:hidden p-2 rounded-lg ${scrolled ? 'text-cm-text bg-cm-cream' : 'text-white bg-white/10'}`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -311,9 +358,9 @@ export default function HomePage() {
       <section className="py-12 bg-white border-b border-cm-border relative z-20 shadow-sm w-full block">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { label: t.stats.approved, value: '150k+', icon: <Globe className="text-cm-green" size={28} /> },
-            { label: t.stats.time, value: '48h', icon: <Clock className="text-cm-gold" size={28} /> },
-            { label: t.stats.support, value: '100%', icon: <ShieldCheck className="text-cm-red" size={28} /> },
+            { label: t.stats.approved, value: publicStats.approved > 0 ? <AnimatedStat target={publicStats.approved} /> : '...', icon: <Globe className="text-cm-green" size={28} /> },
+            { label: t.stats.time, value: publicStats.time, icon: <Clock className="text-cm-gold" size={28} /> },
+            { label: t.stats.support, value: publicStats.support, icon: <ShieldCheck className="text-cm-red" size={28} /> },
           ].map((stat, i) => (
             <div key={i} className="flex items-center gap-5 p-6 rounded-2xl bg-cm-cream/50 border border-cm-border hover:bg-cm-cream transition-colors reveal">
               <div className="w-14 h-14 rounded-xl bg-white shadow-sm flex items-center justify-center border border-cm-border shrink-0">{stat.icon}</div>

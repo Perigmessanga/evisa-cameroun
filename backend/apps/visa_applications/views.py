@@ -152,6 +152,18 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             'origins': list(origins)
         })
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def public_stats(self, request):
+        """
+        Retourne les statistiques publiques pour l'accueil.
+        """
+        approved = VisaApplication.objects.filter(status='APPROVED').count()
+        return Response({
+            'approved_visas': approved,
+            'avg_processing_time': '48h',
+            'support_rate': '100%'
+        })
+
     @action(detail=False, methods=['get'])
     def export_pdf_report(self, request):
         """

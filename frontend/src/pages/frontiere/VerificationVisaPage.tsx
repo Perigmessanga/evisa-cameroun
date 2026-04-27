@@ -22,7 +22,7 @@ export default function VerificationVisaPage() {
   useEffect(() => {
     let html5QrCode: any = null;
     if (isScanning) {
-      // @ts-ignore
+      // @ts-expect-error
       html5QrCode = new Html5Qrcode("reader");
       const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
