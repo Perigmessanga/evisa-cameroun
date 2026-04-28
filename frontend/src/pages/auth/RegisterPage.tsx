@@ -27,14 +27,14 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [currentBg, setCurrentBg] = useState(0);
 
-  // 1: Aile de l'avion (maintenu), le reste: images locales pour vos captures
   const bgImages = [
-    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2674&auto=format&fit=crop", 
-    "/bg-1.jpg",
-    "/bg-2.jpg",
-    "/bg-3.jpg",
-    "/bg-4.jpg",
-    "/bg-5.jpg"
+    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2674&auto=format&fit=crop",
+    "/bg-1.jpg.png",
+    "/bg-2.jpg.png",
+    "/bg-3jpg.png",
+    "/bg-4.jpg.png",
+    "/bg-5.jpg.png",
+    "/bg-6.jpg.png"
   ];
 
   useEffect(() => {
