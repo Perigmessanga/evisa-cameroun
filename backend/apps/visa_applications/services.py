@@ -142,7 +142,33 @@ class EVisaService:
                 ('GRID',         (0, 0), (-1, -1), 0.5, colors.grey),
                 ('PADDING',      (0, 0), (-1, -1), 8),
             ]))
-            story.append(table)
+            # Photo du demandeur
+            photo_path = None
+            if hasattr(application, 'biometric_data') and application.biometric_data.face_image:
+                photo_path = application.biometric_data.face_image.path
+            else:
+                photo_doc = application.documents.filter(document_type='PHOTO').first()
+                if photo_doc and hasattr(photo_doc.file, 'path'):
+                    photo_path = photo_doc.file.path
+
+            photo_img = None
+            if photo_path:
+                try:
+                    photo_img = Image(photo_path, width=3.5*cm, height=4.5*cm)
+                except Exception:
+                    pass
+            
+            if photo_img:
+                # Créer une table pour aligner la photo à droite des informations
+                info_and_photo_data = [[table, photo_img]]
+                layout_table = Table(info_and_photo_data, colWidths=[17.5*cm, 4*cm])
+                layout_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                story.append(layout_table)
+            else:
+                story.append(table)
+                
             story.append(Spacer(1, 0.5*cm))
 
             # QR Code

@@ -61,11 +61,10 @@ export default function PaymentPage() {
       try {
         await applicationService.confirmPayment(transactionId, method);
       } catch (e) {
-        console.warn("Erreur mineure lors de la confirmation API, poursuite de la simulation.");
+        console.warn("Erreur mineure lors de la confirmation API, poursuite de la simulation. Essai de soumission manuelle.");
+        // Seulement soumettre si la confirmation API mock a échouée sinon ça fera "Demande déjà soumise"
+        await applicationService.submitApplication(applicationId);
       }
-
-      // 4. Soumettre la demande (Changement de statut DRAFT -> SUBMITTED)
-      await applicationService.submitApplication(applicationId);
 
       setSuccess(true);
       toast.success('Paiement simulé avec succès ! Votre demande est maintenant soumise.');

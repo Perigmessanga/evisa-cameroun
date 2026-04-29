@@ -103,7 +103,7 @@ const applicationService = {
   },
 
   async markNotificationRead(id: string): Promise<void> {
-    await api.post(`/notifications/${id}/mark_read/`);
+    await api.post(`/notifications/${id}/read/`);
   },
 
   async markAllNotificationsRead(): Promise<void> {

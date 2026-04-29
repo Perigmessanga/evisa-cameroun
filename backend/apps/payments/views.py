@@ -191,19 +191,25 @@ class PaymentWebhookView(generics.GenericAPIView):
             payment.paid_at = timezone.now()
             payment.save()
             
-            # Mise à jour automatique de la demande
-            application = payment.application
-            if application.status == 'DRAFT':
-                application.status = 'SUBMITTED'
-                application.submitted_at = timezone.now()
-                application.save()
+                # Mise à jour automatique de la demande et du groupe
+                from django.db.models import Q
+                applications_to_submit = [application]
                 
-                # Assignation automatique d'un agent/ambassade
-                application.assign_best_agent()
-                
-                # Notification
+                # Si fait partie d'un groupe, soumettre tous les membres
+                if application.group_reference:
+                    members = VisaApplication.objects.filter(
+                        group_reference=application.group_reference, 
+                        status='DRAFT'
+                    ).exclude(id=application.id)
+                    applications_to_submit.extend(list(members))
+
                 from apps.notifications.models import NotificationService
-                NotificationService.send_application_submitted(application)
+                for app in applications_to_submit:
+                    app.status = 'SUBMITTED'
+                    app.submitted_at = timezone.now()
+                    app.save()
+                    app.assign_best_agent()
+                    NotificationService.send_application_submitted(app)
             
         elif status_payment in ['failed', 'error', 'canceled']:
             payment.status = 'FAILED'
@@ -231,16 +237,24 @@ class ConfirmPaymentMockView(generics.GenericAPIView):
             payment.paid_at = timezone.now()
             payment.save()
             
-            # Mise à jour de la demande
-            application = payment.application
-            if application.status == 'DRAFT':
-                application.status = 'SUBMITTED'
-                application.submitted_at = timezone.now()
-                application.save()
-                application.assign_best_agent()
-                
-                from apps.notifications.models import NotificationService
-                NotificationService.send_application_submitted(application)
+            # Mise à jour de la demande et du groupe
+            from django.db.models import Q
+            applications_to_submit = [application]
+            
+            if application.group_reference:
+                members = VisaApplication.objects.filter(
+                    group_reference=application.group_reference, 
+                    status='DRAFT'
+                ).exclude(id=application.id)
+                applications_to_submit.extend(list(members))
+
+            from apps.notifications.models import NotificationService
+            for app in applications_to_submit:
+                app.status = 'SUBMITTED'
+                app.submitted_at = timezone.now()
+                app.save()
+                app.assign_best_agent()
+                NotificationService.send_application_submitted(app)
                 
             return Response({'message': 'Paiement confirmé et demande assignée', 'payment': PaymentSerializer(payment).data})
         except Payment.DoesNotExist:
