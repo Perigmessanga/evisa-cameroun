@@ -49,8 +49,8 @@ export default function Footer() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/10 text-center text-sm text-white/40 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p>République du Cameroun - Ministère des Relations Extérieures. Tous droits réservés.</p>
-        <p>© {new Date().getFullYear()} DGSN - MINREX</p>
+        <p>plateforme e-visa République du Cameroun - Tous droits réservés par.</p>
+        <p>© {new Date().getFullYear()} Ing.concept MESSANGA Charles Perig</p>
       </div>
     </footer>
   );
