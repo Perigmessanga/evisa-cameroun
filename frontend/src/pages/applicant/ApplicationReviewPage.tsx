@@ -79,9 +79,20 @@ export default function ApplicationReviewPage() {
               <DataLabel label="Nom Complet" value={application.full_name} />
               <DataLabel label="Date de Naissance" value={application.date_of_birth} />
               <DataLabel label="Lieu de Naissance" value={application.place_of_birth} />
+              <DataLabel label="Pays de Naissance" value={application.birth_country} />
               <DataLabel label="Nationalité" value={application.nationality} />
+              <DataLabel label="N° CNI / ID" value={application.national_id_number} />
               <DataLabel label="Sexe" value={application.gender === 'MALE' ? 'Masculin' : 'Féminin'} />
+              <DataLabel label="Situation matrimoniale" value={application.marital_status} />
               <DataLabel label="Profession" value={application.profession || 'Non spécifié'} />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-cm-border/50">
+              <div className="text-[10px] font-bold text-cm-muted uppercase tracking-wider mb-3">Contact d'urgence</div>
+              <div className="flex flex-col sm:flex-row gap-6">
+                <DataLabel label="Nom du contact" value={application.emergency_contact_name} />
+                <DataLabel label="Téléphone" value={application.emergency_contact_phone} />
+              </div>
             </div>
           </section>
 

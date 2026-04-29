@@ -65,6 +65,8 @@ function validateStep2(data: Record<string, string>): Record<string, string> {
   if (!data.gender) errors.gender = 'Le sexe est obligatoire.';
   if (!data.nationality) errors.nationality = 'La nationalité est obligatoire.';
   if (!data.birthCountry) errors.birthCountry = 'Le pays de naissance est obligatoire.';
+  if (!data.placeOfBirth?.trim()) errors.placeOfBirth = 'Le lieu de naissance est obligatoire.';
+  if (!data.nationalId?.trim()) errors.nationalId = 'Le numéro de CNI/ID est obligatoire.';
   return errors;
 }
 
@@ -141,6 +143,8 @@ export default function ApplicationFormPage() {
             addressInCameroon: app.address_in_cameroon || '',
             emergencyName: app.emergency_contact_name || '',
             emergencyPhone: app.emergency_contact_phone || '',
+            nationalId: app.national_id_number || '',
+            placeOfBirth: app.place_of_birth || '',
             editId: app.id
           });
         })
@@ -174,6 +178,8 @@ export default function ApplicationFormPage() {
       editId: '',
       emergencyName: '',
       emergencyPhone: '',
+      nationalId: '',
+      placeOfBirth: '',
     };
   });
 
@@ -246,6 +252,9 @@ export default function ApplicationFormPage() {
         departure_date: formData.departureDate || null,
         address_in_cameroon: formData.addressInCameroon || '',
         last_completed_step: currentStep,
+        national_id_number: formData.nationalId || '',
+        birth_country: formData.birthCountry || '',
+        place_of_birth: formData.placeOfBirth || '',
         group_reference: groupReferenceFromState || null,
         is_group_primary: !groupReferenceFromState,
       };
@@ -312,9 +321,10 @@ export default function ApplicationFormPage() {
     setTermsError(false);
 
     const requiredDocs = selectedVisaType?.required_documents || [];
-    const missingDocs = requiredDocs.filter(d => !uploadedFiles[d]);
+    const missingDocs = requiredDocs.filter(d => !uploadedFiles[typeof d === 'object' ? d.label : d]);
     if (missingDocs.length > 0) {
-      toast.error(`Document manquant : "${missingDocs[0]}". Veuillez le téléverser avant de continuer.`);
+      const label = typeof missingDocs[0] === 'object' ? missingDocs[0].label : missingDocs[0];
+      toast.error(`Document manquant : "${label}". Veuillez le téléverser avant de continuer.`);
       return;
     }
 
@@ -341,6 +351,9 @@ export default function ApplicationFormPage() {
         residence_country: formData.nationality,
         emergency_contact_name: formData.emergencyName || '',
         emergency_contact_phone: formData.emergencyPhone || '',
+        national_id_number: formData.nationalId || '',
+        birth_country: formData.birthCountry,
+        place_of_birth: formData.placeOfBirth,
         group_reference: groupReferenceFromState || null,
         is_group_primary: !groupReferenceFromState, // Si pas de groupRef passé, c'est le 1er membre
       };
@@ -363,8 +376,20 @@ export default function ApplicationFormPage() {
         else if (nameLower.includes('photo')) docType = 'PHOTO';
         else if (nameLower.includes('itinéraire') || nameLower.includes('vol') || nameLower.includes('billet')) docType = 'TRAVEL_ITINERARY';
         else if (nameLower.includes('hébergement') || nameLower.includes('hotel') || nameLower.includes('hôtel')) docType = 'ACCOMMODATION_PROOF';
-        else if (nameLower.includes('financier') || nameLower.includes('banque') || nameLower.includes('revenus')) docType = 'FINANCIAL_PROOF';
+        else if (nameLower.includes('financier') || nameLower.includes('banque') || nameLower.includes('revenus') || nameLower.includes('objet')) docType = 'FINANCIAL_PROOF';
         else if (nameLower.includes('invitation')) docType = 'INVITATION_LETTER';
+        else if (nameLower.includes('vaccination')) docType = 'VACCINATION_CERT';
+        else if (nameLower.includes('mission')) docType = 'MISSION_ORDER';
+        else if (nameLower.includes('domicile') || nameLower.includes('résidence')) docType = 'RESIDENCE_CERT';
+        else if (nameLower.includes('profession') || nameLower.includes('travail')) docType = 'PROFESSION_PROOF';
+        else if (nameLower.includes('rapatriement')) docType = 'REPATRIATION_GUAR';
+        else if (nameLower.includes('inscription') || nameLower.includes('école') || nameLower.includes('scolaire')) docType = 'STUDENT_REG';
+        else if (nameLower.includes('stage')) docType = 'INTERNSHIP_ATT';
+        else if (nameLower.includes('contrat')) docType = 'WORK_CONTRACT';
+        else if (nameLower.includes('autorisation') || nameLower.includes('licence')) docType = 'PROFESSION_AUTH';
+        else if (nameLower.includes('mariage') || nameLower.includes('parental') || nameLower.includes('lien')) docType = 'FAMILY_ACT';
+        else if (nameLower.includes('verbale')) docType = 'VERBAL_NOTE';
+        else if (nameLower.includes('cni') || nameLower.includes('identité')) docType = 'IDENTITY_CARD';
 
         formDataPayload.append('document_type', docType);
         formDataPayload.append('file', file);
@@ -538,6 +563,10 @@ export default function ApplicationFormPage() {
                 {fieldErrors.birthCountry && <FieldError message={fieldErrors.birthCountry} />}
               </div>
 
+              <Field label="Lieu de naissance" name="placeOfBirth" value={formData.placeOfBirth} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.placeOfBirth} placeholder="Ex: Douala, Yaoundé..." />
+              <Field label="Numéro CNI / ID National" name="nationalId" value={formData.nationalId} onChange={handleChange} onBlur={handleBlur} required error={fieldErrors.nationalId} placeholder="Numéro de votre carte d'identité" />
+
+
               <div className="md:col-span-2 border-t border-cm-border/50 pt-4">
                 <p className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-4">Contact d'urgence</p>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -617,8 +646,9 @@ export default function ApplicationFormPage() {
             </div>
 
             <div className="space-y-3">
-              {requiredDocs.map((doc, i) => {
-                const file = uploadedFiles[doc];
+              {requiredDocs.map((docItem, i) => {
+                const docLabel = typeof docItem === 'object' ? docItem.label : docItem;
+                const file = uploadedFiles[docLabel];
                 return (
                   <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-dashed rounded-2xl transition-colors ${file ? 'border-cm-green-mid bg-cm-green-pale/10' : 'border-cm-border bg-white hover:bg-cm-cream/20'}`}>
                     <div className="flex items-start gap-3 flex-1">
@@ -630,7 +660,7 @@ export default function ApplicationFormPage() {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-sm text-cm-text">{doc} <span className="text-cm-red">*</span></h4>
+                        <h4 className="font-semibold text-sm text-cm-text">{docLabel} <span className="text-cm-red">*</span></h4>
                         {file ? (
                           <p className="text-xs text-cm-green-mid mt-0.5 font-medium">{file.name}</p>
                         ) : (
@@ -639,7 +669,7 @@ export default function ApplicationFormPage() {
                       </div>
                     </div>
                     <label className={`mt-3 sm:mt-0 px-4 py-2 rounded-xl font-bold text-sm cursor-pointer transition-colors shrink-0 ${file ? 'bg-cm-green-pale/20 text-cm-green-mid hover:bg-cm-green-pale/30' : 'bg-cm-cream text-cm-text hover:bg-cm-border/50'}`}>
-                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => handleFile(doc, e.target.files?.[0] || null)} />
+                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => handleFile(docLabel, e.target.files?.[0] || null)} />
                       {file ? 'Modifier' : 'Choisir un fichier'}
                     </label>
                   </div>

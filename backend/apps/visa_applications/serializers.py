@@ -137,6 +137,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
             # Emergency
             'emergency_contact_name', 'emergency_contact_phone',
+            'national_id_number',
             # Processing
             'submitted_at', 'processed_at', 'rejection_reason',
             # Relations
@@ -217,6 +218,7 @@ class CreateApplicationSerializer(serializers.ModelSerializer):
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
             # Emergency
             'emergency_contact_name', 'emergency_contact_phone',
+            'national_id_number',
             # Group
             'group_reference', 'is_group_primary',
         ]
@@ -305,6 +307,7 @@ class VisaApplicationUpdateSerializer(serializers.ModelSerializer):
             'passport_number', 'passport_issue_date', 'passport_expiry_date', 'passport_country',
             'purpose_of_visit', 'arrival_date', 'departure_date', 'address_in_cameroon',
             'emergency_contact_name', 'emergency_contact_phone',
+            'national_id_number',
             'group_reference', 'is_group_primary',
         ]
 

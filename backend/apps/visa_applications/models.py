@@ -36,13 +36,24 @@ class BorderCheckStatus(models.TextChoices):
     DENIED      = 'DENIED',      'Entrée refusée'
 
 class DocumentType(models.TextChoices):
-# ... (same as before)
     PASSPORT             = 'PASSPORT',             'Passeport'
     PHOTO                = 'PHOTO',                'Photo d\'identité'
-    TRAVEL_ITINERARY     = 'TRAVEL_ITINERARY',     'Itinéraire de voyage'
+    TRAVEL_ITINERARY     = 'TRAVEL_ITINERARY',     'Billet Avion / Titre Transport'
     ACCOMMODATION_PROOF  = 'ACCOMMODATION_PROOF',  'Justificatif d\'hébergement'
-    FINANCIAL_PROOF      = 'FINANCIAL_PROOF',      'Justificatif financier'
-    INVITATION_LETTER    = 'INVITATION_LETTER',    'Lettre d\'invitation'
+    FINANCIAL_PROOF      = 'FINANCIAL_PROOF',      'Justificatif Financier / Subsistance'
+    VACCINATION_CERT     = 'VACCINATION_CERT',     'Carnet de vaccination'
+    DESTINATION_VISA     = 'DESTINATION_VISA',     'Visa pays destination'
+    MISSION_ORDER        = 'MISSION_ORDER',        'Ordre de mission'
+    RESIDENCE_CERT       = 'RESIDENCE_CERT',       'Certificat de domicile'
+    PROFESSION_PROOF     = 'PROFESSION_PROOF',     'Justificatif de profession'
+    REPATRIATION_GUAR    = 'REPATRIATION_GUAR',    'Garantie de rapatriement'
+    STUDENT_REG          = 'STUDENT_REG',          'Attestation d\'inscription scolaire'
+    INTERNSHIP_ATT       = 'INTERNSHIP_ATT',       'Attestation de mise en stage'
+    WORK_CONTRACT        = 'WORK_CONTRACT',        'Contrat de travail'
+    PROFESSION_AUTH      = 'PROFESSION_AUTH',      'Autorisation d\'exercer / Promouvoir'
+    FAMILY_ACT           = 'FAMILY_ACT',           'Acte de mariage / Parental'
+    VERBAL_NOTE          = 'VERBAL_NOTE',          'Note verbale'
+    IDENTITY_CARD        = 'IDENTITY_CARD',        'Carte Nationale d\'Identité'
     OTHER                = 'OTHER',                'Autre'
 
 class Gender(models.TextChoices):
@@ -138,6 +149,7 @@ class VisaApplication(models.Model):
     # ── Contact d'urgence ──────────────────────────────────────
     emergency_contact_name  = models.CharField(max_length=200, blank=True, null=True, verbose_name='Contact d\'urgence (Nom)')
     emergency_contact_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name='Contact d\'urgence (Tél)')
+    national_id_number      = models.CharField(max_length=50, blank=True, null=True, verbose_name='Numéro CNI / ID National')
 
     # ── Avis Ambassade ─────────────────────────────────────────
     embassy_opinion = models.CharField(

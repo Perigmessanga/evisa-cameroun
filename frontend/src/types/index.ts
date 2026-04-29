@@ -81,6 +81,7 @@ export interface VisaApplication {
   marital_status?: string;
   profession?: string;
   birth_country?: string;
+  national_id_number?: string;
   
   passport_number: string;
   passport_issue_date: string;
@@ -151,7 +152,19 @@ export type DocumentType =
   | 'TRAVEL_ITINERARY'
   | 'ACCOMMODATION_PROOF'
   | 'FINANCIAL_PROOF'
-  | 'INVITATION_LETTER'
+  | 'VACCINATION_CERT'
+  | 'DESTINATION_VISA'
+  | 'MISSION_ORDER'
+  | 'RESIDENCE_CERT'
+  | 'PROFESSION_PROOF'
+  | 'REPATRIATION_GUAR'
+  | 'STUDENT_REG'
+  | 'INTERNSHIP_ATT'
+  | 'WORK_CONTRACT'
+  | 'PROFESSION_AUTH'
+  | 'FAMILY_ACT'
+  | 'VERBAL_NOTE'
+  | 'IDENTITY_CARD'
   | 'OTHER';
 
 export interface ApplicationDocument {

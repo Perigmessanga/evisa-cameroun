@@ -19,7 +19,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="e-Visa CMR" />
-  
+
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
@@ -29,8 +29,8 @@
   <script>
     // Nettoyage radical et permanent de l'ancien Service Worker qui cause les erreurs "MIME type"
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
           registration.unregister().then(() => {
             console.log('SW unregistered successfully.');
           });
