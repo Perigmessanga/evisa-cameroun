@@ -242,7 +242,6 @@ export default function ApplicationFormPage() {
         visa_type: formData.visaType || null,
         full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`.trim() || 'BROUILLON',
         date_of_birth: formData.birthDate || null,
-        place_of_birth: formData.birthCountry || '',
         nationality: formData.nationality || '',
         gender: formData.gender || '',
         status: 'DRAFT',
@@ -321,9 +320,10 @@ export default function ApplicationFormPage() {
     setTermsError(false);
 
     const requiredDocs = selectedVisaType?.required_documents || [];
-    const missingDocs = requiredDocs.filter(d => !uploadedFiles[typeof d === 'object' ? d.label : d]);
+    const missingDocs = requiredDocs.filter(d => !uploadedFiles[typeof d === 'object' ? (d as any).label : d]);
     if (missingDocs.length > 0) {
-      const label = typeof missingDocs[0] === 'object' ? missingDocs[0].label : missingDocs[0];
+      const firstMissing = missingDocs[0];
+      const label = typeof firstMissing === 'object' ? (firstMissing as any).label : firstMissing;
       toast.error(`Document manquant : "${label}". Veuillez le téléverser avant de continuer.`);
       return;
     }
@@ -334,12 +334,10 @@ export default function ApplicationFormPage() {
         visa_type: formData.visaType,
         full_name: `${formData.lastName.toUpperCase()} ${formData.firstName}`,
         date_of_birth: formData.birthDate,
-        place_of_birth: formData.birthCountry,
         nationality: formData.nationality,
         gender: formData.gender,
         marital_status: formData.maritalStatus || 'Non spécifié',
         profession: formData.profession || 'Sans emploi',
-        birth_country: formData.birthCountry,
         passport_number: formData.passportNumber,
         passport_issue_date: formData.passportIssueDate,
         passport_expiry_date: formData.passportExpiryDate,
@@ -647,7 +645,7 @@ export default function ApplicationFormPage() {
 
             <div className="space-y-3">
               {requiredDocs.map((docItem, i) => {
-                const docLabel = typeof docItem === 'object' ? docItem.label : docItem;
+                const docLabel = typeof docItem === 'object' ? (docItem as any).label : docItem;
                 const file = uploadedFiles[docLabel];
                 return (
                   <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-dashed rounded-2xl transition-colors ${file ? 'border-cm-green-mid bg-cm-green-pale/10' : 'border-cm-border bg-white hover:bg-cm-cream/20'}`}>

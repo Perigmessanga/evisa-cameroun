@@ -48,7 +48,7 @@ export interface VisaType {
   validity_days: number;
   max_stay_days: number;
   fee: number;
-  required_documents: string[];
+  required_documents: (string | { type: string; label: string })[];
   processing_time_days: number;
   is_active: boolean;
 }
