@@ -58,7 +58,7 @@ const TRANSLATIONS = {
       business: { title: 'Visa Affaires', desc: 'Pour les réunions, conférences et opportunités commerciales.', price: '150 000 XAF', duration: 'Jusqu\'à 6 mois' },
       transit: { title: 'Visa Transit', desc: 'Pour les escales de courte durée.', price: '50 000 XAF', duration: 'Jusqu\'à 5 jours' }
     },
-    footer: { text: "République du Cameroun - Ministère des Relations Extérieures. Tous droits réservés." }
+    footer: { text: "plateforme e-visa République du Cameroun - Tous droits réservés par" }
   },
   en: {
     nav: { home: 'Home', apply: 'Apply for Visa', tracking: 'Tracking', contact: 'Contact', login: 'Login' },
@@ -106,7 +106,7 @@ const TRANSLATIONS = {
       business: { title: 'Business Visa', desc: 'For meetings, conferences, and commercial opportunities.', price: '150,000 XAF', duration: 'Up to 6 months' },
       transit: { title: 'Transit Visa', desc: 'For short stopovers.', price: '50,000 XAF', duration: 'Up to 5 days' }
     },
-    footer: { text: "Republic of Cameroon - Ministry of External Relations. All rights reserved." }
+    footer: { text: "e-visa platform Republic of Cameroon - All rights reserved by" }
   }
 };
 
@@ -198,7 +198,7 @@ export default function HomePage() {
             <CameroonFlag size={36} />
             <div>
               <div className={`font-display font-bold leading-tight ${scrolled ? 'text-cm-text text-xl' : 'text-white text-2xl'}`}>e-Visa Cameroun</div>
-              <div className={`text-[0.65rem] font-bold tracking-widest ${scrolled ? 'text-cm-green' : 'text-cm-gold-pale'}`}>MINREX</div>
+              <div className={`text-[0.65rem] font-bold tracking-widest ${scrolled ? 'text-cm-green' : 'text-cm-gold-pale'}`}>&nbsp;</div>
             </div>
           </div>
 
@@ -539,7 +539,7 @@ export default function HomePage() {
         </div>
         <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/10 text-center text-sm text-white/40 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>{t.footer.text}</p>
-          <p>© {new Date().getFullYear()} DGSN - MINREX</p>
+          <p>© {new Date().getFullYear()} Ing.concept MESSANGA Charles Perig</p>
         </div>
       </footer>
     </div>
