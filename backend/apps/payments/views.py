@@ -191,20 +191,22 @@ class PaymentWebhookView(generics.GenericAPIView):
             payment.paid_at = timezone.now()
             payment.save()
             
-                # Mise à jour automatique de la demande et du groupe
-                from django.db.models import Q
-                applications_to_submit = [application]
-                
-                # Si fait partie d'un groupe, soumettre tous les membres
-                if application.group_reference:
-                    members = VisaApplication.objects.filter(
-                        group_reference=application.group_reference, 
-                        status='DRAFT'
-                    ).exclude(id=application.id)
-                    applications_to_submit.extend(list(members))
+            # Mise à jour automatique de la demande et du groupe
+            application = payment.application
+            from django.db.models import Q
+            applications_to_submit = [application]
+            
+            # Si fait partie d'un groupe, soumettre tous les membres
+            if application.group_reference:
+                members = VisaApplication.objects.filter(
+                    group_reference=application.group_reference, 
+                    status='DRAFT'
+                ).exclude(id=application.id)
+                applications_to_submit.extend(list(members))
 
-                from apps.notifications.models import NotificationService
-                for app in applications_to_submit:
+            from apps.notifications.models import NotificationService
+            for app in applications_to_submit:
+                if app.status == 'DRAFT':
                     app.status = 'SUBMITTED'
                     app.submitted_at = timezone.now()
                     app.save()
@@ -238,6 +240,7 @@ class ConfirmPaymentMockView(generics.GenericAPIView):
             payment.save()
             
             # Mise à jour de la demande et du groupe
+            application = payment.application
             from django.db.models import Q
             applications_to_submit = [application]
             
