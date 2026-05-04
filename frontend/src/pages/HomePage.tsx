@@ -165,10 +165,10 @@ export default function HomePage() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     handleScroll();
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       reveals.forEach(element => observer.unobserve(element));
