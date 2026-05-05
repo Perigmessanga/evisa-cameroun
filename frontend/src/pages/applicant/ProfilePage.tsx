@@ -8,6 +8,7 @@ import { User, Mail, Lock, CheckCircle2, Loader2, Save, Globe, Phone, AlertCircl
 import toast from 'react-hot-toast';
 import { parsePhoneNumber, isValidPhoneNumber, type CountryCode } from 'libphonenumber-js';
 import { COUNTRIES } from './ApplicationFormPage';
+import TwoFactorWidget from '../../components/security/TwoFactorWidget';
 
 // ─── Préfixes téléphoniques ───────────────────
 const PHONE_PREFIXES = [
@@ -422,8 +423,11 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'SECURITY' && (
-            <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-cm-border p-6 sm:p-8 animate-fadeIn">
-              <h2 className="font-display text-xl font-bold text-cm-text mb-6">Modifier le mot de passe</h2>
+            <div className="space-y-8 animate-fadeIn">
+              <TwoFactorWidget />
+              
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-cm-border p-6 sm:p-8">
+                <h2 className="font-display text-xl font-bold text-cm-text mb-6">Modifier le mot de passe</h2>
               
               <form onSubmit={handleSecuritySubmit} className="space-y-5">
                 <div>
@@ -475,6 +479,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
+              </div>
             </div>
           )}
 
