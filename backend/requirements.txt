@@ -7,7 +7,7 @@ django-anymail==10.3
 python-decouple==3.8
 
 # Authentication & Security
-rest_framework_simplejwt==5.3.1
+djangorestframework-simplejwt==5.3.1
 cryptography==42.0.5
 
 # PDF Generation & QR Code
