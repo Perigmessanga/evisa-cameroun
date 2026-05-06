@@ -259,7 +259,7 @@ export default function WatchlistManagementPage() {
                   </button>
                   <button 
                     type="submit" disabled={loading}
-                    className="flex-[2] py-3 bg-cm-red text-white font-bold rounded-xl hover:bg-cm-red/90 transition-all flex items-center justify-center gap-2"
+                    className="flex-2 py-3 bg-cm-red text-white font-bold rounded-xl hover:bg-cm-red/90 transition-all flex items-center justify-center gap-2"
                   >
                     {loading ? <Loader2 className="animate-spin" /> : <><ShieldAlert size={18} /> Inscrire à la Vigilance</>}
                   </button>

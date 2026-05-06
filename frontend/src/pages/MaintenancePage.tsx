@@ -35,7 +35,7 @@ export default function MaintenancePage() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-cm-border flex justify-between items-center text-xs">
-          <span className="text-cm-muted/60">© {new Date().getFullYear()} DGSN - MINREX</span>
+          <span className="text-cm-muted/60">© {new Date().getFullYear()} Ing.concept MESSANGA Charles Perig</span>
           <Link to="/auth/login" className="text-cm-gold/50 hover:text-cm-gold transition-colors font-bold">
             Accès Administrateur
           </Link>

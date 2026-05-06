@@ -109,6 +109,7 @@ export interface VisaApplication {
   submitted_at: string | null;
   processed_at: string | null;
   rejection_reason: string;
+  processing_type: 'STANDARD' | 'EXPRESS';
   created_at: string;
   updated_at: string;
 
@@ -143,6 +144,7 @@ export interface ApplicationFormData {
   arrival_date: string;
   departure_date: string;
   address_in_cameroon: string;
+  processing_type: 'STANDARD' | 'EXPRESS';
 }
 
 // ── DOCUMENTS ────────────────────────────────

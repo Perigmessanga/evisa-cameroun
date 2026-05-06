@@ -78,11 +78,16 @@ class InitiatePaymentView(generics.CreateAPIView):
                 'error': 'Vous ne pouvez pas payer pour cette demande.'
             }, status=status.HTTP_403_FORBIDDEN)
         
+        # Calcul du montant total avec supplément Express
+        base_fee = application.visa_type.fee
+        express_fee = 25000 if application.processing_type == 'EXPRESS' else 0
+        total_amount = base_fee + express_fee
+        
         # Créer ou récupérer le paiement
         payment, created = Payment.objects.get_or_create(
             application=application,
             defaults={
-                'amount': application.visa_type.fee,
+                'amount': total_amount,
                 'currency': 'XAF',
                 'payment_method': payment_method,
                 'status': 'PENDING'
@@ -213,6 +218,8 @@ class PaymentWebhookView(generics.GenericAPIView):
                     app.assign_best_agent()
                     NotificationService.send_application_submitted(app)
             
+            NotificationService.send_payment_success(payment)
+            
         elif status_payment in ['failed', 'error', 'canceled']:
             payment.status = 'FAILED'
             payment.save()
@@ -258,6 +265,8 @@ class ConfirmPaymentMockView(generics.GenericAPIView):
                 app.save()
                 app.assign_best_agent()
                 NotificationService.send_application_submitted(app)
+                
+            NotificationService.send_payment_success(payment)
                 
             return Response({'message': 'Paiement confirmé et demande assignée', 'payment': PaymentSerializer(payment).data})
         except Payment.DoesNotExist:

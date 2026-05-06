@@ -13,6 +13,10 @@ from django.utils.translation import gettext_lazy as _
 # ─────────────────────────────────────────────────────────────────
 # CHOIX (Enums)
 # ─────────────────────────────────────────────────────────────────
+class ProcessingType(models.TextChoices):
+    STANDARD = 'STANDARD', 'Standard (72 heures)'
+    EXPRESS  = 'EXPRESS',  'Express (24 heures)'
+
 class ApplicationStatus(models.TextChoices):
     DRAFT           = 'DRAFT',           _('Brouillon')
     SUBMITTED       = 'SUBMITTED',       _('Soumise')
@@ -174,6 +178,10 @@ class VisaApplication(models.Model):
     last_completed_step = models.PositiveIntegerField(default=0, verbose_name='Dernière étape complétée')
 
     # ── Traitement ─────────────────────────────────────────────
+    processing_type  = models.CharField(
+        max_length=20, choices=ProcessingType.choices,
+        default=ProcessingType.STANDARD, verbose_name='Type de traitement'
+    )
     has_biometrics   = models.BooleanField(default=False, verbose_name='Biométrie vérifiée')
     submitted_at     = models.DateTimeField(null=True, blank=True, verbose_name='Soumis le')
     processed_at     = models.DateTimeField(null=True, blank=True, verbose_name='Traité le')

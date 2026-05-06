@@ -115,6 +115,25 @@ class NotificationService:
         cls._send(user, subject, message, application)
 
     @classmethod
+    def send_payment_success(cls, payment):
+        application = payment.application
+        user = application.applicant
+        context = {
+            'user_name': user.get_full_name(),
+            'application_number': application.application_number,
+            'amount': f"{payment.amount} {payment.currency}",
+            'processing_type': "Express" if application.processing_type == 'EXPRESS' else "Standard",
+            'transaction_id': payment.transaction_id,
+            'date': payment.paid_at.strftime('%d/%m/%Y à %H:%M') if payment.paid_at else "Aujourd'hui",
+        }
+        subject, message = cls._get_template_and_render(
+            'PAYMENT_SUCCESS', context,
+            f'Paiement Réussi — Demande {application.application_number}',
+            f'Bonjour {user.get_full_name()},\n\nNous vous confirmons la réception de votre paiement d\'un montant de {context["amount"]} pour la demande de visa n° {application.application_number}.\n\nDétails de la transaction :\n- N° de transaction : {context["transaction_id"]}\n- Type de traitement : {context["processing_type"]}\n- Date : {context["date"]}\n\nVotre demande est maintenant soumise et en cours de traitement.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+        )
+        cls._send(user, subject, message, application)
+
+    @classmethod
     def send_application_rejected(cls, application):
         user = application.applicant
         context = {

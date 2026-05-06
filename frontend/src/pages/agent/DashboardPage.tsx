@@ -143,9 +143,14 @@ export default function AgentDashboard() {
                 </thead>
                 <tbody className="divide-y divide-cm-border/50">
                   {recentApps.length > 0 ? recentApps.map(app => (
-                    <tr key={app.id} className="hover:bg-cm-cream/20 transition-colors">
+                    <tr key={app.id} className={`transition-colors border-l-4 ${app.processing_type === 'EXPRESS' ? 'bg-cm-gold-pale/5 hover:bg-cm-gold-pale/10 border-l-cm-red' : 'hover:bg-cm-cream/20 border-l-transparent'}`}>
                       <td className="p-4">
                         <div className="font-bold text-sm text-cm-text">{app.application_number}</div>
+                        {app.processing_type === 'EXPRESS' && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cm-red/10 text-cm-red uppercase tracking-wider">
+                            Urgent ⚡
+                          </span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="font-bold text-sm text-cm-text">{app.full_name}</div>

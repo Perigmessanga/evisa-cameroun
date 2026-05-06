@@ -141,6 +141,7 @@ export default function ApplicationFormPage() {
             arrivalDate: app.arrival_date || '',
             departureDate: app.departure_date || '',
             addressInCameroon: app.address_in_cameroon || '',
+            processingType: app.processing_type || 'STANDARD',
             emergencyName: app.emergency_contact_name || '',
             emergencyPhone: app.emergency_contact_phone || '',
             nationalId: app.national_id_number || '',
@@ -175,6 +176,7 @@ export default function ApplicationFormPage() {
       arrivalDate: '',
       departureDate: '',
       addressInCameroon: '',
+      processingType: 'STANDARD',
       editId: '',
       emergencyName: '',
       emergencyPhone: '',
@@ -250,6 +252,7 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate || null,
         departure_date: formData.departureDate || null,
         address_in_cameroon: formData.addressInCameroon || '',
+        processing_type: formData.processingType || 'STANDARD',
         last_completed_step: currentStep,
         national_id_number: formData.nationalId || '',
         birth_country: formData.birthCountry || '',
@@ -346,6 +349,7 @@ export default function ApplicationFormPage() {
         arrival_date: formData.arrivalDate,
         departure_date: formData.departureDate,
         address_in_cameroon: formData.addressInCameroon,
+        processing_type: formData.processingType || 'STANDARD',
         residence_country: formData.nationality,
         emergency_contact_name: formData.emergencyName || '',
         emergency_contact_phone: formData.emergencyPhone || '',
@@ -477,10 +481,43 @@ export default function ApplicationFormPage() {
                 </div>
                 <div>
                   <div className="font-bold text-cm-text text-sm">{selectedVisaType.name} — {selectedVisaType.code}</div>
-                  <div className="text-xs text-cm-muted mt-1">Durée max : <strong>{selectedVisaType.max_stay_days} jours</strong> • Frais : <strong>{formatAmount(selectedVisaType.fee)}</strong></div>
+                  <div className="text-xs text-cm-muted mt-1">
+                    Durée max : <strong>{selectedVisaType.max_stay_days} jours</strong> • 
+                    Frais : <strong>{formatAmount(selectedVisaType.fee + (formData.processingType === 'EXPRESS' ? 25000 : 0))}</strong>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Processing Type */}
+            <div>
+              <label className="block text-sm font-semibold text-cm-text mb-3">Délai de traitement souhaité <span className="text-cm-red">*</span></label>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <label className={`relative flex flex-col p-4 border-2 rounded-2xl cursor-pointer transition-all ${formData.processingType === 'STANDARD' ? 'border-cm-green-mid bg-cm-green-pale/10 shadow-md' : 'border-cm-border bg-white hover:border-cm-green-pale hover:bg-cm-cream/30'}`}>
+                  <input type="radio" name="processingType" value="STANDARD" checked={formData.processingType === 'STANDARD'} onChange={handleChange} className="sr-only" />
+                  <div className="font-bold text-cm-text text-sm">Traitement Standard</div>
+                  <div className="text-xs text-cm-muted mt-1">Délai habituel de 72 heures ouvrées.</div>
+                  {formData.processingType === 'STANDARD' && (
+                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cm-green-mid flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                  )}
+                </label>
+                <label className={`relative flex flex-col p-4 border-2 rounded-2xl cursor-pointer transition-all ${formData.processingType === 'EXPRESS' ? 'border-cm-gold bg-cm-gold-pale/10 shadow-md' : 'border-cm-border bg-white hover:border-cm-gold/50 hover:bg-cm-cream/30'}`}>
+                  <input type="radio" name="processingType" value="EXPRESS" checked={formData.processingType === 'EXPRESS'} onChange={handleChange} className="sr-only" />
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-cm-text text-sm">Traitement Express</span>
+                    <span className="px-2 py-0.5 rounded-full bg-cm-red text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">Urgent ⚡</span>
+                  </div>
+                  <div className="text-xs text-cm-muted mt-1">Prioritaire sous 24h. Frais supplémentaires applicables (+ 25 000 FCFA).</div>
+                  {formData.processingType === 'EXPRESS' && (
+                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cm-gold flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
 
             {/* Entry Type */}
             <div>
