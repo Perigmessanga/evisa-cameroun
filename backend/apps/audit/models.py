@@ -60,6 +60,7 @@ class AuditLog(models.Model):
         verbose_name="Adresse IP"
     )
     user_agent = models.TextField(
+        null=True,
         blank=True,
         verbose_name="User Agent"
     )
