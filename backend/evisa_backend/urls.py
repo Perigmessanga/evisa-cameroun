@@ -32,7 +32,7 @@ urlpatterns = [
     path('api/v1/visa_applications/', include('apps.visa_applications.urls')),
     path('api/v1/payments/', include('apps.payments.urls')),
     path('api/v1/biometrics/', include('apps.biometrics.urls')),
-    path('api/', include('apps.evisa.urls')),
+    path('api/v1/', include('apps.evisa.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/audit-logs/', include('apps.audit.urls')),
 ]
