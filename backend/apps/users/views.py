@@ -355,7 +355,7 @@ class ForgotPasswordView(APIView):
 
             send_mail(
                 subject='e-Visa Cameroun — Réinitialisation de mot de passe',
-                message=f'Bonjour {user.get_full_name()},\n\nCliquez ici pour réinitialiser votre mot de passe :\n{reset_url}\n\nCe lien expire dans 1h.',
+                message=f'Bonjour {user.get_full_name()},\n\nCliquez ici pour réinitialiser votre mot de passe :\n{reset_url}\n\nCe lien expire dans 1h.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 fail_silently=True,

@@ -100,7 +100,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         # Envoi de l'email à l'utilisateur
         send_mail(
             subject=f"Réponse: {message.subject}",
-            message=f"Bonjour {message.first_name},\n\nSuite à votre message :\n\"{message.message}\"\n\nVoici notre réponse :\n{reply_text}\n\nCordialement,\nSupport e-Visa Cameroun",
+            message=f"Bonjour {message.first_name},\n\nSuite à votre message :\n\"{message.message}\"\n\nVoici notre réponse :\n{reply_text}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[message.email],
             fail_silently=False,
@@ -615,8 +615,8 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
                 f"Votre entrée sur le territoire camerounais a été enregistrée le {crossing.crossing_date.strftime('%d/%m/%Y')}.\n"
                 f"Selon votre type de visa ({evisa.application.visa_type.name}), vous êtes autorisé à séjourner pendant {max_stay} jours.\n"
                 f"Votre date limite de sortie est fixée au : {expected_exit.strftime('%d/%m/%Y')}.\n\n"
-                f"Nous vous souhaitons un excellent séjour.\n"
-                f"Services de l'Immigration, République du Cameroun"
+                f"Nous vous souhaitons un excellent séjour.\n\n"
+                f"Cordialement,\n© 2026 Ing.concept MESSANGA Charles Perig"
             )
             try:
                 send_mail(

@@ -29,8 +29,8 @@ class Command(BaseCommand):
                 f"Bonjour {applicant_name},\n\n"
                 f"Ceci est un rappel automatique concernant votre séjour au Cameroun.\n"
                 f"Votre date de départ prévue est le {entry.expected_exit_date.strftime('%d/%m/%Y')}, soit dans une semaine.\n\n"
-                f"Nous vous prions de bien vouloir prendre les dispositions nécessaires pour respecter cette date.\n"
-                f"Services de l'Immigration, République du Cameroun"
+                f"Nous vous prions de bien vouloir prendre les dispositions nécessaires pour respecter cette date.\n\n"
+                f"Cordialement,\n© 2026 Ing.concept MESSANGA Charles Perig"
             )
             
             try:
