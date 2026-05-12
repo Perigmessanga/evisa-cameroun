@@ -8,7 +8,7 @@ import qrcode
 from apps.visa_applications.serializers import DocumentSerializer
 from apps.users.utils import get_country_variants
 
-from apps.visa_applications.models import VisaType, VisaApplication, ApplicationComment
+from apps.visa_applications.models import VisaType, VisaApplication, ApplicationComment, StayExtensionRequest
 from apps.evisa.models import Watchlist
 from apps.visa_applications.serializers import (
     VisaTypeSerializer,
@@ -24,6 +24,8 @@ from apps.visa_applications.serializers import (
     ApplicationCommentCreateSerializer,
     CommentSerializer as ApplicationCommentSerializer,
     VisaApplicationStatusUpdateSerializer,
+    StayExtensionSerializer,
+    StayExtensionCreateSerializer,
 )
 
 
@@ -707,4 +709,92 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             ).count(),
         })
 
-#
+
+class StayExtensionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la gestion des demandes de prorogation de séjour.
+    """
+    queryset = StayExtensionRequest.objects.all()
+    serializer_class = StayExtensionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = StayExtensionRequest.objects.select_related('visa_application', 'applicant', 'assigned_agent')
+        
+        if user.is_applicant:
+            return qs.filter(applicant=user)
+        elif user.is_agent:
+            return qs.filter(assigned_agent=user)
+        elif user.is_admin:
+            return qs.all()
+        elif user.is_embassy:
+            return qs.filter(assigned_agent=user)
+        return qs.none()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return StayExtensionCreateSerializer
+        return StayExtensionSerializer
+
+    def perform_create(self, serializer):
+        extension = serializer.save()
+        
+        # Notification au demandeur
+        from apps.notifications.models import NotificationService
+        NotificationService._send(
+            extension.applicant, 
+            f"Demande de prorogation SOUMISE - {extension.visa_application.application_number}",
+            f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été soumise avec succès.\nVous recevrez une notification dès qu'un agent aura traité votre demande.\n\nCordialement,\nL'équipe e-Visa Cameroun",
+            extension.visa_application
+        )
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """
+        Mettre à jour le statut d'une prorogation (Agent/Admin).
+        """
+        extension = self.get_object()
+        user = request.user
+        
+        if not (user.is_agent or user.is_admin or user.is_embassy):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        new_status = request.data.get('status')
+        rejection_reason = request.data.get('rejection_reason', '')
+        
+        if new_status not in [choice[0] for choice in StayExtensionRequest.ExtensionStatus.choices]:
+            return Response({'error': 'Statut invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        extension.status = new_status
+        if new_status == 'REJECTED':
+            extension.rejection_reason = rejection_reason
+            
+        extension.save()
+        
+        # Si approuvé, mettre à jour l'E-visa
+        if new_status == 'APPROVED':
+            evisa = extension.visa_application.evisa
+            evisa.expiry_date = extension.new_expiry_date
+            evisa.save()
+            
+            # TODO: Régénérer le PDF si nécessaire (le service de génération de PDF utilise expiry_date de l'evisa)
+            # Notification
+            from apps.notifications.models import NotificationService
+            NotificationService._send(
+                extension.applicant, 
+                f"Prorogation APPROUVÉE ✅ - {extension.visa_application.application_number}",
+                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été approuvée.\nVotre nouvelle date d'expiration est le {extension.new_expiry_date.strftime('%d/%m/%Y')}.\n\nCordialement,\nL'équipe e-Visa Cameroun",
+                extension.visa_application
+            )
+        
+        elif new_status == 'REJECTED':
+             from apps.notifications.models import NotificationService
+             NotificationService._send(
+                extension.applicant, 
+                f"Prorogation REFUSÉE ❌ - {extension.visa_application.application_number}",
+                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été refusée.\nMotif : {rejection_reason}\n\nCordialement,\nL'équipe e-Visa Cameroun",
+                extension.visa_application
+            )
+            
+        return Response({'message': 'Statut mis à jour.', 'status': extension.status})

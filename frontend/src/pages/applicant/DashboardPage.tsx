@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Badge from '../../components/common/Badge';
 import { 
   FileText, Plus, Bell, Clock, FileCheck, FileWarning, 
-  ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle, X
+  ChevronRight, Download, Calendar, Loader2, CheckCircle2, AlertCircle, X, RefreshCcw
 } from 'lucide-react';
 import applicationService from '../../services/applicationService';
 import GroupWidget from '../../components/dashboard/GroupWidget';
@@ -208,14 +208,25 @@ export default function ApplicantDashboard() {
 
                       <div className="flex items-center justify-between md:flex-col md:items-end gap-2 shrink-0">
                         {getStatusBadge(app.status)}
-                        {app.status === 'APPROVED' ? (
-                          <Link to={`/applicant/download-visa/${app.id}`} className="text-xs font-bold text-cm-green-mid hover:text-cm-green flex items-center gap-1">
-                            <Download size={14} /> Télécharger
-                          </Link>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-cm-muted/60 uppercase">
-                            MAJ: {formatDate(app.updated_at)}
-                          </span>
+                        {app.status === 'APPROVED' && (
+                          <div className="flex flex-col items-end gap-1.5">
+                            <Link to={`/applicant/download-visa/${app.id}`} className="text-xs font-bold text-cm-green-mid hover:text-cm-green flex items-center gap-1">
+                              <Download size={14} /> Télécharger
+                            </Link>
+                            {app.border_check_status === 'ENTERED' && (
+                              <Link 
+                                to={`/applicant/extend-stay/${app.id}`} 
+                                className="text-[10px] font-bold text-cm-gold hover:text-cm-gold-dark flex items-center gap-1 bg-cm-gold/10 px-2 py-0.5 rounded-full transition-colors"
+                              >
+                                <RefreshCcw size={10} /> Proroger le séjour
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                        {app.status !== 'APPROVED' && (
+                           <span className="text-[10px] font-semibold text-cm-muted/60 uppercase">
+                           MAJ: {formatDate(app.updated_at)}
+                         </span>
                         )}
                       </div>
 

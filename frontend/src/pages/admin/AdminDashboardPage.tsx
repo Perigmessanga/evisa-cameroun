@@ -92,23 +92,39 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: t('admin_dashboard.stats.active_users'), value: (stats?.activeUsers || 0).toLocaleString('fr-FR'), desc: t('admin_dashboard.stats.active_users_desc', { count: stats?.totalUsers || 0 }), icon: <Users className="text-blue-500" size={24} />, bg: 'bg-blue-50' },
-          { title: t('admin_dashboard.stats.total_visas'), value: (stats?.totalApplications || 0).toLocaleString('fr-FR'), desc: t('admin_dashboard.stats.total_visas_desc'), icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10' },
+          { title: "Visas Traités (Total)", value: (stats?.totalApplications || 0).toLocaleString('fr-FR'), desc: "Cliquez pour voir la traçabilité complète", icon: <FolderKanban className="text-cm-green" size={24} />, bg: 'bg-cm-green-pale/10', link: '/admin/applications' },
           { title: t('admin_dashboard.stats.revenue'), value: stats?.revenueAfc || '0 FCFA', desc: t('admin_dashboard.stats.revenue_desc'), icon: <Banknote className="text-cm-gold" size={24} />, bg: 'bg-cm-gold-pale/10' },
           { title: t('admin_dashboard.stats.health'), value: stats?.systemHealth || '100%', desc: t('admin_dashboard.stats.health_desc'), icon: <Server className="text-emerald-500" size={24} />, bg: 'bg-emerald-50' },
-        ].map((stat, i) => (
-          <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between`}>
-            <div className="flex justify-between items-start mb-4">
-               <div>
-                 <p className="text-sm font-semibold text-cm-muted mb-1">{stat.title}</p>
-                 <h3 className="font-display text-2xl font-bold text-cm-text">{stat.value}</h3>
-               </div>
-               <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white border border-cm-border/50 shadow-sm`}>
-                 {stat.icon}
-               </div>
+        ].map((stat, i) => {
+          const CardContent = (
+            <div className="flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start mb-4">
+                 <div>
+                   <p className="text-sm font-semibold text-cm-muted mb-1">{stat.title}</p>
+                   <h3 className="font-display text-2xl font-bold text-cm-text">{stat.value}</h3>
+                 </div>
+                 <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white border border-cm-border/50 shadow-sm`}>
+                   {stat.icon}
+                 </div>
+              </div>
+              <p className="text-xs font-semibold text-cm-muted border-t border-cm-border/50 pt-3">{stat.desc}</p>
             </div>
-            <p className="text-xs font-semibold text-cm-muted border-t border-cm-border/50 pt-3">{stat.desc}</p>
-          </div>
-        ))}
+          );
+
+          if (stat.link) {
+            return (
+              <Link key={i} to={stat.link} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-cm-green-mid transition-all`}>
+                {CardContent}
+              </Link>
+            );
+          }
+
+          return (
+            <div key={i} className={`${stat.bg} border border-cm-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]`}>
+              {CardContent}
+            </div>
+          );
+        })}
       </div>
 
       {/* ── MAIN CONTENT GRID ── */}

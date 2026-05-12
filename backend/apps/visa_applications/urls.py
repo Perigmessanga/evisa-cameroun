@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from apps.visa_applications.views import (
     VisaTypeViewSet,
-    VisaApplicationViewSet
+    VisaApplicationViewSet,
+    StayExtensionViewSet
 )
 from apps.visa_applications.analytics_views import AnalyticsStatsView
 from apps.visa_applications.views_dynamic import (
@@ -21,6 +21,7 @@ from apps.visa_applications.views_dynamic import (
 router = DefaultRouter()
 router.register(r'types', VisaTypeViewSet, basename='visa-type')
 router.register(r'applications', VisaApplicationViewSet, basename='visa-application')
+router.register(r'stay-extensions', StayExtensionViewSet, basename='stay-extension')
 
 urlpatterns = [
     path('', include(router.urls)),

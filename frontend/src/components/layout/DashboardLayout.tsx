@@ -11,7 +11,7 @@ import LanguageSwitcher from '../common/LanguageSwitcher';
 import Footer from './Footer';
 import { 
   LogOut, Menu, X, Home, FileText, Settings, User, 
-  MapPin, ShieldCheck, ShieldAlert, Mail, Users, FileWarning, BarChart, BookOpen, Plus
+  MapPin, ShieldCheck, ShieldAlert, Mail, Users, FileWarning, BarChart, BookOpen, Plus, RefreshCcw
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
@@ -70,8 +70,9 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: t('nav_admin.visa_types'), path: '/admin/visa-types', icon: <FileText size={20} /> },
           { name: t('nav_admin.logs'), path: '/admin/logs', icon: <FileWarning size={20} /> },
           { name: t('nav_admin.email_templates'), path: '/admin/email-templates', icon: <Mail size={20} /> },
-          { name: t('nav_admin.messages'), path: '/admin/messages', icon: <Mail size={20} /> },
-          { name: t('nav_admin.border_tracking'), path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: t('badges.new') },
+          {name: t('nav_admin.messages'), path: '/admin/messages', icon: <Mail size={20} /> },
+          {name: 'Prorogations', path: '/agent/extensions', icon: <RefreshCcw size={20} /> },
+          {name: t('nav_admin.border_tracking'), path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: t('badges.new') },
           { name: t('nav_admin.settings'), path: '/admin/settings', icon: <Settings size={20} /> },
           { name: t('nav_admin.watchlist'), path: '/admin/watchlist', icon: <ShieldAlert size={20} />, badge: t('badges.security') },
           { name: t('nav.profile'), path: '/admin/profile', icon: <User size={20} /> }

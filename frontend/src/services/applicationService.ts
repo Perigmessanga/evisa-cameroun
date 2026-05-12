@@ -3,7 +3,7 @@
 //  Gestion des demandes de visa
 // ─────────────────────────────────────────────
 import api from './api';
-import type { VisaApplication, VisaType, ApplicationFormData, ApplicationComment, Payment } from '../types';
+import type { VisaApplication, VisaType, ApplicationFormData, ApplicationComment, Payment, StayExtensionRequest } from '../types';
 
 const applicationService = {
   // ── Visa Types ──────────────────────────────
@@ -113,6 +113,22 @@ const applicationService = {
   async getGroupApplications(groupReference: string): Promise<VisaApplication[]> {
     const { data } = await api.get(`/visa_applications/applications/?group_reference=${groupReference}`);
     return data.results || data.data || data;
+  },
+
+  // ── Stay Extensions ──────────────────────────
+  async getStayExtensions(): Promise<StayExtensionRequest[]> {
+    const { data } = await api.get('/visa_applications/stay-extensions/');
+    return data.results || data.data || data;
+  },
+
+  async createStayExtension(payload: { visa_application: string; requested_days: number; reason: string }): Promise<StayExtensionRequest> {
+    const { data } = await api.post('/visa_applications/stay-extensions/', payload);
+    return data.data || data;
+  },
+
+  async updateStayExtensionStatus(id: string, status: string, rejection_reason?: string): Promise<StayExtensionRequest> {
+    const { data } = await api.post(`/visa_applications/stay-extensions/${id}/update_status/`, { status, rejection_reason });
+    return data.data || data;
   },
 };
 

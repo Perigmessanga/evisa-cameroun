@@ -8,7 +8,7 @@ from rest_framework import serializers
 from apps.users.serializers import UserSerializer
 from .models import (
     VisaType, VisaApplication, Document, ApplicationComment, 
-    SecurityAlert
+    SecurityAlert, StayExtensionRequest
 )
 from apps.evisa.serializers import EVisaSerializer 
 
@@ -98,7 +98,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'id', 'application_number', 'applicant_name',
             'visa_type_name', 'status', 'full_name',
             'nationality', 'submitted_at', 'assigned_agent_name',
-            'processed_by_name', 'created_at', 'last_completed_step',
+            'processed_by_name', 'created_at', 'processed_at', 'last_completed_step',
             'group_reference', 'is_group_primary', 'processing_type',
         ]
 
@@ -338,3 +338,73 @@ class VisaApplicationStatusUpdateSerializer(serializers.Serializer):
     
 
 
+# ─────────────────────────────────────────────────────────────────
+# PROROGATION DE SÉJOUR
+# ─────────────────────────────────────────────────────────────────
+class StayExtensionSerializer(serializers.ModelSerializer):
+    visa_application_number = serializers.CharField(source='visa_application.application_number', read_only=True)
+    applicant_name = serializers.CharField(source='applicant.get_full_name', read_only=True)
+    assigned_agent_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StayExtensionRequest
+        fields = [
+            'id', 'visa_application', 'visa_application_number', 
+            'applicant', 'applicant_name', 'assigned_agent', 'assigned_agent_name',
+            'current_expiry_date', 'requested_days', 'new_expiry_date',
+            'reason', 'status', 'rejection_reason', 'payment_status',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'status', 'payment_status', 'created_at', 'updated_at']
+
+    def get_assigned_agent_name(self, obj):
+        return obj.assigned_agent.get_full_name() if obj.assigned_agent else None
+
+
+class StayExtensionCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StayExtensionRequest
+        fields = [
+            'visa_application', 'requested_days', 'reason'
+        ]
+
+    def validate(self, attrs):
+        visa_app = attrs['visa_application']
+        
+        # Vérifier si la demande est approuvée
+        if visa_app.status != 'APPROVED':
+            raise serializers.ValidationError("Seules les demandes de visa approuvées peuvent être prorogées.")
+        
+        # Vérifier si l'utilisateur a déjà une prorogation en cours
+        if StayExtensionRequest.objects.filter(
+            visa_application=visa_app, 
+            status__in=['SUBMITTED', 'PROCESSING', 'PENDING_PAYMENT']
+        ).exists():
+            raise serializers.ValidationError("Une demande de prorogation est déjà en cours pour ce visa.")
+        
+        # Vérifier si l'utilisateur est entré sur le territoire
+        if visa_app.border_check_status != 'ENTERED':
+            raise serializers.ValidationError("Vous devez être entré sur le territoire pour demander une prorogation.")
+        
+        return attrs
+
+    def create(self, validated_data):
+        visa_app = validated_data['visa_application']
+        
+        # Récupérer l'e-visa pour avoir la date d'expiration actuelle
+        if not hasattr(visa_app, 'evisa'):
+             raise serializers.ValidationError("E-visa introuvable pour cette demande.")
+             
+        current_expiry = visa_app.evisa.expiry_date
+        validated_data['current_expiry_date'] = current_expiry
+        
+        # Calculer la nouvelle date d'expiration
+        from datetime import timedelta
+        validated_data['new_expiry_date'] = current_expiry + timedelta(days=validated_data['requested_days'])
+        
+        # Assigner l'agent d'origine
+        validated_data['assigned_agent'] = visa_app.assigned_agent
+        
+        validated_data['applicant'] = self.context['request'].user
+        
+        return super().create(validated_data)

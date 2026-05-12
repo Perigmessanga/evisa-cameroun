@@ -21,9 +21,11 @@ import PaymentPage from './pages/applicant/PaymentPage';
 import TrackingPage from './pages/applicant/TrackingPage';
 import DownloadVisaPage from './pages/applicant/DownloadVisaPage';
 import ProfilePage from './pages/applicant/ProfilePage';
+import StayExtensionPage from './pages/applicant/StayExtensionPage';
 import AgentDashboard from './pages/agent/DashboardPage';
 import ApplicationsListPage from './pages/agent/ApplicationsListPage';
 import ApplicationDetailPage from './pages/agent/ApplicationDetailPage';
+import StayExtensionsListPage from './pages/agent/StayExtensionsListPage';
 import PendingDocsPage from './pages/agent/PendingDocsPage';
 import PaymentsHistoryPage from './pages/agent/PaymentsHistoryPage';
 import AgentProfilePage from './pages/agent/AgentProfilePage';
@@ -33,6 +35,7 @@ import VisaTypeManagementPage from './pages/admin/VisaTypeManagementPage';
 import SystemSettingsPage from './pages/admin/SystemSettingsPage';
 import ReportsStatisticsPage from './pages/admin/ReportsStatisticsPage';
 import SystemLogsPage from './pages/admin/SystemLogsPage';
+import AdminApplicationsListPage from './pages/admin/AdminApplicationsListPage';
 import EmailTemplatesPage from './pages/admin/EmailTemplatesPage';
 import EmailTemplateFormPage from './pages/admin/EmailTemplateFormPage';
 import MessagesManagementPage from './pages/admin/MessagesManagementPage';
@@ -145,6 +148,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="support" element={<ApplicantSupportPage />} />
           <Route path="drafts" element={<DraftsPage />} />
+          <Route path="extend-stay/:id" element={<StayExtensionPage />} />
         </Route>
 
         {/* ── AGENT ROUTES (and EMBASSY since they share the same dashboard) ── */}
@@ -152,6 +156,7 @@ export default function App() {
           <Route path="dashboard" element={<AgentDashboard />} />
           <Route path="applications" element={<ApplicationsListPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />
+          <Route path="extensions" element={<StayExtensionsListPage />} />
           <Route path="pending-docs" element={<PendingDocsPage />} />
           <Route path="payments" element={<PaymentsHistoryPage />} />
           <Route path="profile" element={<AgentProfilePage />} />
@@ -166,6 +171,7 @@ export default function App() {
           <Route path="visa-types" element={<VisaTypeManagementPage />} />
           <Route path="visa-types/new" element={<VisaTypeFormPage />} />
           <Route path="visa-types/edit/:id" element={<VisaTypeFormPage />} />
+          <Route path="applications" element={<AdminApplicationsListPage />} />
           <Route path="roles" element={<RoleManagementPage />} />
           <Route path="reports" element={<ReportsStatisticsPage />} />
           <Route path="logs" element={<SystemLogsPage />} />

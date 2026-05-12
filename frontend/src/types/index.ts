@@ -167,6 +167,7 @@ export type DocumentType =
   | 'FAMILY_ACT'
   | 'VERBAL_NOTE'
   | 'IDENTITY_CARD'
+  | 'EXTENSION_PROOF'
   | 'OTHER';
 
 export interface ApplicationDocument {
@@ -280,4 +281,31 @@ export interface PaginatedResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+export type StayExtensionStatus = 
+  | 'SUBMITTED' 
+  | 'PROCESSING' 
+  | 'PENDING_PAYMENT' 
+  | 'PAID' 
+  | 'APPROVED' 
+  | 'REJECTED' 
+  | 'CANCELLED';
+
+export interface StayExtensionRequest {
+  id: string;
+  visa_application: string;
+  visa_application_number: string;
+  applicant: string;
+  applicant_name: string;
+  assigned_agent: string | null;
+  assigned_agent_name: string | null;
+  current_expiry_date: string;
+  requested_days: number;
+  new_expiry_date: string;
+  reason: string;
+  status: StayExtensionStatus;
+  rejection_reason: string;
+  payment_status: string;
+  created_at: string;
+  updated_at: string;
 }

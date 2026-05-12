@@ -58,6 +58,7 @@ class DocumentType(models.TextChoices):
     FAMILY_ACT           = 'FAMILY_ACT',           'Acte de mariage / Parental'
     VERBAL_NOTE          = 'VERBAL_NOTE',          'Note verbale'
     IDENTITY_CARD        = 'IDENTITY_CARD',        'Carte Nationale d\'Identité'
+    EXTENSION_PROOF      = 'EXTENSION_PROOF',      'Justificatif de prorogation'
     OTHER                = 'OTHER',                'Autre'
 
 class Gender(models.TextChoices):
@@ -383,4 +384,60 @@ class ApplicationComment(models.Model):
         ordering     = ['created_at']
 
     def __str__(self):
-        return f'Commentaire de {self.author.get_full_name()} sur {self.application.application_number}'
+        return f'Commentaire de {self.author.get_full_name()} sur {self.application.application_number}'
+
+
+# ─────────────────────────────────────────────────────────────────
+# DEMANDE DE PROROGATION DE SÉJOUR
+# ─────────────────────────────────────────────────────────────────
+class StayExtensionRequest(models.Model):
+    class ExtensionStatus(models.TextChoices):
+        SUBMITTED       = 'SUBMITTED',       'Soumise'
+        PROCESSING      = 'PROCESSING',      'En traitement'
+        PENDING_PAYMENT = 'PENDING_PAYMENT', 'En attente de paiement'
+        PAID            = 'PAID',            'Payée'
+        APPROVED        = 'APPROVED',        'Approuvée'
+        REJECTED        = 'REJECTED',        'Rejetée'
+        CANCELLED       = 'CANCELLED',       'Annulée'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visa_application = models.ForeignKey(
+        VisaApplication, on_delete=models.CASCADE,
+        related_name='extensions', verbose_name='Demande de visa d\'origine'
+    )
+    applicant = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='stay_extensions', verbose_name='Demandeur'
+    )
+    assigned_agent = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='assigned_extensions',
+        verbose_name='Agent assigné'
+    )
+    
+    current_expiry_date = models.DateField(verbose_name='Date d\'expiration actuelle')
+    requested_days      = models.PositiveIntegerField(verbose_name='Nombre de jours demandés')
+    new_expiry_date     = models.DateField(verbose_name='Nouvelle date d\'expiration prévue')
+    reason              = models.TextField(verbose_name='Motif de la demande')
+    
+    status = models.CharField(
+        max_length=20, choices=ExtensionStatus.choices,
+        default=ExtensionStatus.SUBMITTED, verbose_name='Statut'
+    )
+    
+    rejection_reason = models.TextField(blank=True, verbose_name='Motif de rejet')
+    
+    # Paiement (si applicable)
+    payment_status = models.CharField(max_length=20, default='PENDING', verbose_name='Statut du paiement')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table     = 'evisa_stay_extension'
+        verbose_name = 'Demande de prorogation'
+        verbose_name_plural = 'Demandes de prorogation'
+        ordering     = ['-created_at']
+
+    def __str__(self):
+        return f"Prorogation pour {self.visa_application.application_number} (+{self.requested_days} jours)"
