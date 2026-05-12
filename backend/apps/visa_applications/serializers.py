@@ -1,15 +1,19 @@
 """
 Serializers — App visa_applications
 """
+# pyrefly: ignore [missing-import]
 from django.utils import timezone
+# pyrefly: ignore [missing-import]
 from rest_framework import serializers
 
 
+# pyrefly: ignore [missing-import]
 from apps.users.serializers import UserSerializer
 from .models import (
     VisaType, VisaApplication, Document, ApplicationComment, 
     SecurityAlert, StayExtensionRequest
 )
+# pyrefly: ignore [missing-import]
 from apps.evisa.serializers import EVisaSerializer 
 
 # ─────────────────────────────────────────────────────────────────
@@ -46,6 +50,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.file.url)
             # Fallback if no request context
+            # pyrefly: ignore [missing-import]
             from django.conf import settings
             return f"{settings.BASE_BACKEND_URL.rstrip('/')}{obj.file.url}"
         return None
@@ -91,6 +96,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     applicant_name    = serializers.CharField(source='applicant.get_full_name', read_only=True)
     assigned_agent_name = serializers.SerializerMethodField()
     processed_by_name = serializers.SerializerMethodField()
+    has_pending_extension = serializers.SerializerMethodField()
 
     class Meta:
         model  = VisaApplication
@@ -126,6 +132,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     has_biometrics = serializers.SerializerMethodField()
     biometric_photos = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
+    has_pending_extension = serializers.SerializerMethodField()
 
     class Meta:
         model  = VisaApplication
@@ -171,6 +178,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'biometric_data'):
             request = self.context.get('request')
             bio = obj.biometric_data
+            # pyrefly: ignore [missing-import]
             from django.conf import settings
             base_url = settings.BASE_BACKEND_URL.rstrip('/') if hasattr(settings, 'BASE_BACKEND_URL') else ''
             
@@ -360,7 +368,7 @@ class StayExtensionSerializer(serializers.ModelSerializer):
             'id', 'visa_application', 'visa_application_number', 
             'applicant', 'applicant_name', 'assigned_agent', 'assigned_agent_name',
             'current_expiry_date', 'requested_days', 'new_expiry_date',
-            'reason', 'status', 'rejection_reason', 'payment_status',
+            'reason', 'fee', 'status', 'rejection_reason', 'payment_status',
             'extension_proof', 'extension_proof_url',
             'created_at', 'updated_at'
         ]
