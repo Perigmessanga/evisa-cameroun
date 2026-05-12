@@ -220,6 +220,7 @@ export default function ApplicantDashboard() {
                               >
                                 <RefreshCcw size={10} /> Proroger le séjour
                               </Link>
+                            )}
                             {app.has_pending_extension && (
                               <span className="text-[10px] font-bold text-cm-gold flex items-center gap-1 bg-cm-gold/5 px-2 py-0.5 rounded-full border border-cm-gold/20">
                                 <Clock size={10} /> Prorogation en cours
