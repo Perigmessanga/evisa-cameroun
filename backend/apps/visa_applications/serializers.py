@@ -345,6 +345,7 @@ class StayExtensionSerializer(serializers.ModelSerializer):
     visa_application_number = serializers.CharField(source='visa_application.application_number', read_only=True)
     applicant_name = serializers.CharField(source='applicant.get_full_name', read_only=True)
     assigned_agent_name = serializers.SerializerMethodField()
+    extension_proof_url = serializers.SerializerMethodField()
 
     class Meta:
         model = StayExtensionRequest
@@ -353,6 +354,7 @@ class StayExtensionSerializer(serializers.ModelSerializer):
             'applicant', 'applicant_name', 'assigned_agent', 'assigned_agent_name',
             'current_expiry_date', 'requested_days', 'new_expiry_date',
             'reason', 'status', 'rejection_reason', 'payment_status',
+            'extension_proof', 'extension_proof_url',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'status', 'payment_status', 'created_at', 'updated_at']
@@ -360,12 +362,20 @@ class StayExtensionSerializer(serializers.ModelSerializer):
     def get_assigned_agent_name(self, obj):
         return obj.assigned_agent.get_full_name() if obj.assigned_agent else None
 
+    def get_extension_proof_url(self, obj):
+        if obj.extension_proof:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.extension_proof.url)
+            return obj.extension_proof.url
+        return None
+
 
 class StayExtensionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StayExtensionRequest
         fields = [
-            'visa_application', 'requested_days', 'reason'
+            'visa_application', 'requested_days', 'reason', 'extension_proof'
         ]
 
     def validate(self, attrs):

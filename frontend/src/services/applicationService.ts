@@ -121,8 +121,9 @@ const applicationService = {
     return data.results || data.data || data;
   },
 
-  async createStayExtension(payload: { visa_application: string; requested_days: number; reason: string }): Promise<StayExtensionRequest> {
-    const { data } = await api.post('/visa_applications/stay-extensions/', payload);
+  async createStayExtension(payload: FormData | { visa_application: string; requested_days: number; reason: string }): Promise<StayExtensionRequest> {
+    const headers = payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+    const { data } = await api.post('/visa_applications/stay-extensions/', payload, { headers });
     return data.data || data;
   },
 

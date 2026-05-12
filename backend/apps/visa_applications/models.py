@@ -427,6 +427,9 @@ class StayExtensionRequest(models.Model):
     
     rejection_reason = models.TextField(blank=True, verbose_name='Motif de rejet')
     
+    # Justificatif (Pièce jointe)
+    extension_proof = models.FileField(upload_to='extensions/', null=True, blank=True, verbose_name='Justificatif de prorogation')
+    
     # Paiement (si applicable)
     payment_status = models.CharField(max_length=20, default='PENDING', verbose_name='Statut du paiement')
     

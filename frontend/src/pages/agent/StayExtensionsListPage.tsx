@@ -204,9 +204,22 @@ export default function StayExtensionsListPage() {
                 </div>
               </div>
 
-              <div className="bg-cm-cream/30 p-5 rounded-2xl border border-cm-border">
-                <p className="text-[10px] font-bold text-cm-muted uppercase mb-2">Motif de la demande</p>
-                <p className="text-sm text-cm-text leading-relaxed">"{selectedExt.reason}"</p>
+              <div className="bg-cm-cream/30 p-5 rounded-2xl border border-cm-border flex justify-between items-start">
+                <div>
+                  <p className="text-[10px] font-bold text-cm-muted uppercase mb-2">Motif de la demande</p>
+                  <p className="text-sm text-cm-text leading-relaxed">"{selectedExt.reason}"</p>
+                </div>
+                {selectedExt.extension_proof_url && (
+                  <a 
+                    href={selectedExt.extension_proof_url} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="flex flex-col items-center gap-1 p-3 bg-white border border-cm-border rounded-xl hover:bg-cm-cream transition-all group"
+                  >
+                    <FileText size={20} className="text-cm-gold group-hover:scale-110 transition-transform" />
+                    <span className="text-[9px] font-bold text-cm-muted uppercase">Justificatif</span>
+                  </a>
+                )}
               </div>
 
               {selectedExt.status === 'SUBMITTED' || selectedExt.status === 'PROCESSING' ? (

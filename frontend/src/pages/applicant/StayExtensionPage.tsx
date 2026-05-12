@@ -28,7 +28,7 @@ export default function StayExtensionPage() {
             toast.error("Seuls les visas approuvés peuvent être prorogés.");
             navigate('/applicant/dashboard');
           }
-          if (res.border_check_status !== 'AUTHORIZED') {
+          if (res.border_check_status !== 'ENTERED') {
             toast.error("Vous devez être entré sur le territoire pour demander une prorogation.");
             navigate('/applicant/dashboard');
           }
@@ -42,6 +42,8 @@ export default function StayExtensionPage() {
     }
   }, [id, navigate]);
 
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
@@ -51,11 +53,15 @@ export default function StayExtensionPage() {
 
     setSubmitting(true);
     try {
-      await applicationService.createStayExtension({
-        visa_application: id!,
-        requested_days: requestedDays,
-        reason: reason
-      });
+      const formData = new FormData();
+      formData.append('visa_application', id!);
+      formData.append('requested_days', requestedDays.toString());
+      formData.append('reason', reason);
+      if (proofFile) {
+        formData.append('extension_proof', proofFile);
+      }
+
+      await applicationService.createStayExtension(formData);
       setSuccess(true);
       toast.success("Demande de prorogation soumise avec succès !");
     } catch (err: any) {
@@ -181,6 +187,21 @@ export default function StayExtensionPage() {
                 <AlertCircle size={18} className="text-cm-gold mt-0.5 shrink-0" />
                 <p className="text-xs text-cm-gold-dark font-medium leading-relaxed">
                   Votre demande sera soumise à l'approbation des autorités d'immigration. Des frais de dossier peuvent s'appliquer après la validation initiale de votre motif.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-cm-text mb-2">Justificatif (PDF, Image) <span className="text-cm-muted font-normal">(Optionnel)</span></label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="w-full px-4 py-3 bg-cm-cream/30 border border-cm-border rounded-xl text-cm-text text-sm focus:border-cm-green-mid outline-none"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                  />
+                </div>
+                <p className="text-[10px] text-cm-muted mt-2 italic">
+                  Exemple : Certificat médical, attestation de travail, invitation prolongée...
                 </p>
               </div>
 
