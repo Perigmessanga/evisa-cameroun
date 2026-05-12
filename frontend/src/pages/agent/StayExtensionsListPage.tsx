@@ -167,7 +167,7 @@ export default function StayExtensionsListPage() {
 
       {/* Modal d'examen */}
       {isModalOpen && selectedExt && (
-        <div className="fixed inset-0 bg-cm-dark/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-cm-dark/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scaleIn">
             <div className="p-6 border-b border-cm-border flex justify-between items-center bg-cm-cream/20">
               <h3 className="font-bold text-cm-text flex items-center gap-2">

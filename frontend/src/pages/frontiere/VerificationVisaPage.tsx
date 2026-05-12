@@ -223,7 +223,7 @@ export default function VerificationVisaPage() {
                 </div>
                 <div>
                   <p className="text-cm-muted font-bold uppercase text-[10px]">Expiration</p>
-                  <p className="font-bold text-cm-text text-red-600">
+                  <p className="font-bold text-cm-text">
                     {result.evisa?.expiry_date ? new Date(result.evisa.expiry_date).toLocaleDateString() : '-'}
                   </p>
                 </div>
