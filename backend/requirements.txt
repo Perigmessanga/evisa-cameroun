@@ -1,4 +1,4 @@
-﻿# Django Core
+# Django Core
 django==5.0.3
 djangorestframework==3.15.1
 django-cors-headers==4.3.1
@@ -9,6 +9,7 @@ python-decouple==3.8
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
 cryptography==42.0.5
+pyotp==2.9.0
 
 # PDF Generation & QR Code
 reportlab==4.1.0
