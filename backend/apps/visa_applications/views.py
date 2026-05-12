@@ -729,8 +729,10 @@ class StayExtensionViewSet(viewsets.ModelViewSet):
             return qs.filter(assigned_agent=user)
         elif user.is_admin:
             return qs.all()
-        elif user.is_embassy:
-            return qs.filter(assigned_agent=user)
+        elif user.is_agent or user.is_embassy:
+            # Chaque ambassade et chaque agent d'immigration ne reçoit que les demandes de prorogation 
+            # des visas qu'ils ont traités et approuvés au préalable.
+            return qs.filter(visa_application__processed_by=user)
         return qs.none()
 
     def get_serializer_class(self):
@@ -739,14 +741,20 @@ class StayExtensionViewSet(viewsets.ModelViewSet):
         return StayExtensionSerializer
 
     def perform_create(self, serializer):
-        extension = serializer.save()
+        # Calcul des frais : 5000 XAF par tranche de 15 jours
+        requested_days = serializer.validated_data.get('requested_days', 15)
+        fee = (requested_days // 15) * 5000
+        if requested_days % 15 > 0:
+            fee += 5000
+            
+        extension = serializer.save(fee=fee)
         
         # Notification au demandeur
         from apps.notifications.models import NotificationService
         NotificationService._send(
             extension.applicant, 
             f"Demande de prorogation SOUMISE - {extension.visa_application.application_number}",
-            f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été soumise avec succès.\nVous recevrez une notification dès qu'un agent aura traité votre demande.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
+            f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été soumise avec succès.\nMontant des frais à régler : {fee} XAF.\nVous recevrez une notification dès qu'un agent aura traité votre demande.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
             extension.visa_application
         )
 

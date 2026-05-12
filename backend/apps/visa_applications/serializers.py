@@ -100,6 +100,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'nationality', 'submitted_at', 'assigned_agent_name',
             'processed_by_name', 'created_at', 'processed_at', 'last_completed_step',
             'group_reference', 'is_group_primary', 'processing_type', 'border_check_status',
+            'has_pending_extension',
         ]
 
     def get_assigned_agent_name(self, obj):
@@ -107,6 +108,9 @@ class ApplicationListSerializer(serializers.ModelSerializer):
 
     def get_processed_by_name(self, obj):
         return obj.processed_by.get_full_name() if obj.processed_by else None
+
+    def get_has_pending_extension(self, obj):
+        return obj.extensions.filter(status__in=['SUBMITTED', 'PROCESSING', 'PENDING_PAYMENT', 'PAID']).exists()
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -144,7 +148,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'documents', 'comments', 'evisa',
             'has_biometrics', 'biometric_photos', 'payment_status',
             'created_at', 'updated_at', 'last_completed_step',
-            'group_reference', 'is_group_primary', 'processing_type', 'border_check_status',
+            'group_reference', 'is_group_primary', 'processing_type', 'border_check_status', 'has_pending_extension',
         ]
 
     def get_comments(self, obj):
@@ -193,6 +197,9 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
                 'passport_photo': passport_url,
             }
         return None
+
+    def get_has_pending_extension(self, obj):
+        return obj.extensions.filter(status__in=['SUBMITTED', 'PROCESSING', 'PENDING_PAYMENT', 'PAID']).exists()
 
     def get_payment_status(self, obj):
         if hasattr(obj, 'payment'):

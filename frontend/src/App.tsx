@@ -180,6 +180,7 @@ export default function App() {
           <Route path="email-templates/edit/:id" element={<EmailTemplateFormPage />} />
           <Route path="messages" element={<MessagesManagementPage />} />
           <Route path="border-tracking" element={<AdminBorderTrackingPage />} />
+          <Route path="extensions" element={<StayExtensionsListPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
           <Route path="profile" element={<AdminProfilePage />} />
           <Route path="watchlist" element={<WatchlistManagementPage />} />

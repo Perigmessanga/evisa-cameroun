@@ -21,11 +21,18 @@ class AnalyticsStatsView(views.APIView):
         # 1. Volume de demandes par statut
         status_stats = VisaApplication.objects.values('status').annotate(count=Count('id'))
         
-        # 2. Revenus (en supposant que le prix est fixe ou lié au type de visa)
-        # On calcule le revenu basé sur les demandes approuvées
-        total_revenue = VisaApplication.objects.filter(
+        # 2. Revenus (Visas + Prorogations)
+        from apps.visa_applications.models import StayExtensionRequest
+        
+        visa_revenue = VisaApplication.objects.filter(
             status__in=['APPROVED', 'SUBMITTED', 'PROCESSING']
         ).aggregate(total=Sum('visa_type__fee'))['total'] or 0
+        
+        extension_revenue = StayExtensionRequest.objects.filter(
+            status='APPROVED'
+        ).aggregate(total=Sum('fee'))['total'] or 0
+        
+        total_revenue = visa_revenue + extension_revenue
 
         # 3. Répartition Géographique (Nationalité)
         geo_stats = VisaApplication.objects.values('nationality').annotate(count=Count('id')).order_by('-count')[:10]

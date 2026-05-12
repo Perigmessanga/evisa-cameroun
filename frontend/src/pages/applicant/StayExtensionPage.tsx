@@ -101,6 +101,10 @@ export default function StayExtensionPage() {
                 <span className="font-bold text-cm-text">+{requestedDays} jours</span>
               </li>
               <li className="flex justify-between">
+                <span className="text-cm-muted">Frais réglés :</span>
+                <span className="font-bold text-cm-green-mid">{(requestedDays / 15) * 5000} XAF</span>
+              </li>
+              <li className="flex justify-between">
                 <span className="text-cm-muted">Statut :</span>
                 <span className="px-2 py-0.5 rounded-full bg-cm-gold/20 text-cm-gold font-bold text-[10px]">SOUMISE</span>
               </li>
@@ -183,11 +187,21 @@ export default function StayExtensionPage() {
                 />
               </div>
 
-              <div className="bg-cm-gold-pale/10 border border-cm-gold/30 rounded-2xl p-4 flex items-start gap-3">
-                <AlertCircle size={18} className="text-cm-gold mt-0.5 shrink-0" />
-                <p className="text-xs text-cm-gold-dark font-medium leading-relaxed">
-                  Votre demande sera soumise à l'approbation des autorités d'immigration. Des frais de dossier peuvent s'appliquer après la validation initiale de votre motif.
-                </p>
+              <div className="bg-cm-gold-pale/10 border border-cm-gold/30 rounded-2xl p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <AlertCircle size={20} className="text-cm-gold mt-1 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-cm-gold-dark text-sm">Frais de prorogation</h4>
+                    <p className="text-xs text-cm-gold-dark leading-relaxed">
+                      Conformément à la réglementation, des frais s'appliquent pour toute extension de séjour.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-white/50 rounded-xl p-4 flex justify-between items-center border border-cm-gold/20">
+                   <span className="text-sm font-medium text-cm-muted">Montant à régler :</span>
+                   <span className="text-xl font-black text-cm-green-mid">{(requestedDays / 15) * 5000} XAF</span>
+                </div>
               </div>
 
               <div>
@@ -240,7 +254,7 @@ export default function StayExtensionPage() {
                 <p className="text-sm font-medium text-cm-text">{application?.visa_type?.name}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-cm-muted uppercase text-cm-red">Expire le</p>
+                <p className="text-[10px] font-bold text-cm-muted uppercase">Expire le</p>
                 <p className="text-sm font-bold text-cm-red">
                    {application?.evisa?.expiry_date ? formatDate(application.evisa.expiry_date) : 'Non spécifié'}
                 </p>

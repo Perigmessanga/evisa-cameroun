@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: t('nav_agent.dashboard'), path: '/agent/dashboard', icon: <Home size={20} /> },
           { name: t('nav_agent.applications'), path: '/agent/applications', icon: <FileText size={20} /> },
           { name: t('nav_agent.pending_docs'), path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? t('badges.new') : undefined },
+          { name: 'Prorogations', path: '/agent/extensions', icon: <RefreshCcw size={20} /> },
           { name: t('nav_agent.payments'), path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: t('nav.profile'), path: '/agent/profile', icon: <User size={20} /> }
         ];
@@ -71,7 +72,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: t('nav_admin.logs'), path: '/admin/logs', icon: <FileWarning size={20} /> },
           { name: t('nav_admin.email_templates'), path: '/admin/email-templates', icon: <Mail size={20} /> },
           {name: t('nav_admin.messages'), path: '/admin/messages', icon: <Mail size={20} /> },
-          {name: 'Prorogations', path: '/agent/extensions', icon: <RefreshCcw size={20} /> },
+          {name: 'Prorogations', path: '/admin/extensions', icon: <RefreshCcw size={20} /> },
           {name: t('nav_admin.border_tracking'), path: '/admin/border-tracking', icon: <MapPin size={20} />, badge: t('badges.new') },
           { name: t('nav_admin.settings'), path: '/admin/settings', icon: <Settings size={20} /> },
           { name: t('nav_admin.watchlist'), path: '/admin/watchlist', icon: <ShieldAlert size={20} />, badge: t('badges.security') },
@@ -82,6 +83,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           { name: t('nav_agent.dashboard'), path: `/agent/dashboard`, icon: <Home size={20} /> },
           { name: t('nav_agent.applications'), path: '/agent/applications', icon: <FileText size={20} /> },
           { name: t('nav_agent.pending_docs'), path: '/agent/pending-docs', icon: <FileWarning size={20} />, badge: newComplementsCount > 0 ? t('badges.new') : undefined },
+          { name: 'Prorogations', path: '/agent/extensions', icon: <RefreshCcw size={20} /> },
           { name: t('nav_agent.payments'), path: '/agent/payments', icon: <BarChart size={20} /> },
           { name: t('nav.profile'), path: '/agent/profile', icon: <User size={20} /> }
         ];

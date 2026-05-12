@@ -80,10 +80,17 @@ class UserViewSet(viewsets.ModelViewSet):
         applications_count = VisaApplication.objects.count()
         evisas_count = EVisa.objects.count()
         
-        # Revenus (somme des frais des visas approuvés)
-        revenue = VisaApplication.objects.filter(status='APPROVED').aggregate(
+        # Revenus (Visas approuvés + Prorogations approuvées)
+        from apps.visa_applications.models import StayExtensionRequest
+        visa_revenue = VisaApplication.objects.filter(status='APPROVED').aggregate(
             total=Sum('visa_type__fee')
         )['total'] or 0
+        
+        extension_revenue = StayExtensionRequest.objects.filter(status='APPROVED').aggregate(
+            total=Sum('fee')
+        )['total'] or 0
+        
+        revenue = visa_revenue + extension_revenue
 
         return api_response(data={
             'total_users': users_count,

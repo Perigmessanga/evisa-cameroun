@@ -3,6 +3,7 @@ from rest_framework.decorators import action, renderer_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
+from django.db.models import Q, Count, Sum
 from django.http import FileResponse
 from datetime import timedelta
 from reportlab.pdfgen import canvas
@@ -689,6 +690,16 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
                     expected = entry.expected_exit_date
                     if not expected:
                         expected = now # Fallback safe
+                    
+                    # AJOUT : Prise en compte des prorogations approuvées
+                    from apps.visa_applications.models import StayExtensionRequest
+                    total_extension_days = StayExtensionRequest.objects.filter(
+                        visa_application=app,
+                        status='APPROVED'
+                    ).aggregate(total=Sum('requested_days'))['total'] or 0
+                    
+                    if total_extension_days > 0:
+                        expected += timedelta(days=total_extension_days)
                         
                     if entry.linked_exit:
                         status_label = 'SORTI'
@@ -705,7 +716,7 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
                     'visa_type': app.visa_type.name if app.visa_type else 'Inconnu',
                     'visa_number': entry.evisa.visa_number if entry.evisa else 'N/A',
                     'entry_date': entry.crossing_date,
-                    'expected_exit_date': entry.expected_exit_date or entry.crossing_date,
+                    'expected_exit_date': expected,
                     'actual_exit_date': entry.linked_exit.crossing_date if getattr(entry, 'linked_exit', None) else None,
                     'status': status_label
                 })

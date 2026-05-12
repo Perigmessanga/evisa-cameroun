@@ -201,6 +201,10 @@ export default function StayExtensionsListPage() {
                     <p className="text-[10px] font-bold text-cm-muted uppercase">Date soumission</p>
                     <p className="text-sm">{formatDate(selectedExt.created_at)}</p>
                   </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-cm-muted uppercase">Frais réglés</p>
+                    <p className="text-sm font-bold text-cm-green-mid">{selectedExt.fee} XAF</p>
+                  </div>
                 </div>
               </div>
 

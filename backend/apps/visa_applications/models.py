@@ -431,6 +431,7 @@ class StayExtensionRequest(models.Model):
     extension_proof = models.FileField(upload_to='extensions/', null=True, blank=True, verbose_name='Justificatif de prorogation')
     
     # Paiement (si applicable)
+    fee            = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Frais de prorogation')
     payment_status = models.CharField(max_length=20, default='PENDING', verbose_name='Statut du paiement')
     
     created_at = models.DateTimeField(auto_now_add=True)

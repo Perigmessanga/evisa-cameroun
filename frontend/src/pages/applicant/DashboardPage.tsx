@@ -213,13 +213,17 @@ export default function ApplicantDashboard() {
                             <Link to={`/applicant/download-visa/${app.id}`} className="text-xs font-bold text-cm-green-mid hover:text-cm-green flex items-center gap-1">
                               <Download size={14} /> Télécharger
                             </Link>
-                            {app.border_check_status === 'ENTERED' && (
+                            {app.border_check_status === 'ENTERED' && !app.has_pending_extension && (
                               <Link 
                                 to={`/applicant/extend-stay/${app.id}`} 
                                 className="text-[10px] font-bold text-cm-gold hover:text-cm-gold-dark flex items-center gap-1 bg-cm-gold/10 px-2 py-0.5 rounded-full transition-colors"
                               >
                                 <RefreshCcw size={10} /> Proroger le séjour
                               </Link>
+                            {app.has_pending_extension && (
+                              <span className="text-[10px] font-bold text-cm-gold flex items-center gap-1 bg-cm-gold/5 px-2 py-0.5 rounded-full border border-cm-gold/20">
+                                <Clock size={10} /> Prorogation en cours
+                              </span>
                             )}
                           </div>
                         )}

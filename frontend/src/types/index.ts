@@ -99,7 +99,8 @@ export interface VisaApplication {
   // Avis / Traitement
   embassy_opinion: 'NONE' | 'FAVORABLE' | 'UNFAVORABLE';
   embassy_comment: string;
-  border_check_status: 'PENDING' | 'ENTERED' | 'DENIED' | 'NOT_CHECKED';
+  border_check_status: 'PENDING' | 'ENTERED' | 'EXITED' | 'DENIED' | 'NOT_CHECKED';
+  has_pending_extension?: boolean;
   border_check_at?: string;
   has_biometrics?: boolean;
   border_agent: string | null;
@@ -304,6 +305,7 @@ export interface StayExtensionRequest {
   requested_days: number;
   new_expiry_date: string;
   reason: string;
+  fee: number;
   status: StayExtensionStatus;
   rejection_reason: string;
   payment_status: string;
