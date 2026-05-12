@@ -120,7 +120,7 @@ export default function HistoriqueControlesPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-cm-text font-bold">
-                      {formatDate(item.border_checked_at as string)}
+                      {item.border_checked_at ? formatDate(item.border_checked_at) : '---'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -182,7 +182,7 @@ export default function HistoriqueControlesPage() {
                    </div>
                    <div>
                      <p className="text-xs font-bold text-cm-muted uppercase">Date de Contrôle</p>
-                     <p className="font-bold text-cm-text">{formatDate(selectedApp.border_checked_at as string)}</p>
+                     <p className="font-bold text-cm-text">{selectedApp.border_checked_at ? formatDate(selectedApp.border_checked_at) : '---'}</p>
                    </div>
                 </div>
                 <div className="pt-6 border-t border-cm-border flex justify-end">

@@ -93,7 +93,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'APP_SUBMIT', context,
             f'Demande {application.application_number} — Soumise avec succès',
-            f'Bonjour {user.get_full_name()},\n\nVotre demande de visa n° {application.application_number} a été soumise avec succès.\nVous serez notifié(e) de l\'avancement de votre dossier.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nVotre demande de visa n° {application.application_number} a été soumise avec succès.\nVous serez notifié(e) de l\'avancement de votre dossier.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -110,7 +110,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'APP_APPROVE', context,
             f'Demande {application.application_number} — APPROUVÉE ✅',
-            f'Bonjour {user.get_full_name()},\n\nFélicitations ! Votre demande de visa n° {application.application_number} a été approuvée.\nVotre e-visa est disponible en téléchargement sur la plateforme.\n\nBon voyage au Cameroun !\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nFélicitations ! Votre demande de visa n° {application.application_number} a été approuvée.\nVotre e-visa est disponible en téléchargement sur la plateforme.\n\nBon voyage au Cameroun !\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -129,7 +129,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'PAYMENT_SUCCESS', context,
             f'Paiement Réussi — Demande {application.application_number}',
-            f'Bonjour {user.get_full_name()},\n\nNous vous confirmons la réception de votre paiement d\'un montant de {context["amount"]} pour la demande de visa n° {application.application_number}.\n\nDétails de la transaction :\n- N° de transaction : {context["transaction_id"]}\n- Type de traitement : {context["processing_type"]}\n- Date : {context["date"]}\n\nVotre demande est maintenant soumise et en cours de traitement.\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nNous vous confirmons la réception de votre paiement d\'un montant de {context["amount"]} pour la demande de visa n° {application.application_number}.\n\nDétails de la transaction :\n- N° de transaction : {context["transaction_id"]}\n- Type de traitement : {context["processing_type"]}\n- Date : {context["date"]}\n\nVotre demande est maintenant soumise et en cours de traitement.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -144,7 +144,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'APP_REJECT', context,
             f'Demande {application.application_number} — Refusée',
-            f'Bonjour {user.get_full_name()},\n\nNous avons le regret de vous informer que votre demande de visa n° {application.application_number} a été refusée.\n\nMotif : {context["rejection_reason"]}\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nNous avons le regret de vous informer que votre demande de visa n° {application.application_number} a été refusée.\n\nMotif : {context["rejection_reason"]}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -171,7 +171,7 @@ class NotificationService:
             f'- Date et heure : {context["entry_date"]}\n'
             f'- Date de sortie recommandée : {context["expected_exit_date"]}\n\n'
             f'Nous vous souhaitons un excellent séjour au Cameroun.\n\n'
-            f'Cordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+            f'Cordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -192,7 +192,7 @@ class NotificationService:
             f'Bonjour {user.get_full_name()},\n\n'
             f'Nous vous informons que votre sortie du territoire camerounais a été enregistrée le {context["exit_date"]} au point de passage : {context["location"]}.\n\n'
             f'Nous espérons que votre séjour s\'est bien déroulé et vous remercions d\'avoir utilisé nos services.\n\n'
-            f'Cordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+            f'Cordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -210,7 +210,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'BORDER_DENIED', context,
             f'Alerte de Contrôle — Refus d\'entrée au poste frontière',
-            f'Bonjour {user.get_full_name()},\n\nNous vous informons que l\'accès au territoire vous a été refusé lors de votre contrôle au point de passage suivant : {location}.\n\nRaison : Votre document de voyage ou votre demande de visa (N° {application.application_number}) a été jugé invalide par les autorités compétentes lors du contrôle frontière.\n\nSi vous estimez qu\'il s\'agit d\'une erreur, veuillez contacter nos services consulaires.\n\nCordialement,\nLa Direction de la Police des Frontières - e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nNous vous informons que l\'accès au territoire vous a été refusé lors de votre contrôle au point de passage suivant : {location}.\n\nRaison : Votre document de voyage ou votre demande de visa (N° {application.application_number}) a été jugé invalide par les autorités compétentes lors du contrôle frontière.\n\nSi vous estimez qu\'il s\'agit d\'une erreur, veuillez contacter nos services consulaires.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message, application)
 
@@ -227,7 +227,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'DOC_REQUEST', context,
             f'Documents supplémentaires requis — Dossier {application.application_number}',
-            f"Bonjour {user.get_full_name()},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\nL'équipe de traitement des visas e-Visa Cameroun"
+            f"Bonjour {user.get_full_name()},\n\nNous avons examiné votre demande de visa pour le Cameroun et nous avons besoin de documents supplémentaires pour compléter votre dossier.\nVeuillez fournir les documents suivants :\n{agent_message}\n\nVous pouvez les télécharger et les soumettre en cliquant sur ce lien : {context['lien_soumission_documents']}\n\nCordialement,\n\n© 2026 Ing.concept MESSANGA Charles Perig"
         )
         cls._send(user, subject, message, application)
 
@@ -240,7 +240,7 @@ class NotificationService:
         subject, message = cls._get_template_and_render(
             'AUTH_WELCOME', context,
             'Bienvenue sur e-Visa Cameroun',
-            f'Bonjour {user.get_full_name()},\n\nVotre compte a été créé avec succès.\n{verification_link}\n\nCordialement,\nL\'équipe e-Visa Cameroun'
+            f'Bonjour {user.get_full_name()},\n\nVotre compte a été créé avec succès.\n{verification_link}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig'
         )
         cls._send(user, subject, message)
 

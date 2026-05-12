@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Filter, Loader2, RefreshCcw, ChevronRight, CheckCircle2, XCircle, Clock, Eye, AlertCircle } from 'lucide-react';
+import { Search, Filter, Loader2, RefreshCcw, ChevronRight, CheckCircle2, XCircle, Clock, Eye, AlertCircle, FileText } from 'lucide-react';
 import applicationService from '../../services/applicationService';
 import type { StayExtensionRequest } from '../../types';
 import Badge from '../../components/common/Badge';

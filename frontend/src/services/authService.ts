@@ -3,7 +3,7 @@
 //  Gestion de l'authentification
 // ─────────────────────────────────────────────
 import api from './api';
-import type { LoginPayload, RegisterPayload, User, AuthTokens } from '../types';
+import type { RegisterPayload, User, AuthTokens } from '../types';
 
 const authService = {
   async login(email: string, password: string, otp_code?: string): Promise<{ tokens: AuthTokens; user: User }> {

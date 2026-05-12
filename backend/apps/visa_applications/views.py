@@ -746,7 +746,7 @@ class StayExtensionViewSet(viewsets.ModelViewSet):
         NotificationService._send(
             extension.applicant, 
             f"Demande de prorogation SOUMISE - {extension.visa_application.application_number}",
-            f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été soumise avec succès.\nVous recevrez une notification dès qu'un agent aura traité votre demande.\n\nCordialement,\nL'équipe e-Visa Cameroun",
+            f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été soumise avec succès.\nVous recevrez une notification dès qu'un agent aura traité votre demande.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
             extension.visa_application
         )
 
@@ -785,7 +785,7 @@ class StayExtensionViewSet(viewsets.ModelViewSet):
             NotificationService._send(
                 extension.applicant, 
                 f"Prorogation APPROUVÉE ✅ - {extension.visa_application.application_number}",
-                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été approuvée.\nVotre nouvelle date d'expiration est le {extension.new_expiry_date.strftime('%d/%m/%Y')}.\n\nCordialement,\nL'équipe e-Visa Cameroun",
+                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été approuvée.\nVotre nouvelle date d'expiration est le {extension.new_expiry_date.strftime('%d/%m/%Y')}.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
                 extension.visa_application
             )
         
@@ -794,7 +794,7 @@ class StayExtensionViewSet(viewsets.ModelViewSet):
              NotificationService._send(
                 extension.applicant, 
                 f"Prorogation REFUSÉE ❌ - {extension.visa_application.application_number}",
-                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été refusée.\nMotif : {rejection_reason}\n\nCordialement,\nL'équipe e-Visa Cameroun",
+                f"Bonjour {extension.applicant.get_full_name()},\n\nVotre demande de prorogation pour le visa {extension.visa_application.application_number} a été refusée.\nMotif : {rejection_reason}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig",
                 extension.visa_application
             )
             

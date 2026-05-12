@@ -94,7 +94,7 @@ Pour finaliser la création de votre compte et commencer vos démarches, veuille
 
 Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
 
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         },
         {
@@ -112,7 +112,7 @@ Votre dossier est actuellement en cours de traitement par nos services. Vous pou
 Vous recevrez une notification dès qu'une décision sera prise ou si des informations complémentaires sont requises.
 
 Cordialement,
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         },
         {
@@ -130,7 +130,7 @@ Votre autorisation e-Visa est désormais disponible. Vous pouvez la télécharge
 Veuillez imprimer ce document et le présenter lors de votre embarquement et à votre arrivée au poste frontière au Cameroun.
 
 Bon voyage !
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         },
         {
@@ -147,7 +147,7 @@ Motif du refus : {rejection_reason}
 Conformément à la réglementation en vigueur, vous pouvez soumettre une nouvelle demande en tenant compte des motifs mentionnés ci-dessus.
 
 Cordialement,
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         },
         {
@@ -168,7 +168,7 @@ Vous pouvez téléverser ces documents directement sur votre espace personnel vi
 Votre demande restera en attente jusqu'à réception de ces éléments.
 
 Cordialement,
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         },
         {
@@ -186,7 +186,7 @@ Date : {date}
 
 Conservez cet email comme preuve de paiement.
 
-L'équipe e-Visa Cameroun.""",
+© 2026 Ing.concept MESSANGA Charles Perig""",
             "language": "FR"
         }
     ]

@@ -9,8 +9,8 @@ MOCK_TEMPLATES = [
         'language': 'FR',
         'is_active': True,
         'subject': 'Bienvenue sur e-Visa Cameroun !',
-        'body_text': 'Bonjour {{ user_name }}, \n\nVotre compte a bien été créé avec succès.\n{{ verification_link }}\n\nCordialement,\nL\'équipe e-Visa',
-        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre compte a bien été créé avec succès.<br><a href="{{ verification_link }}">Vérifier mon email</a><br><br>Cordialement,<br>L\'équipe e-Visa</p>'
+        'body_text': 'Bonjour {{ user_name }}, \n\nVotre compte a bien été créé avec succès.\n{{ verification_link }}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
+        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre compte a bien été créé avec succès.<br><a href="{{ verification_link }}">Vérifier mon email</a><br><br>Cordialement,<br>© 2026 Ing.concept MESSANGA Charles Perig</p>'
     },
     {
         'code': 'APP_SUBMIT',
@@ -19,8 +19,8 @@ MOCK_TEMPLATES = [
         'language': 'FR',
         'is_active': True,
         'subject': 'Demande {{ application_number }} — Soumise avec succès',
-        'body_text': 'Bonjour {{ user_name }}, \n\nVotre demande de visa n° {{ application_number }} a bien été soumise et est en cours de traitement.\n\nCordialement,\nL\'équipe e-Visa',
-        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre demande de visa n° <strong>{{ application_number }}</strong> a bien été soumise et est en cours de traitement.<br><br>Cordialement,<br>L\'équipe e-Visa</p>'
+        'body_text': 'Bonjour {{ user_name }}, \n\nVotre demande de visa n° {{ application_number }} a bien été soumise et est en cours de traitement.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
+        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre demande de visa n° <strong>{{ application_number }}</strong> a bien été soumise et est en cours de traitement.<br><br>Cordialement,<br>© 2026 Ing.concept MESSANGA Charles Perig</p>'
     },
     {
         'code': 'APP_APPROVE',
@@ -29,8 +29,8 @@ MOCK_TEMPLATES = [
         'language': 'FR',
         'is_active': True,
         'subject': 'Félicitations, votre Visa {{ application_number }} est approuvé !',
-        'body_text': 'Bonjour {{ user_name }}, \n\nVotre visa a été approuvé. Veuillez vous connecter pour télécharger votre e-Visa.\n\nCordialement,\nL\'équipe e-Visa',
-        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre visa a été approuvé. Veuillez vous connecter pour télécharger votre e-Visa.<br><br>Cordialement,<br>L\'équipe e-Visa</p>'
+        'body_text': 'Bonjour {{ user_name }}, \n\nVotre visa a été approuvé. Veuillez vous connecter pour télécharger votre e-Visa.\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
+        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Votre visa a été approuvé. Veuillez vous connecter pour télécharger votre e-Visa.<br><br>Cordialement,<br>© 2026 Ing.concept MESSANGA Charles Perig</p>'
     },
     {
         'code': 'DOC_REQUEST',
@@ -39,8 +39,8 @@ MOCK_TEMPLATES = [
         'language': 'FR',
         'is_active': True,
         'subject': 'Action requise : Documents manquants pour la demande {{ application_number }}',
-        'body_text': 'Bonjour {{ user_name }}, \n\nVeuillez vous connecter pour fournir les documents supplémentaires requis :\n\n{{ agent_message }}\n\nCordialement,\nL\'équipe e-Visa',
-        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Veuillez vous connecter pour fournir les documents supplémentaires requis :<br><br><em>{{ agent_message }}</em><br><br>Cordialement,<br>L\'équipe e-Visa</p>'
+        'body_text': 'Bonjour {{ user_name }}, \n\nVeuillez vous connecter pour fournir les documents supplémentaires requis :\n\n{{ agent_message }}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
+        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Veuillez vous connecter pour fournir les documents supplémentaires requis :<br><br><em>{{ agent_message }}</em><br><br>Cordialement,<br>© 2026 Ing.concept MESSANGA Charles Perig</p>'
     },
     {
         'code': 'APP_REJECT',
@@ -49,8 +49,8 @@ MOCK_TEMPLATES = [
         'language': 'FR',
         'is_active': True,
         'subject': 'Demande {{ application_number }} — Refusée',
-        'body_text': 'Bonjour {{ user_name }}, \n\nNous avons le regret de vous informer que votre demande de visa n° {{ application_number }} a été refusée.\n\nMotif : {{ rejection_reason }}\n\nCordialement,\nL\'équipe e-Visa',
-        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Nous avons le regret de vous informer que votre demande de visa n° <strong>{{ application_number }}</strong> a été refusée.<br><br>Motif : <strong>{{ rejection_reason }}</strong><br><br>Cordialement,<br>L\'équipe e-Visa</p>'
+        'body_text': 'Bonjour {{ user_name }}, \n\nNous avons le regret de vous informer que votre demande de visa n° {{ application_number }} a été refusée.\n\nMotif : {{ rejection_reason }}\n\nCordialement,\n© 2026 Ing.concept MESSANGA Charles Perig',
+        'body_html': '<p>Bonjour {{ user_name }}, <br><br>Nous avons le regret de vous informer que votre demande de visa n° <strong>{{ application_number }}</strong> a été refusée.<br><br>Motif : <strong>{{ rejection_reason }}</strong><br><br>Cordialement,<br>© 2026 Ing.concept MESSANGA Charles Perig</p>'
     },
 ]
 
