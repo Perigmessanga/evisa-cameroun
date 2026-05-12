@@ -441,6 +441,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         
         # Mettre à jour le statut
         application.status = new_status
+        application.processed_by = user  # Enregistrer qui a fait l'action
         
         if new_status == 'REJECTED':
             application.rejection_reason = rejection_reason

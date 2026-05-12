@@ -146,32 +146,27 @@ export default function AdminApplicationsListPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      {app.assigned_agent_name ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-cm-green-pale/20 flex items-center justify-center text-cm-green-mid shadow-inner">
-                            <UserCheck size={14} />
-                          </div>
-                          <div>
-                            <div className="font-bold text-cm-text text-xs">{app.assigned_agent_name}</div>
-                            <div className="text-[9px] text-cm-muted uppercase font-bold tracking-tighter">Officier d'Immigration</div>
-                          </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-cm-cream flex items-center justify-center border border-cm-border shadow-inner">
+                          <UserCheck size={14} className={app.processed_by_name || app.assigned_agent_name ? "text-cm-green-mid" : "text-cm-muted"} />
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-cm-muted">
-                          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                            <User size={14} />
+                        <div>
+                          <div className={`text-xs font-bold ${app.processed_by_name || app.assigned_agent_name ? "text-cm-text" : "text-cm-muted"}`}>
+                            {app.processed_by_name || app.assigned_agent_name || 'Non assigné'}
                           </div>
-                          <span className="text-xs italic">Non assigné</span>
+                          {(app.processed_by_name || app.assigned_agent_name) && (
+                            <div className="text-[9px] text-cm-muted uppercase font-bold tracking-tighter">Officier Traitant</div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
-                       {app.embassy_opinion ? (
+                       {app.embassy_opinion && app.embassy_opinion !== 'NONE' ? (
                          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold ${app.embassy_opinion === 'FAVORABLE' ? 'bg-cm-green-pale/30 text-cm-green-mid' : 'bg-cm-red/10 text-cm-red'}`}>
                             {app.embassy_opinion === 'FAVORABLE' ? 'FAVORABLE ✅' : 'DÉFAVORABLE ❌'}
                          </div>
                        ) : (
-                         <span className="text-[10px] text-cm-muted italic">Aucun avis</span>
+                         <span className="text-[10px] text-cm-muted italic bg-cm-cream px-2 py-1 rounded font-medium">Aucun avis</span>
                        )}
                     </td>
                     <td className="p-4">
