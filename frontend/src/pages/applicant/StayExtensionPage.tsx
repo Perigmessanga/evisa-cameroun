@@ -28,7 +28,7 @@ export default function StayExtensionPage() {
             toast.error("Seuls les visas approuvés peuvent être prorogés.");
             navigate('/applicant/dashboard');
           }
-          if (res.border_check_status !== 'ENTERED') {
+          if (res.border_check_status !== 'AUTHORIZED') {
             toast.error("Vous devez être entré sur le territoire pour demander une prorogation.");
             navigate('/applicant/dashboard');
           }

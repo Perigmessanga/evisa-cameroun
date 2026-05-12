@@ -127,6 +127,7 @@ export interface VisaApplication {
   documents?: ApplicationDocument[];
   payment?: Payment;
   payment_status?: string | null;
+  evisa?: EVisa;
 }
 
 export interface ApplicationFormData {

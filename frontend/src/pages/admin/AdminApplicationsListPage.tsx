@@ -30,7 +30,7 @@ export default function AdminApplicationsListPage() {
     fetchApps();
   }, []);
 
-  const calculateProcessingTime = (submittedAt?: string, processedAt?: string) => {
+  const calculateProcessingTime = (submittedAt?: string | null, processedAt?: string | null) => {
     if (!submittedAt || !processedAt) return '---';
     const start = new Date(submittedAt);
     const end = new Date(processedAt);
