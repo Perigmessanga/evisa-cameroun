@@ -133,6 +133,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     biometric_photos = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
     has_pending_extension = serializers.SerializerMethodField()
+    passport_number = serializers.SerializerMethodField()
+    national_id_number = serializers.SerializerMethodField()
 
     class Meta:
         model  = VisaApplication
@@ -208,6 +210,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
 
     def get_has_pending_extension(self, obj):
         return obj.extensions.filter(status__in=['SUBMITTED', 'PROCESSING', 'PENDING_PAYMENT', 'PAID']).exists()
+
+    def get_passport_number(self, obj):
+        return obj.get_decrypted_passport()
+
+    def get_national_id_number(self, obj):
+        return obj.get_decrypted_national_id()
 
     def get_payment_status(self, obj):
         if hasattr(obj, 'payment'):

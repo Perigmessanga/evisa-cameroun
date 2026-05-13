@@ -2,11 +2,15 @@
 Modèles — App visa_applications
 """
 import uuid
+# pyrefly: ignore [missing-import]
 from django.db import models
+# pyrefly: ignore [missing-import]
 from django.conf import settings
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from apps.users.utils import get_country_variants
 
+# pyrefly: ignore [missing-import]
 from django.utils.translation import gettext_lazy as _
 
 
@@ -140,7 +144,7 @@ class VisaApplication(models.Model):
     birth_country    = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays de naissance')
 
     # ── Informations passeport ─────────────────────────────────
-    passport_number      = models.CharField(max_length=50, blank=True, null=True, verbose_name='Numéro passeport')
+    passport_number      = models.CharField(max_length=500, blank=True, null=True, verbose_name='Numéro passeport (Chiffré)')
     passport_issue_date  = models.DateField(blank=True, null=True, verbose_name='Date émission passeport')
     passport_expiry_date = models.DateField(blank=True, null=True, verbose_name='Date expiration passeport')
     passport_country     = models.CharField(max_length=100, blank=True, null=True, verbose_name='Pays émission')
@@ -154,7 +158,7 @@ class VisaApplication(models.Model):
     # ── Contact d'urgence ──────────────────────────────────────
     emergency_contact_name  = models.CharField(max_length=200, blank=True, null=True, verbose_name='Contact d\'urgence (Nom)')
     emergency_contact_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name='Contact d\'urgence (Tél)')
-    national_id_number      = models.CharField(max_length=50, blank=True, null=True, verbose_name='Numéro CNI / ID National')
+    national_id_number      = models.CharField(max_length=500, blank=True, null=True, verbose_name='Numéro CNI / ID National (Chiffré)')
 
     # ── Avis Ambassade ─────────────────────────────────────────
     embassy_opinion = models.CharField(
@@ -211,6 +215,35 @@ class VisaApplication(models.Model):
     def __str__(self):
         return f'{self.application_number} — {self.full_name} ({self.status})'
 
+    def get_decrypted_passport(self):
+        from apps.users.crypto_utils import decrypt_data
+        return decrypt_data(self.passport_number)
+
+    def get_decrypted_national_id(self):
+        from apps.users.crypto_utils import decrypt_data
+        return decrypt_data(self.national_id_number)
+
+    def save(self, *args, **kwargs):
+        if not self.application_number:
+            import random
+            import string
+            # pyrefly: ignore [missing-import]
+            from django.utils import timezone
+            year    = timezone.now().year
+            suffix  = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            self.application_number = f'CMR-{year}-{suffix}'
+
+        # pyrefly: ignore [missing-import]
+        from apps.users.crypto_utils import encrypt_data
+        # Chiffrement automatique si ce n'est pas déjà fait
+        if self.passport_number and not self.passport_number.startswith('gAAAA'):
+            self.passport_number = encrypt_data(self.passport_number)
+        
+        if self.national_id_number and not self.national_id_number.startswith('gAAAA'):
+            self.national_id_number = encrypt_data(self.national_id_number)
+            
+        super().save(*args, **kwargs)
+
     @property
     def is_editable(self):
         """Une demande est modifiable si elle est en brouillon ou si on a demandé des documents."""
@@ -265,16 +298,6 @@ class VisaApplication(models.Model):
             return True
             
         return False
-
-    def save(self, *args, **kwargs):
-        if not self.application_number:
-            import random
-            import string
-            from django.utils import timezone
-            year    = timezone.now().year
-            suffix  = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-            self.application_number = f'CMR-{year}-{suffix}'
-        super().save(*args, **kwargs)
 
 
 # ─────────────────────────────────────────────────────────────────

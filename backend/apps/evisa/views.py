@@ -15,6 +15,8 @@ import io
 import base64
 import tempfile
 import os
+import hashlib
+from django.conf import settings
 
 from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage, Watchlist
 from apps.evisa.serializers import (
@@ -389,7 +391,25 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         
         p_notice = Paragraph(notice_text, style)
         p_notice.wrapOn(p, width - 130, 80)
-        p_notice.drawOn(p, 65, 75)
+        p_notice.drawOn(p, 65, 110)
+
+        # ── SIGNATURE NUMÉRIQUE (Authentification Digitale) ──
+        p.setDash(1, 2)
+        p.setStrokeColor(TEXT_MUTED)
+        p.line(50, 95, width - 50, 95)
+        p.setDash([])
+        
+        p.setFont("Helvetica-Bold", 7)
+        p.setFillColor(CM_GREEN)
+        p.drawString(65, 85, "SCELLÉ NUMÉRIQUE D'AUTHENTIFICATION — DGSN CAMEROUN")
+        
+        p.setFont("Courier", 6)
+        p.setFillColor(TEXT_MUTED)
+        # Génération d'une empreinte unique basée sur les données du visa et la clé secrète du serveur
+        sig_data = f"{evisa.visa_number}|{evisa.application.passport_number}|{settings.SECRET_KEY}"
+        signature_hash = hashlib.sha256(sig_data.encode()).hexdigest()
+        p.drawString(65, 75, f"ID Signature : {signature_hash}")
+        p.drawString(65, 68, "Vérification possible sur : https://evisa-cameroun.vercel.app/verify")
 
         # ── WATERMARK ──
         p.saveState()
