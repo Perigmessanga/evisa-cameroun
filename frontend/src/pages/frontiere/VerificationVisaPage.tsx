@@ -3,7 +3,7 @@ import {
   Scan, Search, ShieldCheck, User, 
   MapPin, Calendar, FileText, CheckCircle2, 
   XCircle, AlertTriangle, Loader2, ArrowLeft,
-  Camera, StopCircle
+  Camera, StopCircle, ScanFace
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -230,6 +230,59 @@ export default function VerificationVisaPage() {
               </div>
             </div>
           </div>
+
+          {/* Biometric Verification Area */}
+          {result.valid && (
+          <div className="p-8 border-t border-cm-border bg-gray-50/50">
+            <h3 className="font-display font-bold text-lg text-cm-text flex items-center gap-2 pb-4">
+              <ScanFace size={20} className="text-indigo-600" /> Vérification Biométrique
+            </h3>
+            <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+              {/* Photo Passeport */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-32 h-40 rounded-xl overflow-hidden border-4 border-white shadow-md bg-gray-200">
+                  {result.evisa?.passport_photo ? (
+                    <img src={result.evisa.passport_photo} alt="Passeport" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={40} /></div>
+                  )}
+                </div>
+                <p className="text-xs font-bold uppercase text-cm-muted">Photo Officielle</p>
+              </div>
+
+              {/* Liveness Result */}
+              <div className="flex flex-col items-center justify-center px-4">
+                {result.evisa?.biometric_liveness_score ? (
+                  <>
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-2 border-4 border-emerald-50">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-emerald-600 text-lg">{result.evisa.biometric_liveness_score}%</p>
+                      <p className="text-[10px] font-bold uppercase text-cm-muted tracking-wider">Liveness Match</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center mt-4">
+                    <p className="text-xs text-cm-muted italic">Score non défini</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Photo Live */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-32 h-40 rounded-xl overflow-hidden border-4 border-white shadow-md bg-gray-200">
+                  {result.evisa?.live_photo ? (
+                    <img src={result.evisa.live_photo} alt="Direct" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400"><Camera size={40} /></div>
+                  )}
+                </div>
+                <p className="text-xs font-bold uppercase text-cm-muted">Prise en direct</p>
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* Action Footer */}
           <div className="p-8 bg-cm-cream/30 border-t border-cm-border flex flex-wrap gap-4">

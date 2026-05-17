@@ -154,6 +154,35 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
             'origins': list(origins)
         })
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def unmask_passport(self, request, pk=None):
+        """
+        Démasque le numéro de passeport pour un agent et enregistre l'action dans l'audit.
+        (Cybersecurity - Data Masking & Audit Trail)
+        """
+        application = self.get_object()
+        
+        # Vérification des droits
+        if not getattr(request.user, 'is_agent', False) and not getattr(request.user, 'is_admin', False) and not getattr(request.user, 'is_border_agent', False):
+            return Response({'error': 'Accès non autorisé.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        decrypted_passport = application.get_decrypted_passport()
+        
+        # Enregistrement dans la piste d'audit
+        from apps.audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user,
+            application=application,
+            action='UNMASK_PASSPORT',
+            description=f"L'utilisateur {request.user.email} a démasqué le passeport de la demande {application.application_number}.",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'passport_number': decrypted_passport
+        })
+
+
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def public_stats(self, request):
         """

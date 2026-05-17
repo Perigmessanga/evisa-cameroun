@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
+    'drf_spectacular',
     # 'sslserver',
 
     # Applications locales
@@ -179,6 +180,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ),
     'EXCEPTION_HANDLER': 'evisa_backend.utils.custom_exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'
@@ -187,6 +189,22 @@ REST_FRAMEWORK = {
         'anon': '100/day',
         'user': '1000/day'
     }
+}
+
+# ─────────────────────────────────────────
+# OPENAPI / SWAGGER (INTEROPÉRABILITÉ)
+# ─────────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'E-Visa Cameroun — API Officielle',
+    'DESCRIPTION': (
+        'Documentation technique de l\'API de la plateforme e-Visa Cameroun. '
+        'Cette API permet aux partenaires institutionnels (DGSN, Compagnies Aériennes, MINFI, Interpol) '
+        'd\'interroger et d\'interagir avec le système e-Visa de manière sécurisée.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'CONTACT': {'email': 'api@evisa-cameroun.cm'},
+    'LICENSE': {'name': 'Propriété de l\'État du Cameroun — Usage Restreint'},
 }
 
 # ─────────────────────────────────────────

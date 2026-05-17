@@ -1,5 +1,7 @@
 import uuid
+# pyrefly: ignore [missing-import]
 from django.db import models
+# pyrefly: ignore [missing-import]
 from django.utils import timezone
 
 

@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 def home(request):
     return JsonResponse({
@@ -36,6 +37,11 @@ urlpatterns = [
     path('api/', include('apps.evisa.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/audit-logs/', include('apps.audit.urls')),
+
+    # ── OpenAPI / Swagger (Interopérabilité) ──────────────────────
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 # Servir les fichiers media en développement

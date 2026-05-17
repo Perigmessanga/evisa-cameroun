@@ -2,7 +2,9 @@
 Modèle User personnalisé — Plateforme e-Visa Cameroun
 """
 import uuid
+# pyrefly: ignore [missing-import]
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+# pyrefly: ignore [missing-import]
 from django.db import models
 
 

@@ -188,6 +188,10 @@ class VisaApplication(models.Model):
         default=ProcessingType.STANDARD, verbose_name='Type de traitement'
     )
     has_biometrics   = models.BooleanField(default=False, verbose_name='Biométrie vérifiée')
+    live_photo       = models.ImageField(upload_to='biometrics/live/', null=True, blank=True, verbose_name='Photo en direct (Liveness)')
+    biometric_liveness_score = models.FloatField(null=True, blank=True, verbose_name='Score Liveness (%)')
+    biometric_liveness_status = models.CharField(max_length=20, default='PENDING', verbose_name='Statut Biométrie')
+    
     submitted_at     = models.DateTimeField(null=True, blank=True, verbose_name='Soumis le')
     processed_at     = models.DateTimeField(null=True, blank=True, verbose_name='Traité le')
     rejection_reason = models.TextField(blank=True, verbose_name='Motif de rejet')
@@ -216,10 +220,12 @@ class VisaApplication(models.Model):
         return f'{self.application_number} — {self.full_name} ({self.status})'
 
     def get_decrypted_passport(self):
+        # pyrefly: ignore [missing-import]
         from apps.users.crypto_utils import decrypt_data
         return decrypt_data(self.passport_number)
 
     def get_decrypted_national_id(self):
+        # pyrefly: ignore [missing-import]
         from apps.users.crypto_utils import decrypt_data
         return decrypt_data(self.national_id_number)
 
@@ -251,7 +257,9 @@ class VisaApplication(models.Model):
 
     def assign_best_agent(self):
         """Assigne automatiquement la demande à l'ambassade correspondante ou à l'agent le moins chargé."""
+        # pyrefly: ignore [missing-import]
         from apps.users.models import User, UserRole
+        # pyrefly: ignore [missing-import]
         from django.db.models import Count, Q
         
         # 1. Préparation de la liste des pays à tester (Nationalité + Résidence)
@@ -468,3 +476,28 @@ class StayExtensionRequest(models.Model):
 
     def __str__(self):
         return f"Prorogation pour {self.visa_application.application_number} (+{self.requested_days} jours)"
+
+# ─────────────────────────────────────────────────────────────────
+# ARCHIVAGE LÉGAL (E-GOUVERNEMENT)
+# ─────────────────────────────────────────────────────────────────
+class ArchivedApplication(models.Model):
+    id                 = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application_number = models.CharField(max_length=50, unique=True, verbose_name='Numéro de demande original')
+    original_application_id = models.UUIDField(verbose_name='ID Original')
+    applicant_email    = models.EmailField(verbose_name='Email demandeur')
+    status             = models.CharField(max_length=20, verbose_name='Statut final')
+    
+    # Données immuables figées
+    snapshot_data      = models.JSONField(verbose_name='Données complètes (Immuable)')
+    
+    archived_at        = models.DateTimeField(auto_now_add=True, verbose_name='Date d\'archivage')
+    retention_end_date = models.DateTimeField(verbose_name='Fin de période de rétention légale')
+
+    class Meta:
+        db_table = 'evisa_archived_application'
+        verbose_name = 'Demande Archivée'
+        verbose_name_plural = 'Demandes Archivées'
+        ordering = ['-archived_at']
+
+    def __str__(self):
+        return f'ARCHIVE: {self.application_number} ({self.status})'

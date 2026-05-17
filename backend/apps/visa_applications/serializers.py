@@ -212,7 +212,11 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         return obj.extensions.filter(status__in=['SUBMITTED', 'PROCESSING', 'PENDING_PAYMENT', 'PAID']).exists()
 
     def get_passport_number(self, obj):
-        return obj.get_decrypted_passport()
+        decrypted = obj.get_decrypted_passport()
+        # Masquage des données par défaut (Data Masking)
+        if decrypted and len(decrypted) > 4:
+            return f"P****{decrypted[-4:]}"
+        return "P****"
 
     def get_national_id_number(self, obj):
         return obj.get_decrypted_national_id()

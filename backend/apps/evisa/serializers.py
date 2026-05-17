@@ -1,4 +1,6 @@
+# pyrefly: ignore [missing-import]
 from rest_framework import serializers
+# pyrefly: ignore [missing-import]
 from apps.evisa.models import EVisa, BorderCrossing, SystemSetting, ContactMessage, Watchlist
 
 class WatchlistSerializer(serializers.ModelSerializer):
@@ -28,6 +30,12 @@ class EVisaSerializer(serializers.ModelSerializer):
         source='application.visa_type.name',
         read_only=True
     )
+    biometric_liveness_score = serializers.FloatField(
+        source='application.biometric_liveness_score',
+        read_only=True
+    )
+    live_photo = serializers.SerializerMethodField()
+    passport_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = EVisa
@@ -36,9 +44,27 @@ class EVisaSerializer(serializers.ModelSerializer):
             'applicant_name', 'applicant_nationality', 'passport_number', 'visa_type_name',
             'issue_date', 'expiry_date',
             'qr_code', 'pdf_file_path', 'is_revoked',
-            'is_valid', 'days_until_expiry', 'created_at'
+            'is_valid', 'days_until_expiry', 'created_at',
+            'biometric_liveness_score', 'live_photo', 'passport_photo'
         ]
         read_only_fields = fields
+
+    def get_live_photo(self, obj):
+        if obj.application.live_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.application.live_photo.url)
+            return obj.application.live_photo.url
+        return None
+
+    def get_passport_photo(self, obj):
+        photo_doc = obj.application.documents.filter(document_type='PHOTO').first()
+        if photo_doc and photo_doc.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(photo_doc.file.url)
+            return photo_doc.file.url
+        return None
 
 
 class SystemSettingSerializer(serializers.ModelSerializer):

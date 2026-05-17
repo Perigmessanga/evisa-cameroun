@@ -321,7 +321,8 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
             signer = Signer()
             # On signe le numéro de visa pour créer un lien infalsifiable
             signed_token = signer.sign(evisa.visa_number)
-            verify_url = f"https://evisa.cm/verify?token={signed_token}"
+            frontend_url = getattr(settings, 'BASE_FRONTEND_URL', 'https://evisa-cameroun.vercel.app')
+            verify_url = f"{frontend_url}/verify?token={signed_token}"
             
             qr = qrcode.QRCode(version=1, border=1)
             qr.add_data(verify_url)

@@ -2,11 +2,17 @@
 App Notifications — Modèle, Service, View
 """
 import uuid
+# pyrefly: ignore [missing-import]
 from django.db import models
+# pyrefly: ignore [missing-import]
 from django.conf import settings
+# pyrefly: ignore [missing-import]
 from django.core.mail import send_mail
+# pyrefly: ignore [missing-import]
 from rest_framework.views import APIView
+# pyrefly: ignore [missing-import]
 from rest_framework.permissions import IsAuthenticated
+# pyrefly: ignore [missing-import]
 from rest_framework import serializers
 
 from evisa_backend.utils import api_response
@@ -48,6 +54,7 @@ class Notification(models.Model):
 
 
 # ─── SERVICE ──────────────────────────────────────────────────────
+# pyrefly: ignore [missing-import]
 from django.template import Context, Template as DjangoTemplate
 
 class NotificationService:
@@ -74,6 +81,7 @@ class NotificationService:
     @classmethod
     def _get_template_and_render(cls, template_code, context_dict, fallback_subject, fallback_message):
         """Cherche un EmailTemplate actif par code. S'il n'existe pas, utilise le fallback."""
+        # pyrefly: ignore [missing-import]
         from apps.notifications.models import EmailTemplate
         try:
             template = EmailTemplate.objects.get(code=template_code, is_active=True)
@@ -257,6 +265,7 @@ class NotificationService:
         )
 
         try:
+            # pyrefly: ignore [missing-import]
             from django.utils import timezone
             send_mail(
                 subject      = subject,
@@ -303,6 +312,7 @@ class MarkNotificationReadView(APIView):
 
     def post(self, request, pk):
         """Marquer une notification comme lue."""
+        # pyrefly: ignore [missing-import]
         from django.utils import timezone
         try:
             notif = Notification.objects.get(pk=pk, user=request.user)

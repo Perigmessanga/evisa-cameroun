@@ -196,3 +196,35 @@ class EVisaService:
 
 # Singleton du service
 EVisa_service = EVisaService()
+
+class BiometricService:
+    """Service simulant l'intégration avec un moteur de reconnaissance faciale (ex: Amazon Rekognition)."""
+    
+    @classmethod
+    def verify_liveness(cls, application):
+        """
+        Simule la vérification de 'liveness' (reconnaissance faciale).
+        Dans un vrai système, on comparerait la photo du passeport avec la photo prise en direct (live_photo).
+        """
+        import random
+        # Simulation d'un appel API (Amazon Rekognition)
+        # Si la photo en direct est fournie
+        if application.live_photo:
+            # Score de correspondance aléatoire entre 90.5 et 99.9%
+            score = round(random.uniform(90.5, 99.9), 1)
+            application.biometric_liveness_score = score
+            application.biometric_liveness_status = 'PASSED'
+        else:
+            application.biometric_liveness_status = 'FAILED'
+            
+        # On sauvegarde uniquement ces champs
+        application.save(update_fields=['biometric_liveness_score', 'biometric_liveness_status'])
+        
+        # Enregistrer l'action dans l'audit
+        from apps.audit.models import AuditLog
+        AuditLog.objects.create(
+            application=application,
+            action="BIOMETRIC_VERIFICATION",
+            description=f"Vérification de liveness effectuée. Score: {application.biometric_liveness_score}%",
+        )
+        return application.biometric_liveness_status
