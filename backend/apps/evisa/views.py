@@ -361,7 +361,6 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         
         curr_y -= draw_field("Type de Visa / Visa Type", evisa.application.visa_type.name, 60, curr_y)
         curr_y -= draw_field("Entrées / Entries", "MULTIPLE", 60, curr_y)
-        
         # Dates side by side
         p.setFont("Helvetica-Bold", 8)
         p.setFillColor(TEXT_MUTED)
@@ -374,43 +373,44 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
 
         # ── FOOTER NOTICE ──
         p.setFillColor(HexColor("#F8FAFC"))
-        p.rect(50, 60, width - 100, 100, fill=1, stroke=0)
+        p.rect(50, 50, width - 100, 140, fill=1, stroke=0)
         p.setFillColor(TEXT_MUTED)
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(65, 140, "Avis Important :")
+        p.drawString(65, 175, "Avis Important :")
         
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.platypus import Paragraph
         styles = getSampleStyleSheet()
         style = styles["Normal"]
         style.fontSize = 8
-        style.leading = 10
+        style.leading = 11
         style.alignment = 4 # Justify
         style.textColor = TEXT_MUTED
         
         notice_text = "Ce document est un laissez-passer électronique généré par le système d'Information de la DGSN du Cameroun. Vous devez l'imprimer et le présenter accompagné du passeport physique enregistré lors de votre contrôle aux frontières. Toute tentative de falsification entraînera des poursuites selon les lois en vigueur. <i>This document is a computer-generated electronic pass by the DGSN Information System of Cameroon. You must print it and present it along with the physical passport registered during your border control. Any attempt to forge this document will result in prosecution under applicable laws.</i>"
         
         p_notice = Paragraph(notice_text, style)
-        p_notice.wrapOn(p, width - 130, 80)
-        p_notice.drawOn(p, 65, 110)
+        p_notice.wrapOn(p, width - 130, 90)
+        p_notice.drawOn(p, 65, 115)
 
         # ── SIGNATURE NUMÉRIQUE (Authentification Digitale) ──
         p.setDash(1, 2)
         p.setStrokeColor(TEXT_MUTED)
-        p.line(50, 95, width - 50, 95)
+        p.line(50, 102, width - 50, 102)
         p.setDash([])
         
         p.setFont("Helvetica-Bold", 7)
         p.setFillColor(CM_GREEN)
-        p.drawString(65, 85, "SCELLÉ NUMÉRIQUE D'AUTHENTIFICATION — DGSN CAMEROUN")
+        p.drawString(65, 90, "SCELLÉ NUMÉRIQUE D'AUTHENTIFICATION — DGSN CAMEROUN")
         
         p.setFont("Courier", 6)
         p.setFillColor(TEXT_MUTED)
         # Génération d'une empreinte unique basée sur les données du visa et la clé secrète du serveur
         sig_data = f"{evisa.visa_number}|{evisa.application.passport_number}|{settings.SECRET_KEY}"
         signature_hash = hashlib.sha256(sig_data.encode()).hexdigest()
-        p.drawString(65, 75, f"ID Signature : {signature_hash}")
+        p.drawString(65, 78, f"ID Signature : {signature_hash}")
         p.drawString(65, 68, "Vérification possible sur : https://evisa-cameroun.vercel.app/verify")
+
 
         # ── WATERMARK ──
         p.saveState()
@@ -556,22 +556,33 @@ class PublicVerifyEVisaView(generics.GenericAPIView):
             
             evisa = EVisa.objects.filter(visa_number=visa_number).first()
             if not evisa:
-                return Response({'valid': False, 'message': 'Visa introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Visa introuvable.'}, status=status.HTTP_404_NOT_FOUND)
             
+            # Récupérer et masquer le numéro de passeport de façon sécurisée
+            raw_passport = evisa.application.get_decrypted_passport()
+            masked_passport = raw_passport
+            if len(raw_passport) > 4:
+                masked_passport = "P****" + raw_passport[-4:]
+            elif len(raw_passport) > 0:
+                masked_passport = "P****"
+
             return Response({
-                'valid': evisa.is_valid,
-                'status': 'VALID' if evisa.is_valid else 'INVALID',
-                'applicant': evisa.application.full_name,
-                'visa_type': evisa.application.visa_type.name,
-                'expiry_date': evisa.expiry_date,
-                'is_revoked': evisa.is_revoked
+                'data': {
+                    'applicant_name': evisa.application.full_name,
+                    'nationality': evisa.application.nationality or "N/A",
+                    'passport_number': masked_passport,
+                    'visa_number': evisa.visa_number,
+                    'visa_type': evisa.application.visa_type.name,
+                    'expiry_date': evisa.expiry_date,
+                    'is_valid': evisa.is_valid and not evisa.is_revoked
+                }
             })
             
         except BadSignature:
             return Response({
-                'valid': False,
-                'message': 'Signature invalide. Ce document a été falsifié.'
+                'error': 'Signature invalide. Ce document a été falsifié.'
             }, status=status.HTTP_403_FORBIDDEN)
+
 
 
 class BorderCrossingViewSet(viewsets.ModelViewSet):

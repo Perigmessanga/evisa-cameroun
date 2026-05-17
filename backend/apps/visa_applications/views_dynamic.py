@@ -264,6 +264,22 @@ class BorderVerificationView(APIView):
             return api_response(message="Veuillez fournir un numéro ou un scan QR", status_code=status.HTTP_400_BAD_REQUEST)
             
         try:
+            # Extraction intelligente si c'est une URL de vérification complète
+            if query.startswith('http://') or query.startswith('https://'):
+                from urllib.parse import urlparse, parse_qs
+                try:
+                    parsed_url = urlparse(query)
+                    params = parse_qs(parsed_url.query)
+                    token_val = params.get('token', [None])[0]
+                    if token_val:
+                        query = token_val.strip()
+                except Exception:
+                    pass
+
+            # Si c'est un token signé (contenant un deux-points), on extrait la partie gauche (numéro de visa)
+            if ':' in query:
+                query = query.split(':')[0].strip()
+
             # Recherche robuste (iexact)
             application = VisaApplication.objects.filter(
                 Q(application_number__iexact=query) | 
@@ -273,6 +289,7 @@ class BorderVerificationView(APIView):
             
             if not application:
                 return api_response(message="Visa ou Demande introuvable", status_code=status.HTTP_404_NOT_FOUND)
+
                 
             # Vérifier si l'e-visa existe
             evisa_obj = getattr(application, 'evisa', None)

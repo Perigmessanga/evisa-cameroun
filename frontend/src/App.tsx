@@ -125,6 +125,7 @@ export default function App() {
         <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
         <Route path="/conditions-generales" element={<ConditionsGeneralesPage />} />
         <Route path="/public-verify" element={<PublicVerificationPage />} />
+        <Route path="/verify" element={<PublicVerificationPage />} />
         
         {/* ── AUTH ROUTES ── */}
         <Route path="/auth">
