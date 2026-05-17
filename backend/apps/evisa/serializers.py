@@ -54,7 +54,10 @@ class EVisaSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.application.live_photo.url)
-            return obj.application.live_photo.url
+            # pyrefly: ignore [missing-import]
+            from django.conf import settings
+            base_url = getattr(settings, 'BASE_BACKEND_URL', 'https://charles237.pythonanywhere.com')
+            return f"{base_url.rstrip('/')}{obj.application.live_photo.url}"
         return None
 
     def get_passport_photo(self, obj):
@@ -63,8 +66,12 @@ class EVisaSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(photo_doc.file.url)
-            return photo_doc.file.url
+            # pyrefly: ignore [missing-import]
+            from django.conf import settings
+            base_url = getattr(settings, 'BASE_BACKEND_URL', 'https://charles237.pythonanywhere.com')
+            return f"{base_url.rstrip('/')}{photo_doc.file.url}"
         return None
+
 
 
 class SystemSettingSerializer(serializers.ModelSerializer):

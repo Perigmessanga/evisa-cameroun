@@ -90,8 +90,13 @@ export default function PublicVerificationPage() {
               
               <div className="flex items-start gap-6 border-b border-cm-border pb-8">
                  <div className="w-24 h-32 bg-cm-cream rounded-xl border border-cm-border flex items-center justify-center overflow-hidden shrink-0">
-                    <User size={40} className="text-cm-muted/30" />
+                    {result.passport_photo ? (
+                      <img src={result.passport_photo} alt="Photo" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={40} className="text-cm-muted/30" />
+                    )}
                  </div>
+
                  <div className="flex-1">
                     <div className="text-xs font-bold text-cm-muted uppercase tracking-wider mb-1">Titulaire du Visa</div>
                     <div className="text-xl font-display font-bold text-cm-text uppercase leading-tight mb-2">

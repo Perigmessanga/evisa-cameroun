@@ -530,13 +530,6 @@ class VerifyEVisaView(generics.GenericAPIView):
                 'message': 'e-Visa introuvable. Veuillez vérifier le numéro ou le scan.'
             }, status=status.HTTP_404_NOT_FOUND)
             
-        return Response({
-            'valid': evisa.is_valid,
-            'message': 'Visa valide' if evisa.is_valid else 'Visa expiré ou révoqué',
-            'evisa': EVisaSerializer(evisa).data
-        })
-
-
 class PublicVerifyEVisaView(generics.GenericAPIView):
     """
     Vérification publique via QR Token signé (Point 6).
@@ -566,6 +559,13 @@ class PublicVerifyEVisaView(generics.GenericAPIView):
             elif len(raw_passport) > 0:
                 masked_passport = "P****"
 
+            photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
+            passport_photo_url = None
+            if photo_doc and photo_doc.file:
+                from django.conf import settings
+                base_url = getattr(settings, 'BASE_BACKEND_URL', 'https://charles237.pythonanywhere.com')
+                passport_photo_url = f"{base_url.rstrip('/')}{photo_doc.file.url}"
+
             return Response({
                 'data': {
                     'applicant_name': evisa.application.full_name,
@@ -574,7 +574,8 @@ class PublicVerifyEVisaView(generics.GenericAPIView):
                     'visa_number': evisa.visa_number,
                     'visa_type': evisa.application.visa_type.name,
                     'expiry_date': evisa.expiry_date,
-                    'is_valid': evisa.is_valid and not evisa.is_revoked
+                    'is_valid': evisa.is_valid and not evisa.is_revoked,
+                    'passport_photo': passport_photo_url
                 }
             })
             
@@ -582,6 +583,7 @@ class PublicVerifyEVisaView(generics.GenericAPIView):
             return Response({
                 'error': 'Signature invalide. Ce document a été falsifié.'
             }, status=status.HTTP_403_FORBIDDEN)
+
 
 
 
