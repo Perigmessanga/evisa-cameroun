@@ -162,6 +162,27 @@ const adminService = {
   getBorderTracking: async () => {
     const response = await api.get('/../border-crossings/tracking/');
     return extractList(response.data);
+  },
+
+  // ── Actions de Traçabilité & Sécurité des Visas ──
+  getAuditLogsForApplication: async (applicationId: string) => {
+    const response = await api.get(`/audit-logs/?application_id=${applicationId}`);
+    return extractList(response.data);
+  },
+
+  reassignApplicationAgent: async (applicationId: string, agentId: string) => {
+    const response = await api.post(`/visa_applications/applications/${applicationId}/assign_agent/`, { agent_id: agentId });
+    return response.data;
+  },
+
+  addToWatchlist: async (data: { full_name: string; passport_number: string; nationality: string; risk_level: string; reason: string }) => {
+    const response = await api.post('/national-watchlist/', data);
+    return response.data;
+  },
+
+  revokeEVisa: async (evisaId: string, reason: string) => {
+    const response = await api.post(`/evisas/${evisaId}/revoke/`, { revocation_reason: reason });
+    return response.data;
   }
 };
 
