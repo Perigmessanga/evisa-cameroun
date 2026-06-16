@@ -293,21 +293,26 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p.rect(*photo_rect)
         
         photo_file = None
-        # Priorité : Photo biométrique (webcam face_image) > ID Photo (document PHOTO) > passport_photo (biométrique) > live_photo (webcam app) > PASSPORT doc (en dernier recours)
-        if hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.face_image:
-            photo_file = evisa.application.biometric_data.face_image
+        # Priorité : ID Photo (document PHOTO) > passport_photo (biométrique) > Photo biométrique (webcam face_image) > live_photo (webcam app) > PASSPORT doc (en dernier recours)
+        
+        # 1. Document officiel PHOTO
+        photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
+        if photo_doc and photo_doc.file:
+            photo_file = photo_doc.file
             
-        if not photo_file:
-            photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
-            if photo_doc and photo_doc.file:
-                photo_file = photo_doc.file
-                
+        # 2. Photo d'identité de type passeport téléversée à l'étape biométrique
         if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.passport_photo:
             photo_file = evisa.application.biometric_data.passport_photo
             
+        # 3. Capture webcam en direct (face_image)
+        if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.face_image:
+            photo_file = evisa.application.biometric_data.face_image
+            
+        # 4. Autre photo webcam en direct (live_photo)
         if not photo_file and evisa.application.live_photo:
             photo_file = evisa.application.live_photo
             
+        # 5. Scan du passeport (dernier recours)
         if not photo_file:
             passport_doc = evisa.application.documents.filter(document_type='PASSPORT').first()
             if passport_doc and passport_doc.file:
