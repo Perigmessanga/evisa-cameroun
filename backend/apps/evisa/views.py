@@ -293,19 +293,21 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p.rect(*photo_rect)
         
         photo_file = None
-        # Priorité : ID Photo (document PHOTO) > passport_photo (biométrique) > Photo biométrique (webcam face_image) > live_photo (webcam app) > PASSPORT doc (en dernier recours)
+        # Priorité absolue : Photo d'identité de type passeport téléversée à l'étape biométrique (passport_photo, sous la webcam)
+        # Ensuite : Document officiel PHOTO > Capture webcam face_image > Autre photo webcam live_photo > Scan du passeport (PASSPORT) en dernier recours
         
-        # 1. Document officiel PHOTO
-        photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
-        if photo_doc and photo_doc.file:
-            photo_file = photo_doc.file
-            
-        # 2. Photo d'identité de type passeport téléversée à l'étape biométrique
-        if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.passport_photo:
+        # 1. Photo d'identité de type passeport téléversée à l'étape biométrique
+        if hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data and evisa.application.biometric_data.passport_photo:
             photo_file = evisa.application.biometric_data.passport_photo
             
+        # 2. Document officiel PHOTO
+        if not photo_file:
+            photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
+            if photo_doc and photo_doc.file:
+                photo_file = photo_doc.file
+            
         # 3. Capture webcam en direct (face_image)
-        if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.face_image:
+        if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data and evisa.application.biometric_data.face_image:
             photo_file = evisa.application.biometric_data.face_image
             
         # 4. Autre photo webcam en direct (live_photo)

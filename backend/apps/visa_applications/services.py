@@ -34,9 +34,11 @@ class EVisaService:
 
         # Générer le numéro de visa unique
         year = timezone.now().year
-        # Utilisation de select_for_update pour éviter les race conditions sur le compteur
         count = EVisa.objects.filter(created_at__year=year).count() + 1
         visa_number = f"CM-VISA-{year}-{count:06d}"
+        while EVisa.objects.filter(visa_number=visa_number).exists():
+            count += 1
+            visa_number = f"CM-VISA-{year}-{count:06d}"
 
         # Générer le QR Code
         qr_data = self._build_qr_data(visa_number, application)

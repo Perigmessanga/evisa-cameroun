@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
+    'anymail',
     # 'sslserver',
 
     # Applications locales
@@ -252,17 +253,22 @@ CSRF_TRUSTED_ORIGINS = [
 # ─────────────────────────────────────────
 # EMAIL
 # ─────────────────────────────────────────
-# EMAIL
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
 
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+if SENDGRID_API_KEY and SENDGRID_API_KEY != 'your_sendgrid_api_key_here':
+    ANYMAIL = {
+        "SENDGRID_API_KEY": SENDGRID_API_KEY,
+    }
+    EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=config('EMAIL_HOST_USER', default='no-reply@evisa.cm'))
 
 
 

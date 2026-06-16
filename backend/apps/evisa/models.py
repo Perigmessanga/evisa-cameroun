@@ -85,7 +85,11 @@ class EVisa(models.Model):
             count = EVisa.objects.filter(
                 created_at__year=year
             ).count() + 1
-            self.visa_number = f"CM-VISA-{year}-{count:06d}"
+            visa_number = f"CM-VISA-{year}-{count:06d}"
+            while EVisa.objects.filter(visa_number=visa_number).exists():
+                count += 1
+                visa_number = f"CM-VISA-{year}-{count:06d}"
+            self.visa_number = visa_number
         super().save(*args, **kwargs)
 
     @property
