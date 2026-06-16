@@ -227,11 +227,11 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         TEXT_DARK = HexColor("#1A1F16")
         TEXT_MUTED = HexColor("#64748B")
         
-        # ── BARRE DE COULEUR TOP (Gradiant simulation) ──
+        # ── BARRE DE COULEUR TOP (Drapeau du Cameroun : Vert, Rouge, Jaune) ──
         p.setLineWidth(0)
-        p.setFillColor(HexColor("#DCFCE7")) # Green Pale
-        p.rect(0, height - 12, width/3, 12, fill=1)
         p.setFillColor(CM_GREEN)
+        p.rect(0, height - 12, width/3, 12, fill=1)
+        p.setFillColor(CM_RED)
         p.rect(width/3, height - 12, width/3, 12, fill=1)
         p.setFillColor(CM_GOLD)
         p.rect(2*width/3, height - 12, width/3, 12, fill=1)
@@ -293,20 +293,32 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         p.rect(*photo_rect)
         
         photo_file = None
-        # Priorité : Documents uploadés (PHOTO, puis PASSPORT) > passport_photo (biométrique) > face_image (webcam)
-        photo_doc = evisa.application.documents.filter(document_type__in=['PHOTO', 'PASSPORT']).first()
-        if photo_doc and photo_doc.file:
-            photo_file = photo_doc.file
-        
-        if not photo_file and hasattr(evisa.application, 'biometric_data'):
-            bio = evisa.application.biometric_data
-            if bio.passport_photo: photo_file = bio.passport_photo
-            elif bio.face_image: photo_file = bio.face_image
+        # Priorité : Photo biométrique (webcam face_image) > ID Photo (document PHOTO) > passport_photo (biométrique) > live_photo (webcam app) > PASSPORT doc (en dernier recours)
+        if hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.face_image:
+            photo_file = evisa.application.biometric_data.face_image
+            
+        if not photo_file:
+            photo_doc = evisa.application.documents.filter(document_type='PHOTO').first()
+            if photo_doc and photo_doc.file:
+                photo_file = photo_doc.file
+                
+        if not photo_file and hasattr(evisa.application, 'biometric_data') and evisa.application.biometric_data.passport_photo:
+            photo_file = evisa.application.biometric_data.passport_photo
+            
+        if not photo_file and evisa.application.live_photo:
+            photo_file = evisa.application.live_photo
+            
+        if not photo_file:
+            passport_doc = evisa.application.documents.filter(document_type='PASSPORT').first()
+            if passport_doc and passport_doc.file:
+                photo_file = passport_doc.file
 
         if photo_file:
             try:
-                # On ouvre le fichier en mode binaire pour reportlab
+                # Forcer la lecture depuis le début du fichier
+                photo_file.open('rb')
                 img_data = io.BytesIO(photo_file.read())
+                photo_file.close()
                 p.drawImage(ImageReader(img_data), photo_rect[0]+2, photo_rect[1]+2, width=photo_rect[2]-4, height=photo_rect[3]-4, preserveAspectRatio=True)
             except Exception as e:
                 p.drawCentredString(photo_rect[0]+55, photo_rect[1]+60, "PHOTO")
@@ -353,7 +365,14 @@ class EVisaViewSet(viewsets.ReadOnlyModelViewSet):
         curr_y = y_pos
         curr_y -= draw_field("Nom / Surname", evisa.application.full_name.split()[-1] if evisa.application.full_name else "---", 60, curr_y)
         curr_y -= draw_field("Prénoms / Given Names", " ".join(evisa.application.full_name.split()[:-1]) if evisa.application.full_name else "---", 60, curr_y)
-        curr_y -= draw_field("Passeport / Passport N°", evisa.application.passport_number, 60, curr_y)
+        
+        try:
+            raw_passport = evisa.application.get_decrypted_passport()
+            masked_passport = "P****" + raw_passport[-4:] if (raw_passport and len(raw_passport) > 4) else "P****"
+        except Exception:
+            masked_passport = "P****"
+            
+        curr_y -= draw_field("Passeport / Passport N°", masked_passport, 60, curr_y)
         curr_y -= draw_field("Nationalité / Nationality", evisa.application.nationality, 60, curr_y)
         
         p.line(60, curr_y + 10, width/2 + 50, curr_y + 10)
@@ -718,6 +737,7 @@ class BorderCrossingViewSet(viewsets.ModelViewSet):
                 if not app:
                     continue
 
+                expected = None
                 if entry.crossing_type == 'DENIED':
                     status_label = 'REFUSE'
                 else:

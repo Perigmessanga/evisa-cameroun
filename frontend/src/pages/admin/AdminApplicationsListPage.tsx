@@ -3,8 +3,8 @@ import Badge from '../../components/common/Badge';
 import visaService from '../../services/visaService';
 import adminService from '../../services/adminService';
 import { VisaApplication } from '../../types';
-import { 
-  Search, Filter, ChevronRight, FileSearch, 
+import {
+  Search, Filter, ChevronRight, FileSearch,
   MapPin, Calendar, Loader2, UserCheck, User, Clock, ShieldAlert,
   X, AlertTriangle, ShieldCheck, CheckCircle2, UserPlus, RefreshCw, FileText
 } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function AdminApplicationsListPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  
+
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [watchlistReason, setWatchlistReason] = useState('');
@@ -64,7 +64,7 @@ export default function AdminApplicationsListPage() {
     const end = new Date(processedAt);
     const diffInMs = end.getTime() - start.getTime();
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       const diffInMins = Math.floor(diffInMs / (1000 * 60));
       return `${diffInMins} min`;
@@ -89,9 +89,9 @@ export default function AdminApplicationsListPage() {
   };
 
   const filteredApps = apps.filter(app => {
-    const matchesSearch = (app.application_number?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-                          (app.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                          (app.assigned_agent_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    const matchesSearch = (app.application_number?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (app.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (app.assigned_agent_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'ALL' || app.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -106,12 +106,12 @@ export default function AdminApplicationsListPage() {
     setWatchlistReason('');
     setRevocationReason('');
     setSelectedAgentId(app.assigned_agent || '');
-    
+
     try {
       // 1. Charger le dossier complet
       const detail = await visaService.getApplicationById(app.id);
       setFullApp(detail);
-      
+
       // 2. Charger le journal d'audit
       const logs = await adminService.getAuditLogsForApplication(app.id);
       setAuditLogs(logs);
@@ -129,7 +129,7 @@ export default function AdminApplicationsListPage() {
     try {
       await adminService.reassignApplicationAgent(selectedApp.id, selectedAgentId);
       toast.success('Officier instructeur réassigné avec succès.');
-      
+
       // Actualiser
       await fetchApps();
       const detail = await visaService.getApplicationById(selectedApp.id);
@@ -160,7 +160,7 @@ export default function AdminApplicationsListPage() {
       });
       toast.success(`${selectedApp.full_name} a été ajouté à la Watchlist nationale.`);
       setWatchlistReason('');
-      
+
       // Actualiser
       const logs = await adminService.getAuditLogsForApplication(selectedApp.id);
       setAuditLogs(logs);
@@ -189,7 +189,7 @@ export default function AdminApplicationsListPage() {
       await adminService.revokeEVisa(fullApp.evisa.id, revocationReason);
       toast.success('e-Visa révoqué définitivement avec succès.');
       setRevocationReason('');
-      
+
       // Actualiser
       await fetchApps();
       const detail = await visaService.getApplicationById(selectedApp!.id);
@@ -206,7 +206,7 @@ export default function AdminApplicationsListPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      
+
       {/* ── HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -220,9 +220,9 @@ export default function AdminApplicationsListPage() {
       {/* ── FILTERS & SEARCH ── */}
       <div className="bg-white p-5 rounded-2xl border border-cm-border shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="relative w-full md:w-96">
-          <input 
-            type="text" 
-            placeholder="Rechercher par N° dossier, Demandeur, Agent..." 
+          <input
+            type="text"
+            placeholder="Rechercher par N° dossier, Demandeur, Agent..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-cm-cream/30 border border-cm-border rounded-xl text-sm focus:border-cm-gold outline-none transition-all"
@@ -232,7 +232,7 @@ export default function AdminApplicationsListPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <Filter size={16} className="text-cm-muted" />
-          <select 
+          <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="flex-1 md:flex-none pl-3 pr-8 py-2 bg-cm-cream/30 border border-cm-border rounded-xl text-sm font-semibold outline-none focus:border-cm-gold"
@@ -299,13 +299,13 @@ export default function AdminApplicationsListPage() {
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                       {app.embassy_opinion && app.embassy_opinion !== 'NONE' ? (
-                          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold ${app.embassy_opinion === 'FAVORABLE' ? 'bg-cm-green-pale/30 text-cm-green-mid' : 'bg-cm-red/10 text-cm-red'}`}>
-                             {app.embassy_opinion === 'FAVORABLE' ? 'FAVORABLE ✅' : 'DÉFAVORABLE ❌'}
-                          </div>
-                       ) : (
-                          <span className="text-[10px] text-cm-muted italic bg-cm-cream px-2 py-1 rounded font-medium">Aucun avis</span>
-                       )}
+                      {app.embassy_opinion && app.embassy_opinion !== 'NONE' ? (
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold ${app.embassy_opinion === 'FAVORABLE' ? 'bg-cm-green-pale/30 text-cm-green-mid' : 'bg-cm-red/10 text-cm-red'}`}>
+                          {app.embassy_opinion === 'FAVORABLE' ? 'FAVORABLE ✅' : 'DÉFAVORABLE ❌'}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-cm-muted italic bg-cm-cream px-2 py-1 rounded font-medium">Aucun avis</span>
+                      )}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2 text-cm-text font-medium">
@@ -314,7 +314,7 @@ export default function AdminApplicationsListPage() {
                       </div>
                       {app.processing_type === 'EXPRESS' && (
                         <div className="mt-1 text-[9px] font-bold text-cm-red uppercase tracking-widest flex items-center gap-1">
-                           <ShieldAlert size={10} /> Priorité Express
+                          <ShieldAlert size={10} /> Priorité Express
                         </div>
                       )}
                     </td>
@@ -322,7 +322,7 @@ export default function AdminApplicationsListPage() {
                       {getStatusBadge(app.status)}
                     </td>
                     <td className="p-4 text-right">
-                      <button 
+                      <button
                         onClick={() => handleOpenDrawer(app)}
                         className="p-2 text-cm-muted hover:text-cm-gold hover:bg-cm-gold/10 rounded-lg transition-all inline-block cursor-pointer"
                       >
@@ -346,22 +346,22 @@ export default function AdminApplicationsListPage() {
         <div className="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
           <div className="absolute inset-0 overflow-hidden">
             {/* Dark Overlay */}
-            <div 
-              className="absolute inset-0 bg-gray-600/50 backdrop-blur-xs transition-opacity duration-300 ease-in-out" 
+            <div
+              className="absolute inset-0 bg-gray-600/50 backdrop-blur-xs transition-opacity duration-300 ease-in-out"
               onClick={() => setDrawerOpen(false)}
             />
 
             {/* Sliding Container */}
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
               <div className="pointer-events-auto w-screen max-w-2xl transform bg-white shadow-2xl transition-all duration-300 ease-in-out flex flex-col h-full">
-                
+
                 {/* Drawer Header */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                   <div>
                     <span className="text-[10px] font-bold tracking-widest text-cm-gold uppercase">Gouvernance & Sécurité e-Visa</span>
                     <h2 className="text-xl font-display font-bold text-cm-text mt-1">{selectedApp.application_number}</h2>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setDrawerOpen(false)}
                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all cursor-pointer"
                   >
@@ -371,11 +371,11 @@ export default function AdminApplicationsListPage() {
 
                 {/* Drawer Body (Scrollable) */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  
+
                   {/* 1. Résumé du Voyageur */}
                   <div className="bg-cm-cream/10 border border-cm-border p-4 rounded-xl space-y-4">
                     <h3 className="text-xs font-bold text-cm-text uppercase tracking-wider flex items-center gap-1.5 border-b border-cm-border/50 pb-2">
-                       <User size={14} className="text-cm-gold" /> Profil Voyageur & Dossier
+                      <User size={14} className="text-cm-gold" /> Profil Voyageur & Dossier
                     </h3>
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
@@ -400,9 +400,9 @@ export default function AdminApplicationsListPage() {
                   {/* 2. Journal d'Audit & Traçabilité (Audit Trail) */}
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold text-cm-text uppercase tracking-wider flex items-center gap-1.5 border-b border-gray-100 pb-2">
-                       <Clock size={14} className="text-cm-gold" /> Journal d'Audit & Traçabilité
+                      <Clock size={14} className="text-cm-gold" /> Journal d'Audit & Traçabilité
                     </h3>
-                    
+
                     {logsLoading ? (
                       <div className="flex items-center justify-center py-10 text-xs text-cm-muted">
                         <Loader2 className="animate-spin text-cm-gold mr-2" size={16} /> Chargement des logs d'audit...
@@ -438,8 +438,8 @@ export default function AdminApplicationsListPage() {
 
                   {/* 3. Panel de Contrôle & Sécurité */}
                   <div className="space-y-6 pt-4 border-t border-gray-100">
-                    <h3 className="text-xs font-bold text-cm-text uppercase tracking-wider flex items-center gap-1.5 pb-2 text-red-700">
-                       <ShieldAlert size={14} /> Actions de Haute Sécurité
+                    <h3 className="text-xs font-bold text-cm-text uppercase tracking-wider flex items-center gap-1.5 pb-2">
+                      <ShieldAlert size={14} /> Actions de Haute Sécurité
                     </h3>
 
                     {/* ACTION A: Réassignation d'Agent */}
@@ -449,7 +449,7 @@ export default function AdminApplicationsListPage() {
                         Transférez l'instruction de cette demande à un autre agent d'immigration actif en cas d'urgence ou d'absence.
                       </p>
                       <div className="flex gap-2">
-                        <select 
+                        <select
                           value={selectedAgentId}
                           onChange={(e) => setSelectedAgentId(e.target.value)}
                           className="flex-1 bg-white border border-gray-200 rounded-lg text-xs p-2 outline-none focus:border-cm-gold"
@@ -474,7 +474,7 @@ export default function AdminApplicationsListPage() {
 
                     {/* ACTION B: Watchlist Flag */}
                     <div className="bg-yellow-50/50 p-4 rounded-xl border border-yellow-100 space-y-3">
-                      <label className="block text-xs font-bold text-yellow-800 uppercase flex items-center gap-1">
+                      <label className="block text-xs font-bold text-yellow-800 uppercase items-center gap-1">
                         <AlertTriangle size={14} className="text-yellow-700" /> Signaler à la Liste de Surveillance (Watchlist)
                       </label>
                       <p className="text-[11px] text-yellow-700 leading-relaxed">
@@ -483,22 +483,22 @@ export default function AdminApplicationsListPage() {
                       <div className="space-y-3">
                         <div className="flex gap-4">
                           <label className="flex items-center gap-1 text-[11px] font-semibold text-yellow-800">
-                            <input 
-                              type="radio" 
-                              name="watchlistRisk" 
-                              value="MEDIUM" 
-                              checked={watchlistRisk === 'MEDIUM'} 
-                              onChange={() => setWatchlistRisk('MEDIUM')} 
+                            <input
+                              type="radio"
+                              name="watchlistRisk"
+                              value="MEDIUM"
+                              checked={watchlistRisk === 'MEDIUM'}
+                              onChange={() => setWatchlistRisk('MEDIUM')}
                             />
                             Risque Moyen
                           </label>
                           <label className="flex items-center gap-1 text-[11px] font-semibold text-red-800">
-                            <input 
-                              type="radio" 
-                              name="watchlistRisk" 
-                              value="HIGH" 
-                              checked={watchlistRisk === 'HIGH'} 
-                              onChange={() => setWatchlistRisk('HIGH')} 
+                            <input
+                              type="radio"
+                              name="watchlistRisk"
+                              value="HIGH"
+                              checked={watchlistRisk === 'HIGH'}
+                              onChange={() => setWatchlistRisk('HIGH')}
                             />
                             Risque Critique / Interdiction
                           </label>
@@ -523,16 +523,16 @@ export default function AdminApplicationsListPage() {
                     {/* ACTION C: Revoke Approved Visa */}
                     {selectedApp.status === 'APPROVED' && (
                       <div className="bg-red-50 p-4 rounded-xl border border-red-100 space-y-3">
-                        <label className="block text-xs font-bold text-red-800 uppercase flex items-center gap-1">
+                        <label className="block text-xs font-bold text-red-800 uppercase items-center gap-1">
                           <ShieldAlert size={14} className="text-red-700" /> Révocation Définitive du Visa
                         </label>
                         <p className="text-[11px] text-red-700 leading-relaxed">
                           Annule de façon irréversible ce visa. Les signatures cryptographiques et le QR Code seront instantanément invalidés.
                         </p>
-                        
+
                         {fullApp?.evisa?.is_revoked ? (
                           <div className="p-3 bg-red-100/50 text-red-800 rounded-lg font-bold text-center text-xs">
-                             ⚠️ Cet e-Visa est DÉJÀ RÉVOQUÉ.
+                            ⚠️ Cet e-Visa est DÉJÀ RÉVOQUÉ.
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -561,7 +561,7 @@ export default function AdminApplicationsListPage() {
 
                 {/* Drawer Footer */}
                 <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
-                  <button 
+                  <button
                     onClick={() => setDrawerOpen(false)}
                     className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition-all cursor-pointer"
                   >

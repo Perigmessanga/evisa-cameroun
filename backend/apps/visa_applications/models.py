@@ -60,6 +60,7 @@ class DocumentType(models.TextChoices):
     WORK_CONTRACT        = 'WORK_CONTRACT',        'Contrat de travail'
     PROFESSION_AUTH      = 'PROFESSION_AUTH',      'Autorisation d\'exercer / Promouvoir'
     FAMILY_ACT           = 'FAMILY_ACT',           'Acte de mariage / Parental'
+    INVITATION_LETTER    = 'INVITATION_LETTER',    'Lettre d\'invitation'
     VERBAL_NOTE          = 'VERBAL_NOTE',          'Note verbale'
     IDENTITY_CARD        = 'IDENTITY_CARD',        'Carte Nationale d\'Identité'
     EXTENSION_PROOF      = 'EXTENSION_PROOF',      'Justificatif de prorogation'

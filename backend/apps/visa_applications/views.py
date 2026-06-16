@@ -155,7 +155,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def unmask_passport(self, request, pk=None):
+    def unmask_passport(self, request, id=None):
         """
         Démasque le numéro de passeport pour un agent et enregistre l'action dans l'audit.
         (Cybersecurity - Data Masking & Audit Trail)
@@ -443,7 +443,7 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def update_status(self, request, pk=None):
+    def update_status(self, request, id=None):
         """
         Changer le statut d'une demande (agents/admin uniquement).
         POST /api/visa-applications/{id}/update-status/

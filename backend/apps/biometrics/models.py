@@ -15,7 +15,10 @@ from evisa_backend.utils import api_response
 
 # ─── MODÈLE ───────────────────────────────────────────────────────
 def biometric_upload_path(instance, filename):
-    return f'biometrics/{instance.application_id}/{filename}'
+    import time
+    timestamp = int(time.time())
+    name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, 'jpg')
+    return f'biometrics/{instance.application_id}/{name}_{timestamp}.{ext}'
 
 
 class BiometricData(models.Model):
