@@ -117,62 +117,90 @@ import django
 django.setup()
 
 from django.conf import settings
-from apps.users.models import User
+from django.db import connections
 
-# Affichage des informations de la base de données configurée
-db_config = settings.DATABASES.get('default', {})
-db_engine = db_config.get('ENGINE', '')
-db_name = db_config.get('NAME', '')
-db_host = db_config.get('HOST', 'localhost')
-db_user = db_config.get('USER', '')
-
-print("\n--- CONFIGURATION DE LA BASE DE DONNÉES DJANGO ACTIVE ---")
-print(f"Moteur (Engine) : {db_engine}")
-print(f"Base de données (Name) : {db_name}")
-print(f"Hôte (Host)     : {db_host}")
-print(f"Utilisateur     : {db_user}")
-print("--------------------------------------------------------\n")
-
-print("--- LISTE DE TOUS LES UTILISATEURS ACTUELS ---")
-all_users = User.objects.all()
-print(f"Nombre total d'utilisateurs : {all_users.count()}")
-for u in all_users:
-    print(f"ID: {u.id} | Email: {u.email} | Rôle: {u.role} | Actif: {u.is_active}")
-print("----------------------------------------------\n")
-
-print("--- RECHERCHE ET PURGE DYNAMIQUE ---")
 # Mots-clés à rechercher dans l'adresse email
 keywords = ['messangacharles@icloud.com', 'messangaperig3@gmail.com', 'messanga', 'charles', 'perig']
-found_any = False
 
-for keyword in keywords:
-    users = User.objects.filter(email__icontains=keyword)
-    if users.exists():
-        found_any = True
-        for user in users:
-            # Ne pas supprimer l'administrateur par défaut s'il s'appelle messanga/charles/perig
-            if user.role == 'ADMIN' and user.email == 'admin@test.com':
-                print(f"[SKIP] Administrateur principal ignoré : {user.email}")
-                continue
-            print(f"[-] Suppression de l'utilisateur : {user.email} (Rôle: {user.role}, ID: {user.id})")
-            try:
-                user.delete()
-                print(f"[OK] Purge réussie pour {user.email}")
-            except Exception as delete_error:
-                print(f"[ERREUR] Échec de suppression de {user.email} : {delete_error}")
-                print("[INFO] Tentative de suppression forcée des relations...")
-                # Supprimer les demandes de visa liées d'abord
-                from apps.visa_applications.models import VisaApplication
-                apps = VisaApplication.objects.filter(applicant=user)
-                print(f"  -> Suppression de {apps.count()} demandes de visa liées.")
-                apps.delete()
-                # Réessayer la suppression de l'utilisateur
-                try:
-                    user.delete()
-                    print(f"[OK] Purge réussie pour {user.email} après suppression des relations.")
-                except Exception as retry_error:
-                    print(f"[ERREUR CRITIQUE] Impossible de supprimer {user.email} même après forçage : {retry_error}")
+# Liste des bases de données à traiter
+db_targets = []
 
-if not found_any:
-    print("[INFO] Aucun utilisateur correspondant aux mots-clés n'a été trouvé.")
-print("--- FIN DE LA PURGE ---")
+# Vérification du type de base de données
+default_db = settings.DATABASES.get('default', {})
+if default_db.get('ENGINE') == 'django.db.backends.sqlite3':
+    print("\n--- RECHERCHE DYNAMIQUE DE TOUTES LES BASES SQLITE ---")
+    user_home = os.path.expanduser('~')
+    # Parcourir récursivement pour trouver tous les fichiers db.sqlite3
+    for root, dirs, files in os.walk(user_home):
+        # Éviter de scanner des dossiers non pertinents pour optimiser la vitesse
+        dirs[:] = [d for d in dirs if d not in ['.git', '.venv', 'venv', 'node_modules', '.cache', 'tmp', '__pycache__']]
+        for file in files:
+            if file == 'db.sqlite3':
+                db_targets.append(os.path.join(root, file))
+    
+    # S'assurer que le db.sqlite3 par défaut de la configuration est bien présent
+    default_sqlite_path = str(default_db.get('NAME'))
+    if default_sqlite_path not in db_targets:
+        db_targets.append(default_sqlite_path)
+    
+    print(f"[INFO] {len(db_targets)} fichier(s) SQLite identifié(s) : {db_targets}")
+else:
+    # Si MySQL ou un autre moteur est actif par défaut
+    db_targets = [None]
+    print("[INFO] Moteur de base de données MySQL ou autre actif par défaut. Traitement unique.")
+
+# Traitement de chaque base de données identifiée
+for db_target in db_targets:
+    if db_target:
+        print(f"\n========================================================")
+        print(f"CONNEXION À LA BASE SQLITE : {db_target}")
+        print(f"========================================================")
+        # Modifier la config Django et forcer la reconnexion
+        settings.DATABASES['default']['NAME'] = db_target
+        connections.close_all()
+        connections['default'].settings_dict['NAME'] = db_target
+    else:
+        print(f"\n========================================================")
+        print(f"CONNEXION À LA BASE ACTIVE PAR DÉFAUT (MySQL/Production)")
+        print(f"========================================================")
+        
+    try:
+        from apps.users.models import User
+        all_users = User.objects.all()
+        print(f"Nombre total d'utilisateurs : {all_users.count()}")
+        for u in all_users:
+            print(f"ID: {u.id} | Email: {u.email} | Rôle: {u.role} | Actif: {u.is_active}")
+        print("----------------------------------------------\n")
+        
+        print("--- RECHERCHE ET PURGE DYNAMIQUE ---")
+        found_any = False
+        for keyword in keywords:
+            users = User.objects.filter(email__icontains=keyword)
+            if users.exists():
+                found_any = True
+                for user in users:
+                    if user.role == 'ADMIN' and user.email == 'admin@test.com':
+                        continue
+                    print(f"[-] Suppression de l'utilisateur : {user.email} (Rôle: {user.role}, ID: {user.id})")
+                    try:
+                        user.delete()
+                        print(f"[OK] Purge réussie pour {user.email}")
+                    except Exception as delete_error:
+                        print(f"[ERREUR] Échec de suppression de {user.email} : {delete_error}")
+                        print("[INFO] Tentative de suppression forcée des relations...")
+                        from apps.visa_applications.models import VisaApplication
+                        apps = VisaApplication.objects.filter(applicant=user)
+                        print(f"  -> Suppression de {apps.count()} demandes de visa liées.")
+                        apps.delete()
+                        try:
+                            user.delete()
+                            print(f"[OK] Purge réussie pour {user.email} après suppression des relations.")
+                        except Exception as retry_error:
+                            print(f"[ERREUR CRITIQUE] Impossible de supprimer {user.email} même après forçage : {retry_error}")
+        if not found_any:
+            print("[INFO] Aucun utilisateur correspondant aux mots-clés n'a été trouvé.")
+            
+    except Exception as db_err:
+        print(f"[ERREUR] Échec d'accès ou d'interrogation pour cette base de données : {db_err}")
+
+print("\n=== FIN DE LA PROCÉDURE DE PURGE ===")
