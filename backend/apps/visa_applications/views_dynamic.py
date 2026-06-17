@@ -283,16 +283,34 @@ class BorderVerificationView(APIView):
             # Recherche robuste (iexact)
             application = VisaApplication.objects.filter(
                 Q(application_number__iexact=query) | 
-                Q(evisa__visa_number__iexact=query) |
-                Q(passport_number__iexact=query)
+                Q(evisa__visa_number__iexact=query)
             ).first()
             
+            # Si non trouvé, on tente de décrypter en Python pour chercher par passeport physique en clair
+            if not application:
+                for app in VisaApplication.objects.exclude(passport_number=''):
+                    try:
+                        decrypted = app.get_decrypted_passport()
+                        if decrypted and decrypted.strip().upper() == query.upper():
+                            application = app
+                            break
+                    except Exception:
+                        pass
+
             if not application:
                 return api_response(message="Visa ou Demande introuvable", status_code=status.HTTP_404_NOT_FOUND)
 
-                
-            # Vérifier si l'e-visa existe
+            # Auto-healing : si la demande est approuvée mais l'e-visa est manquant, on le génère à la volée
             evisa_obj = getattr(application, 'evisa', None)
+            if application.status == 'APPROVED' and not evisa_obj:
+                try:
+                    from .services import EVisa_service
+                    evisa_obj = EVisa_service.generate_evisa(application)
+                    application.refresh_from_db()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Auto-generation e-visa failed in border check for {application.application_number}: {e}", exc_info=True)
             
             # Formater la réponse comme attendu par le frontend VerificationVisaPage.tsx
             return Response({

@@ -97,6 +97,10 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
                 query |= Q(nationality__in=country_variants)
             return base_qs.filter(query).exclude(status='DRAFT')
         
+        # Les agents frontières voient tout pour vérifier l'authenticité
+        elif user.is_border_agent:
+            return base_qs.all()
+        
         return base_qs.none()
 
     def retrieve(self, request, *args, **kwargs):
@@ -108,6 +112,18 @@ class VisaApplicationViewSet(viewsets.ModelViewSet):
            instance.status == 'DOCS_PROVIDED':
             instance.status = 'PENDING_DOCS'
             instance.save(update_fields=['status'])
+
+        # Auto-healing : si la demande est approuvée mais l'e-visa est manquant, on le génère à la volée
+        if instance.status == 'APPROVED' and not hasattr(instance, 'evisa'):
+            try:
+                from .services import EVisa_service
+                EVisa_service.generate_evisa(instance)
+                # Recharger l'instance depuis la DB pour inclure la relation evisa créée
+                instance.refresh_from_db()
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Auto-generation e-visa failed in retrieve for {instance.application_number}: {e}", exc_info=True)
             
         serializer = ApplicationDetailSerializer(instance, context={'request': request})
         return Response({'data': serializer.data})

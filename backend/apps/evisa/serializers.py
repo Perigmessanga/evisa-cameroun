@@ -22,10 +22,7 @@ class EVisaSerializer(serializers.ModelSerializer):
         source='application.nationality',
         read_only=True
     )
-    passport_number = serializers.CharField(
-        source='application.passport_number',
-        read_only=True
-    )
+    passport_number = serializers.SerializerMethodField()
     visa_type_name = serializers.CharField(
         source='application.visa_type.name',
         read_only=True
@@ -68,16 +65,47 @@ class EVisaSerializer(serializers.ModelSerializer):
         return self.get_passport_photo(obj)
 
 
+    def get_passport_number(self, obj):
+        decrypted = obj.application.get_decrypted_passport()
+        if decrypted and len(decrypted) > 4:
+            return f"P****{decrypted[-4:]}"
+        return "P****"
+
     def get_passport_photo(self, obj):
-        photo_doc = obj.application.documents.filter(document_type='PHOTO').first()
-        if photo_doc and photo_doc.file:
+        photo_file = None
+        # Même priorité que sur le PDF :
+        # 1. Photo d'identité de type passeport téléversée à l'étape biométrique
+        if hasattr(obj.application, 'biometric_data') and obj.application.biometric_data and obj.application.biometric_data.passport_photo:
+            photo_file = obj.application.biometric_data.passport_photo
+            
+        # 2. Document officiel PHOTO
+        if not photo_file:
+            photo_doc = obj.application.documents.filter(document_type='PHOTO').first()
+            if photo_doc and photo_doc.file:
+                photo_file = photo_doc.file
+
+        # 3. Capture webcam en direct (face_image)
+        if not photo_file and hasattr(obj.application, 'biometric_data') and obj.application.biometric_data and obj.application.biometric_data.face_image:
+            photo_file = obj.application.biometric_data.face_image
+            
+        # 4. Autre photo webcam en direct (live_photo)
+        if not photo_file and obj.application.live_photo:
+            photo_file = obj.application.live_photo
+
+        # 5. Scan du passeport (dernier recours)
+        if not photo_file:
+            passport_doc = obj.application.documents.filter(document_type='PASSPORT').first()
+            if passport_doc and passport_doc.file:
+                photo_file = passport_doc.file
+
+        if photo_file:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(photo_doc.file.url)
+                return request.build_absolute_uri(photo_file.url)
             # pyrefly: ignore [missing-import]
             from django.conf import settings
             base_url = getattr(settings, 'BASE_BACKEND_URL', 'https://charles237.pythonanywhere.com')
-            return f"{base_url.rstrip('/')}{photo_doc.file.url}"
+            return f"{base_url.rstrip('/')}{photo_file.url}"
         return None
 
 

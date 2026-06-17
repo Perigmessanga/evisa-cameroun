@@ -318,11 +318,25 @@ class VisaApplicationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # inclut les infos utilisateur
     visa_type = VisaTypeSerializer(read_only=True)
     documents = DocumentSerializer(many=True, read_only=True)
+    passport_number = serializers.SerializerMethodField()
+    national_id_number = serializers.SerializerMethodField()
 
     class Meta:
         model = VisaApplication
         fields = '__all__'  # ou liste de champs explicite
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_passport_number(self, obj):
+        decrypted = obj.get_decrypted_passport()
+        if decrypted and len(decrypted) > 4:
+            return f"P****{decrypted[-4:]}"
+        return "P****"
+
+    def get_national_id_number(self, obj):
+        decrypted = obj.get_decrypted_national_id()
+        if decrypted and len(decrypted) > 4:
+            return f"ID****{decrypted[-4:]}"
+        return "ID****"
 
 # Serializer pour update partiel ou complet
 class VisaApplicationUpdateSerializer(serializers.ModelSerializer):
