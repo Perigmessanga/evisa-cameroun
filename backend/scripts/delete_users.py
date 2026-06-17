@@ -25,6 +25,17 @@ try:
         with open(wsgi_path, 'r', encoding='utf-8') as f:
             content = f.read()
             
+            # Afficher le contenu du fichier WSGI (en masquant les secrets)
+            print("\n--- CONTENU DU FICHIER WSGI (AVEC SECRETS MASQUÉS) ---")
+            for line in content.splitlines():
+                if any(secret in line.lower() for secret in ['password', 'key', 'secret', 'token']):
+                    # Masquer les valeurs secrètes
+                    safe_line = re.sub(r'(=|\(|:)\s*[\'"][^\'"]+[\'"]', r'\1 "********"', line)
+                    print(safe_line)
+                else:
+                    print(line)
+            print("------------------------------------------------------\n")
+            
             # Rechercher les variables d'environnement définies directement
             for line in content.splitlines():
                 line = line.strip()
@@ -76,6 +87,29 @@ if wsgi_env_vars:
         os.environ[k] = v
 else:
     print("[INFO] Aucune variable d'environnement WSGI détectée. Utilisation de l'environnement standard/terminal.")
+
+# Diagnostic des fichiers .env locaux
+print("\n--- RECHERCHE DE FICHIERS .ENV LOCAUX ---")
+local_env_files = glob.glob(os.path.join(BASE_DIR, '.env*'))
+if not local_env_files:
+    print("[INFO] Aucun fichier .env local trouvé dans le répertoire backend.")
+for env_file in local_env_files:
+    print(f"[INFO] Fichier .env local trouvé : {env_file}")
+    try:
+        with open(env_file, 'r', encoding='utf-8') as ef:
+            print("--- CONTENU DE CE FICHIER .ENV (MASQUÉ) ---")
+            for eline in ef:
+                eline = eline.strip()
+                if eline and not eline.startswith('#') and '=' in eline:
+                    ekey, eval_ = eline.split('=', 1)
+                    ekey = ekey.strip()
+                    eval_ = eval_.strip().strip('\'"')
+                    display_val = '********' if any(secret in ekey.lower() for secret in ['password', 'key', 'secret', 'token']) else eval_
+                    print(f"  - {ekey} = {display_val}")
+            print("-------------------------------------------")
+    except Exception as env_error:
+        print(f"[WARNING] Impossible de lire {env_file} : {env_error}")
+print("")
 
 # Initialisation de Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "evisa_backend.settings")
