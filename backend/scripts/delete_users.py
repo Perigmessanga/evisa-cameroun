@@ -111,96 +111,104 @@ for env_file in local_env_files:
         print(f"[WARNING] Impossible de lire {env_file} : {env_error}")
 print("")
 
-# Initialisation de Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "evisa_backend.settings")
-import django
-django.setup()
-
-from django.conf import settings
-from django.db import connections
+import sqlite3
 
 # Mots-clés à rechercher dans l'adresse email
 keywords = ['messangacharles@icloud.com', 'messangaperig3@gmail.com', 'messanga', 'charles', 'perig']
 
-# Liste des bases de données à traiter
+# 1. Recherche de toutes les bases sqlite3 sur le serveur
 db_targets = []
+user_home = os.path.expanduser('~')
+for root, dirs, files in os.walk(user_home):
+    # Éviter de scanner des dossiers non pertinents pour optimiser la vitesse
+    dirs[:] = [d for d in dirs if d not in ['.git', '.venv', 'venv', 'node_modules', '.cache', 'tmp', '__pycache__']]
+    for file in files:
+        if file == 'db.sqlite3':
+            db_targets.append(os.path.join(root, file))
 
-# Vérification du type de base de données
-default_db = settings.DATABASES.get('default', {})
-if default_db.get('ENGINE') == 'django.db.backends.sqlite3':
-    print("\n--- RECHERCHE DYNAMIQUE DE TOUTES LES BASES SQLITE ---")
-    user_home = os.path.expanduser('~')
-    # Parcourir récursivement pour trouver tous les fichiers db.sqlite3
-    for root, dirs, files in os.walk(user_home):
-        # Éviter de scanner des dossiers non pertinents pour optimiser la vitesse
-        dirs[:] = [d for d in dirs if d not in ['.git', '.venv', 'venv', 'node_modules', '.cache', 'tmp', '__pycache__']]
-        for file in files:
-            if file == 'db.sqlite3':
-                db_targets.append(os.path.join(root, file))
-    
-    # S'assurer que le db.sqlite3 par défaut de la configuration est bien présent
-    default_sqlite_path = str(default_db.get('NAME'))
-    if default_sqlite_path not in db_targets:
-        db_targets.append(default_sqlite_path)
-    
-    print(f"[INFO] {len(db_targets)} fichier(s) SQLite identifié(s) : {db_targets}")
-else:
-    # Si MySQL ou un autre moteur est actif par défaut
-    db_targets = [None]
-    print("[INFO] Moteur de base de données MySQL ou autre actif par défaut. Traitement unique.")
+# S'assurer que les bases possibles dans BASE_DIR sont aussi présentes
+local_db = os.path.join(BASE_DIR, 'db.sqlite3')
+if os.path.exists(local_db) and local_db not in db_targets:
+    db_targets.append(local_db)
 
-# Traitement de chaque base de données identifiée
+print(f"[INFO] {len(db_targets)} fichier(s) SQLite identifié(s) : {db_targets}")
+
+# 2. Purge directe de chaque base de données SQLite en mode natif (sans Django ORM)
+# Cela évite de planter sur les différences de schéma de tables / colonnes.
 for db_target in db_targets:
-    if db_target:
-        print(f"\n========================================================")
-        print(f"CONNEXION À LA BASE SQLITE : {db_target}")
-        print(f"========================================================")
-        # Modifier la config Django et forcer la reconnexion
-        settings.DATABASES['default']['NAME'] = db_target
-        connections.close_all()
-        connections['default'].settings_dict['NAME'] = db_target
-    else:
-        print(f"\n========================================================")
-        print(f"CONNEXION À LA BASE ACTIVE PAR DÉFAUT (MySQL/Production)")
-        print(f"========================================================")
-        
+    print(f"\n========================================================")
+    print(f"CONNEXION DIRECTE SQLITE À : {db_target}")
+    print(f"========================================================")
+    
     try:
-        from apps.users.models import User
-        all_users = User.objects.all()
-        print(f"Nombre total d'utilisateurs : {all_users.count()}")
-        for u in all_users:
-            print(f"ID: {u.id} | Email: {u.email} | Rôle: {u.role} | Actif: {u.is_active}")
-        print("----------------------------------------------\n")
+        conn = sqlite3.connect(db_target)
+        cursor = conn.cursor()
         
-        print("--- RECHERCHE ET PURGE DYNAMIQUE ---")
-        found_any = False
-        for keyword in keywords:
-            users = User.objects.filter(email__icontains=keyword)
-            if users.exists():
-                found_any = True
-                for user in users:
-                    if user.role == 'ADMIN' and user.email == 'admin@test.com':
-                        continue
-                    print(f"[-] Suppression de l'utilisateur : {user.email} (Rôle: {user.role}, ID: {user.id})")
-                    try:
-                        user.delete()
-                        print(f"[OK] Purge réussie pour {user.email}")
-                    except Exception as delete_error:
-                        print(f"[ERREUR] Échec de suppression de {user.email} : {delete_error}")
-                        print("[INFO] Tentative de suppression forcée des relations...")
-                        from apps.visa_applications.models import VisaApplication
-                        apps = VisaApplication.objects.filter(applicant=user)
-                        print(f"  -> Suppression de {apps.count()} demandes de visa liées.")
-                        apps.delete()
-                        try:
-                            user.delete()
-                            print(f"[OK] Purge réussie pour {user.email} après suppression des relations.")
-                        except Exception as retry_error:
-                            print(f"[ERREUR CRITIQUE] Impossible de supprimer {user.email} même après forçage : {retry_error}")
-        if not found_any:
-            print("[INFO] Aucun utilisateur correspondant aux mots-clés n'a été trouvé.")
+        # Désactiver temporairement les clés étrangères pour pouvoir nettoyer sans contraintes
+        cursor.execute("PRAGMA foreign_keys = OFF;")
+        
+        # Récupérer la liste des tables présentes dans cette base
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row[0] for row in cursor.fetchall()]
+        print(f"[INFO] Tables trouvées en base : {tables}")
+        
+        if 'evisa_user' not in tables:
+            print("[INFO] La table 'evisa_user' n'existe pas dans cette base. Saut de l'étape.")
+            conn.close()
+            continue
             
-    except Exception as db_err:
-        print(f"[ERREUR] Échec d'accès ou d'interrogation pour cette base de données : {db_err}")
+        # 1. Lister tous les utilisateurs présents dans cette base
+        cursor.execute("SELECT id, email, role, is_active FROM evisa_user;")
+        users = cursor.fetchall()
+        print(f"--- Liste des utilisateurs ({len(users)} en base) ---")
+        for u_id, u_email, u_role, u_active in users:
+            print(f"  ID: {u_id} | Email: {u_email} | Rôle: {u_role} | Actif: {u_active}")
+        print("---------------------------------------------------\n")
+        
+        # 2. Chercher les utilisateurs cibles
+        matching_user_ids = []
+        for keyword in keywords:
+            cursor.execute("SELECT id, email FROM evisa_user WHERE email LIKE ?;", (f"%{keyword}%",))
+            rows = cursor.fetchall()
+            for r_id, r_email in rows:
+                if r_email == 'admin@test.com':
+                    continue  # ignorer l'admin de test
+                if (r_id, r_email) not in matching_user_ids:
+                    matching_user_ids.append((r_id, r_email))
+        
+        if not matching_user_ids:
+            print("[INFO] Aucun utilisateur cible trouvé dans cette base.")
+        else:
+            print("--- PURGE DIRECTE SQL ---")
+            for u_id, u_email in matching_user_ids:
+                print(f"[-] Purge de l'utilisateur : {u_email} (ID: {u_id})")
+                
+                # Supprimer des tables de demandes de visa si elles existent
+                for app_table in ['evisa_application', 'visa_applications_visaapplication']:
+                    if app_table in tables:
+                        cursor.execute(f"DELETE FROM {app_table} WHERE applicant_id = ?;", (u_id,))
+                        print(f"  -> Supprimé de {app_table} ({cursor.rowcount} lignes)")
+                
+                # Supprimer les tokens ou sessions de cet utilisateur si des tables existent
+                for token_table in ['token_blacklist_outstandingtoken', 'token_blacklist_blacklistedtoken']:
+                    if token_table in tables:
+                        # Supprimer les blacklisted tokens liés aux outstanding tokens du user
+                        if token_table == 'token_blacklist_blacklistedtoken' and 'token_blacklist_outstandingtoken' in tables:
+                            cursor.execute("DELETE FROM token_blacklist_blacklistedtoken WHERE token_id IN (SELECT id FROM token_blacklist_outstandingtoken WHERE user_id = ?);", (u_id,))
+                            print(f"  -> Supprimé de token_blacklist_blacklistedtoken ({cursor.rowcount} lignes)")
+                        elif token_table == 'token_blacklist_outstandingtoken':
+                            cursor.execute("DELETE FROM token_blacklist_outstandingtoken WHERE user_id = ?;", (u_id,))
+                            print(f"  -> Supprimé de token_blacklist_outstandingtoken ({cursor.rowcount} lignes)")
+                
+                # Supprimer de la table evisa_user
+                cursor.execute("DELETE FROM evisa_user WHERE id = ?;", (u_id,))
+                print(f"  -> Supprimé de evisa_user ({cursor.rowcount} lignes)")
+                
+            conn.commit()
+            print("[OK] Purge directe réussie et validée pour cette base.")
+            
+        conn.close()
+    except Exception as e:
+        print(f"[ERREUR] Échec de la purge directe sur {db_target} : {e}")
 
 print("\n=== FIN DE LA PROCÉDURE DE PURGE ===")
