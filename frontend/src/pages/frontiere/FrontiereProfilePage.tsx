@@ -107,7 +107,7 @@ export default function FrontiereProfilePage() {
             </p>
          </div>
          <div className="bg-cm-cream p-5 rounded-2xl border border-cm-border flex flex-col items-center text-center">
-            <ShieldAlert size={24} className="text-indigo-600 mb-2" />
+            <Shield size={24} className="text-indigo-600 mb-2" />
             <p className="text-xs font-bold text-cm-muted uppercase">Alertes Déclenchées</p>
             <p className="text-2xl font-bold text-cm-text mt-1">
                {statsLoading ? <Loader2 size={20} className="animate-spin opacity-20" /> : stats.alertesDeclenchees}
